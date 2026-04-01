@@ -25,7 +25,7 @@ export function LoginScreen() {
     setError("");
     try {
       if (mode === "register") {
-        const user = await apiPost("/users", { alias: alias.trim(), password, avatarBase });
+        const user = await apiPost("/users?action=register", { alias: alias.trim(), password, avatarBase });
         handleLogin(user);
       } else {
         const result = await apiGet(`/users?alias=${alias.trim().toLowerCase()}`);
