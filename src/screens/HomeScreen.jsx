@@ -66,12 +66,32 @@ export function HomeScreen() {
         )}
       </Card>
 
+      {/* 2x2 Streak grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        {[
+          { label: "Fotbollstreak", val: stats.streak,        icon: "⚽", color: COLORS.lime },
+          { label: "Glasstreak",    val: stats.iceCreamStreak, icon: "🍦", color: "#f9a8d4" },
+          { label: "Badstreak",     val: stats.swimStreak,     icon: "🏊", color: "#60a5fa" },
+          { label: "Lässtreak",     val: stats.readStreak,     icon: "📖", color: "#86efac" },
+        ].map(({ label, val, icon, color }) => (
+          <Card key={label} style={{ textAlign: "center", padding: "14px 8px" }}>
+            <div style={{ fontSize: 26 }}>{icon}</div>
+            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 28, color, lineHeight: 1.1 }}>{val}</div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 2 }}>dagar i rad</div>
+            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>{label}</div>
+          </Card>
+        ))}
+      </div>
+
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
         {[
-          { label: "Träningsmin", val: stats.totalMinutes, icon: "⏱" },
-          { label: "Touch totalt", val: stats.totalTouch, icon: "🦶" },
-          { label: "Längsta streak", val: stats.maxStreak, icon: "💪" },
+          { label: "Träningsmin",    val: stats.totalMinutes,  icon: "⏱" },
+          { label: "Touch totalt",   val: stats.totalTouch,    icon: "🦶" },
+          { label: "Längsta streak", val: stats.maxStreak,     icon: "💪" },
+          { label: "Glassar",        val: stats.totalIceCream, icon: "🍦" },
+          { label: "Bad",            val: stats.totalSwim,     icon: "🏊" },
+          { label: "Sidor lästa",    val: stats.totalPages,    icon: "📖" },
         ].map(({ label, val, icon }) => (
           <Card key={label} style={{ textAlign: "center", padding: "12px 8px" }}>
             <div style={{ fontSize: 22 }}>{icon}</div>
@@ -195,7 +215,7 @@ export function HomeScreen() {
       {/* Action buttons */}
       <button onClick={() => setScreen("log")}
         style={{ width: "100%", padding: "18px 0", borderRadius: 18, border: "none", background: COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive", fontSize: 22, cursor: "pointer", marginBottom: 10, boxShadow: `0 6px 28px ${COLORS.lime}55`, letterSpacing: 0.5 }}>
-        ⚽ Logga träning!
+        📒 Dagbok
       </button>
       <button onClick={() => setScreen("bingo")}
         style={{ width: "100%", padding: "15px 0", borderRadius: 16, border: "none",

@@ -25,6 +25,9 @@ export function TeamScreen() {
   const allBingoDone = new Set(allStats.flatMap(u => u.bingo));
   const totalTeamBingo = allStats.reduce((s, u) => s + u.bingo.length, 0);
   const uniqueTeamBingo = allBingoDone.size;
+  const totalTeamIceCream = allUsers.reduce((s, u) => s + (u.logs || []).reduce((a, l) => a + (l.iceCream || 0), 0), 0);
+  const totalTeamSwim     = allUsers.reduce((s, u) => s + (u.logs || []).reduce((a, l) => a + (l.swim || 0), 0), 0);
+  const totalTeamPages    = allUsers.reduce((s, u) => s + (u.logs || []).reduce((a, l) => a + (l.pages || 0), 0), 0);
   const teamPoints = totalTeamTouch + totalTeamMinutes * 5;
 
   const allActiveDays = new Set(
@@ -239,6 +242,9 @@ export function TeamScreen() {
           { label: "Minuter tränat",          val: totalTeamMinutes,                      icon: "⏱" },
           { label: "Touch totalt",            val: totalTeamTouch.toLocaleString("sv"),   icon: "🦶" },
           { label: "Bingo-uppdrag klarade",  val: `${totalTeamBingo} (${uniqueTeamBingo} unika)`, icon: "🌞" },
+          { label: "Glassar totalt",         val: totalTeamIceCream,  icon: "🍦" },
+          { label: "Bad totalt",             val: totalTeamSwim,      icon: "🏊" },
+          { label: "Sidor lästa totalt",     val: totalTeamPages.toLocaleString("sv"), icon: "📖" },
         ].map(({ label, val, icon }) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>{icon} {label}</span>

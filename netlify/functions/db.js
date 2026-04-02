@@ -50,10 +50,14 @@ export async function initDb(db) {
     );
   `);
 
-  // Migration: add display_password column if missing (existing tables)
-  try {
-    await db.execute("ALTER TABLE users ADD COLUMN display_password TEXT DEFAULT ''");
-  } catch (e) {
-    // Column already exists — ignore
+  // Migrations
+  const migrations = [
+    "ALTER TABLE users ADD COLUMN display_password TEXT DEFAULT ''",
+    "ALTER TABLE logs ADD COLUMN ice_cream INTEGER DEFAULT 0",
+    "ALTER TABLE logs ADD COLUMN swim INTEGER DEFAULT 0",
+    "ALTER TABLE logs ADD COLUMN pages INTEGER DEFAULT 0",
+  ];
+  for (const sql of migrations) {
+    try { await db.execute(sql); } catch (e) { /* column already exists */ }
   }
 }

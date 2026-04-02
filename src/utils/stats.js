@@ -51,5 +51,25 @@ export function computeStats(user) {
     streak = diff <= 1 ? cur : 0;
   }
   const bingoCount = (user.bingo || []).length;
-  return { totalPoints, totalMinutes, totalLogs, totalTouch, exerciseCounts, exerciseHighscores, streak, maxStreak, bingoCount };
+
+  // Summer activity totals
+  const totalIceCream = logs.reduce((s, l) => s + (l.iceCream || 0), 0);
+  const totalSwim     = logs.reduce((s, l) => s + (l.swim || 0), 0);
+  const totalPages    = logs.reduce((s, l) => s + (l.pages || 0), 0);
+
+  // Summer streaks — days in a row with at least 1 of each activity
+  function calcSummerStreak(field) {
+    const days = [...new Set(logs.filter(l => (l[field] || 0) >= 1).map(l => l.date))].sort();
+    let cur = 0;
+    for (let i = 0; i < days.length; i++) {
+      cur = i === 0 ? 1 : (new Date(days[i]) - new Date(days[i - 1])) / 86400000 === 1 ? cur + 1 : 1;
+    }
+    if (days.length === 0) return 0;
+    return (new Date(today) - new Date(days[days.length - 1])) / 86400000 <= 1 ? cur : 0;
+  }
+  const iceCreamStreak = calcSummerStreak('iceCream');
+  const swimStreak     = calcSummerStreak('swim');
+  const readStreak     = calcSummerStreak('pages');
+
+  return { totalPoints, totalMinutes, totalLogs, totalTouch, exerciseCounts, exerciseHighscores, streak, maxStreak, bingoCount, totalIceCream, totalSwim, totalPages, iceCreamStreak, swimStreak, readStreak };
 }
