@@ -9,6 +9,7 @@ export function TeamScreen() {
   const { user, setScreen } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     apiGet("/users").then(setAllUsers).catch(() => setAllUsers([])).finally(() => setLoadingTeam(false));
@@ -66,8 +67,6 @@ export function TeamScreen() {
   const teamLevel     = getTeamLevel(teamPoints);
   const nextTeamLevel = getNextTeamLevel(teamPoints);
   const teamProgress  = calcTeamProgress(teamPoints);
-
-  const [showConfetti, setShowConfetti] = useState(false);
 
   // Show confetti briefly on mount if we just leveled up (stored in sessionStorage)
   useEffect(() => {
