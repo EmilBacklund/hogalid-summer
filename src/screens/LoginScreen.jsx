@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { COLORS, CLUB_LOGO, AVATAR_CONFIGS } from '../constants';
-import { apiGet, apiPost } from '../utils';
+import { apiPost } from '../utils';
 import { Card } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
@@ -16,11 +16,6 @@ export function LoginScreen() {
 
   async function handleSubmit() {
     if (!alias.trim() || !password.trim()) { setError("Fyll i alias och lösenord!"); return; }
-    // Admin login — local check, no DB
-    if (alias.trim().toLowerCase() === "admin" && password === "HögalidF15") {
-      handleLogin({ alias: "admin", isAdmin: true });
-      return;
-    }
     setBusy(true);
     setError("");
     try {
@@ -28,16 +23,14 @@ export function LoginScreen() {
         const user = await apiPost("/users?action=register", { alias: alias.trim(), password, avatarBase });
         handleLogin(user);
       } else {
-        const result = await apiGet(`/users?alias=${alias.trim().toLowerCase()}`);
-        if (result.error === "not_found" || result.password !== password) {
-          setError("Fel alias eller lösenord!");
-        } else {
-          handleLogin(result);
-        }
+        const user = await apiPost("/users?action=login", { alias: alias.trim(), password });
+        handleLogin(user);
       }
     } catch (e) {
       if (e.message.includes("409") || e.message.includes("alias_taken")) {
         setError("Det aliset är taget, prova ett annat!");
+      } else if (e.message.includes("401") || e.message.includes("invalid_credentials")) {
+        setError("Fel alias eller lösenord!");
       } else {
         setError("Något gick fel, försök igen!");
       }

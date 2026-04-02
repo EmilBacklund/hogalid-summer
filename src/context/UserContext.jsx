@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useMemo } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete, localToday, computeStats } from '../utils';
+import { apiGet, apiPost, apiPut, localToday, computeStats } from '../utils';
 import { BINGO } from '../constants';
 
 const UserContext = createContext(null);
@@ -27,8 +27,9 @@ export function UserProvider({ children }) {
   async function handleSaveLog(log, newHighscores) {
     setLoading(true);
     try {
-      await apiPost("/logs", { alias: user.alias, log });
-      const updated = await apiPut("/users", { alias: user.alias, highscores: newHighscores });
+      await apiPost("/users?action=addlog", { alias: user.alias, log });
+      await apiPut("/users?action=update", { alias: user.alias, highscores: newHighscores, unlockedItems: user.unlockedItems });
+      const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
       setScreen("home");
     } catch (e) {
@@ -42,7 +43,8 @@ export function UserProvider({ children }) {
     if (currentStats.totalPoints < cost) return;
     const newItems = [...(user.unlockedItems || []), itemId];
     try {
-      const updated = await apiPut("/users", { alias: user.alias, unlockedItems: newItems });
+      await apiPut("/users?action=update", { alias: user.alias, unlockedItems: newItems, highscores: user.highscores });
+      const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
     } catch (e) {
       alert("Kunde inte låsa upp: " + e.message);
@@ -52,14 +54,14 @@ export function UserProvider({ children }) {
   async function handleBingoDone(challengeId, bonusPoints) {
     if ((user.bingo || []).includes(challengeId)) return;
     try {
-      await apiPost("/bingo", { alias: user.alias, challengeId });
+      await apiPost("/users?action=bingo", { alias: user.alias, challengeId });
       const challenge = BINGO.find(b => b.id === challengeId);
       const isFootball = challenge?.cat === "⚽";
-      await apiPost("/logs", {
+      await apiPost("/users?action=addlog", {
         alias: user.alias,
         log: { date: localToday(), exercises: [], points: bonusPoints, minutes: 0, bingo: true, bingoFootball: isFootball }
       });
-      const updated = await apiGet(`/users?alias=${user.alias.toLowerCase()}`);
+      const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
     } catch (e) {
       alert("Kunde inte markera bingo: " + e.message);
@@ -68,13 +70,13 @@ export function UserProvider({ children }) {
 
   async function handleCompleteDaily(challengeId, points) {
     const today = localToday();
-    const newCompleted = { ...(user.completedDaily || {}), [today]: challengeId };
     try {
-      await apiPost("/logs", {
+      await apiPost("/users?action=daily", { alias: user.alias, date: today, challengeId });
+      await apiPost("/users?action=addlog", {
         alias: user.alias,
         log: { date: today, exercises: [], points, minutes: 0, dailyChallenge: true }
       });
-      const updated = await apiPut("/users", { alias: user.alias, completedDaily: newCompleted });
+      const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
     } catch (e) {
       alert("Kunde inte markera utmaning: " + e.message);
@@ -84,11 +86,11 @@ export function UserProvider({ children }) {
   async function handleUpdateLog(action, logId, updatedLog) {
     try {
       if (action === "delete") {
-        await apiDelete("/logs", { id: logId });
+        await apiPut("/users?action=deletelog", { logId });
       } else if (action === "edit") {
-        await apiPut("/logs", { id: logId, log: updatedLog });
+        await apiPut("/users?action=editlog", { logId, log: updatedLog });
       }
-      const updated = await apiGet(`/users?alias=${user.alias.toLowerCase()}`);
+      const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
     } catch (e) {
       alert("Kunde inte uppdatera träning: " + e.message);

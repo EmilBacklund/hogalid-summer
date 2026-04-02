@@ -1,4 +1,5 @@
 import { getDb, initDb } from './db.js';
+import { hashPassword, verifyPassword } from './auth.js';
 
 export default async (req, context) => {
   const db = getDb();
@@ -67,21 +68,22 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: 'alias_taken' }), { status: 409, headers });
       }
 
+      const hashed = await hashPassword(password);
+      const joinedAt = new Date().toISOString();
       await db.execute({
         sql: 'INSERT INTO users (alias, password, avatar_base, unlocked_items, highscores, joined_at) VALUES (?, ?, ?, ?, ?, ?)',
-        args: [key, password, avatarBase || 0, '[]', '{}', new Date().toISOString()],
+        args: [key, hashed, avatarBase || 0, '[]', '{}', joinedAt],
       });
 
       const user = {
         alias: key,
-        password,
         avatarBase: avatarBase || 0,
         unlockedItems: [],
         highscores: {},
         logs: [],
         bingo: [],
         completedDaily: {},
-        joinedAt: new Date().toISOString(),
+        joinedAt,
       };
       return new Response(JSON.stringify(user), { status: 201, headers });
     }
@@ -92,16 +94,27 @@ export default async (req, context) => {
       const { alias, password } = body;
       const key = alias.toLowerCase();
 
+      // Admin login via env vars
+      if (key === (process.env.ADMIN_ALIAS || 'admin').toLowerCase()) {
+        if (password === process.env.ADMIN_PASSWORD) {
+          return new Response(JSON.stringify({ alias: 'admin', isAdmin: true }), { status: 200, headers });
+        }
+        return new Response(JSON.stringify({ error: 'invalid_credentials' }), { status: 401, headers });
+      }
+
       const result = await db.execute({
-        sql: 'SELECT * FROM users WHERE alias = ? AND password = ?',
-        args: [key, password],
+        sql: 'SELECT * FROM users WHERE alias = ?',
+        args: [key],
       });
       if (result.rows.length === 0) {
-        return new Response(JSON.stringify({ error: 'invalid_credentials' }), {
-          status: 401,
-          headers,
-        });
+        return new Response(JSON.stringify({ error: 'invalid_credentials' }), { status: 401, headers });
       }
+
+      const valid = await verifyPassword(password, result.rows[0].password);
+      if (!valid) {
+        return new Response(JSON.stringify({ error: 'invalid_credentials' }), { status: 401, headers });
+      }
+
       const user = rowToUser(result.rows[0]);
       user.logs = await getLogs(db, key);
       user.bingo = await getBingo(db, key);
@@ -207,7 +220,6 @@ export default async (req, context) => {
 function rowToUser(row) {
   return {
     alias: row.alias,
-    password: row.password,
     avatarBase: row.avatar_base,
     unlockedItems: JSON.parse(row.unlocked_items || '[]'),
     highscores: JSON.parse(row.highscores || '{}'),
