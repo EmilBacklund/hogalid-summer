@@ -133,30 +133,6 @@ export function BingoScreen() {
         </Card>
       )}
 
-      {/* Selected challenge confirm popup */}
-      {selectedChallenge && (
-        <Card style={{ marginBottom: 16, border: `2px solid ${COLORS.lime}`, background: "rgba(168,230,61,0.08)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-            <div style={{ fontSize: 28 }}>{selectedChallenge.cat}</div>
-            <div style={{ background: COLORS.accent, color: COLORS.dark, borderRadius: 8, padding: "3px 10px", fontWeight: 700, fontSize: 13 }}>+{selectedChallenge.points} p</div>
-          </div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 14, lineHeight: 1.3 }}>{selectedChallenge.label}</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => { markDone(selectedChallenge.id); setSelectedChallenge(null); }}
-              style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
-                background: COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive",
-                fontSize: 16, cursor: "pointer" }}>
-              ✅ Klart!
-            </button>
-            <button onClick={() => setSelectedChallenge(null)}
-              style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)",
-                background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>
-              ✕
-            </button>
-          </div>
-        </Card>
-      )}
-
       {/* Filter tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         {[["all", "Alla 50"], ["⚽", "Fotboll & idrott"], ["☀️", "Sommar"]].map(([val, lbl]) => (
@@ -176,35 +152,55 @@ export function BingoScreen() {
           const isDone = done.includes(challenge.id);
           const isJust = justDone === challenge.id;
           return (
-            <div key={challenge.id}
-              onClick={() => !isDone && setSelectedChallenge(challenge)}
-              style={{
-                display: "flex", alignItems: "center", gap: 12,
-                background: isDone ? "rgba(168,230,61,0.1)" : "rgba(255,255,255,0.06)",
-                border: `1px solid ${isDone ? COLORS.lime + "55" : "rgba(255,255,255,0.08)"}`,
-                borderRadius: 14, padding: "12px 14px",
-                cursor: isDone ? "default" : "pointer",
-                opacity: isDone ? 0.7 : 1,
-                transition: "all 0.2s",
-                transform: isJust ? "scale(1.02)" : "scale(1)",
-              }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-                border: `2px solid ${isDone ? COLORS.lime : "rgba(255,255,255,0.2)"}`,
-                background: isDone ? COLORS.lime : "transparent",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 14,
-              }}>
-                {isDone ? "✓" : challenge.cat}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ color: isDone ? "rgba(255,255,255,0.5)" : "#fff", fontSize: 14, fontWeight: 600, lineHeight: 1.3, textDecoration: isDone ? "line-through" : "none" }}>
-                  {challenge.label}
+            <div key={challenge.id}>
+              <div
+                onClick={() => !isDone && setSelectedChallenge(selectedChallenge?.id === challenge.id ? null : challenge)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  background: isDone ? "rgba(168,230,61,0.1)" : "rgba(255,255,255,0.06)",
+                  border: `1px solid ${isDone ? COLORS.lime + "55" : selectedChallenge?.id === challenge.id ? COLORS.lime : "rgba(255,255,255,0.08)"}`,
+                  borderRadius: selectedChallenge?.id === challenge.id ? "14px 14px 0 0" : 14,
+                  padding: "12px 14px",
+                  cursor: isDone ? "default" : "pointer",
+                  opacity: isDone ? 0.7 : 1,
+                  transition: "all 0.2s",
+                  transform: isJust ? "scale(1.02)" : "scale(1)",
+                }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  border: `2px solid ${isDone ? COLORS.lime : "rgba(255,255,255,0.2)"}`,
+                  background: isDone ? COLORS.lime : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 14,
+                }}>
+                  {isDone ? "✓" : challenge.cat}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: isDone ? "rgba(255,255,255,0.5)" : "#fff", fontSize: 14, fontWeight: 600, lineHeight: 1.3, textDecoration: isDone ? "line-through" : "none" }}>
+                    {challenge.label}
+                  </div>
+                </div>
+                <div style={{ color: isDone ? COLORS.lime : COLORS.accent, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                  {isDone ? "✅" : `+${challenge.points}p`}
                 </div>
               </div>
-              <div style={{ color: isDone ? COLORS.lime : COLORS.accent, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                {isDone ? "✅" : `+${challenge.points}p`}
-              </div>
+              {selectedChallenge?.id === challenge.id && (
+                <div style={{ background: "rgba(168,230,61,0.08)", border: `1px solid ${COLORS.lime}`, borderTop: "none", borderRadius: "0 0 14px 14px", padding: "12px 14px" }}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => { markDone(challenge.id); setSelectedChallenge(null); }}
+                      style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
+                        background: COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive",
+                        fontSize: 16, cursor: "pointer" }}>
+                      ✅ Klart!
+                    </button>
+                    <button onClick={() => setSelectedChallenge(null)}
+                      style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)",
+                        background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
