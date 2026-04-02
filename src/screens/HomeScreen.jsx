@@ -1,11 +1,17 @@
+import { useState, useEffect } from 'react';
 import { COLORS, BADGES, EXERCISES, AVATAR_CONFIGS } from '../constants';
-import { getLevel, getNextLevel, calcProgress, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge } from '../utils';
+import { getLevel, getNextLevel, calcProgress, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge, apiGet } from '../utils';
 import { Card, ProgressBar, Countdown } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
 export function HomeScreen() {
   const { user, stats, setScreen, seasonStart } = useUser();
+  const [allUsers, setAllUsers] = useState([]);
+
+  useEffect(() => {
+    apiGet("/users").then(setAllUsers).catch(() => setAllUsers([]));
+  }, []);
 
   const level = getLevel(stats.totalPoints);
   const nextLevel = getNextLevel(stats.totalPoints);
@@ -106,9 +112,8 @@ export function HomeScreen() {
         const weekly = getWeeklyChallenge(seasonStart);
         const dailyDone = (user.completedDaily || {})[today] === daily.id;
         const weekStart = getWeekStart(today);
-        const users = {};  // Weekly team data shown fully in ChallengesScreen
         let weekTouch = 0, weekMins = 0;
-        Object.values(users).forEach(u => {
+        allUsers.forEach(u => {
           (u.logs || []).forEach(l => {
             if (!l.bingo && l.date >= weekStart && l.date <= today) {
               weekMins += l.minutes || 0;
