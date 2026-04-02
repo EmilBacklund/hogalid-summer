@@ -57,19 +57,13 @@ export function TeamScreen() {
     teamStreak = diffToday <= 1 ? teamCur : 0;
   }
 
-  if (loadingTeam) return (
-    <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.5)", fontFamily: "'Nunito', sans-serif" }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>⚽</div>
-      Laddar lagets data...
-    </div>
-  );
-
   const teamLevel     = getTeamLevel(teamPoints);
   const nextTeamLevel = getNextTeamLevel(teamPoints);
   const teamProgress  = calcTeamProgress(teamPoints);
 
   // Show confetti briefly on mount if we just leveled up (stored in sessionStorage)
   useEffect(() => {
+    if (loadingTeam) return;
     const key = "fball_last_team_level";
     const last = sessionStorage.getItem(key);
     if (last && last !== teamLevel.name) {
@@ -77,7 +71,14 @@ export function TeamScreen() {
       setTimeout(() => setShowConfetti(false), 3000);
     }
     sessionStorage.setItem(key, teamLevel.name);
-  }, [teamLevel.name]);
+  }, [loadingTeam, teamLevel.name]);
+
+  if (loadingTeam) return (
+    <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.5)", fontFamily: "'Nunito', sans-serif" }}>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>⚽</div>
+      Laddar lagets data...
+    </div>
+  );
 
   const myStats = allStats.find(u => u.alias === user.alias);
 

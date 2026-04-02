@@ -15,7 +15,8 @@
       "Bash(npx vite:*)",
       "Bash(node -e \"import\\('/Users/emilb/Documents/workspace/hogalid-summer/netlify/functions/db.js'\\).catch\\(e => console.log\\('db.js parse ok \\(import fails at runtime only\\)'\\)\\)\")",
       "Bash(curl:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm list:*)"
     ]
   }
 }
