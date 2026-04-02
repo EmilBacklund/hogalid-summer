@@ -29,7 +29,7 @@ function AppContent() {
   if (!user) {
     return (
       <div style={bgStyle}>
-        <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } body { background: ${COLORS.dark}; } input[type=number]::-webkit-inner-spin-button { opacity: 1; }`}</style>
+        <style>{`body { background: ${COLORS.dark}; } input[type=number]::-webkit-inner-spin-button { opacity: 1; }`}</style>
         <LoginScreen />
       </div>
     );
@@ -43,7 +43,6 @@ function AppContent() {
     <div style={bgStyle}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: ${COLORS.dark}; }
         input:focus { outline: none; box-shadow: 0 0 0 3px ${COLORS.lime}66; }
         input[type=number]::-webkit-inner-spin-button { opacity: 1; }

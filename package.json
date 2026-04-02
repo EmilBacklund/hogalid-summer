@@ -14,8 +14,10 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "@vitejs/plugin-react": "^4.2.1",
     "netlify-cli": "^24.9.0",
+    "tailwindcss": "^4.2.2",
     "vite": "^5.0.0"
   }
 }

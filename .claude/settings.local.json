@@ -16,7 +16,14 @@
       "Bash(node -e \"import\\('/Users/emilb/Documents/workspace/hogalid-summer/netlify/functions/db.js'\\).catch\\(e => console.log\\('db.js parse ok \\(import fails at runtime only\\)'\\)\\)\")",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(npm list:*)"
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__fill",
+      "mcp__chrome-devtools__click"
     ]
   }
 }
