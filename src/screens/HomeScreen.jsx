@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { COLORS, BADGES, EXERCISES, AVATAR_CONFIGS } from '../constants';
-import { getLevel, getNextLevel, calcProgress, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge, apiGet } from '../utils';
+import { getLevel, getNextLevel, calcProgress, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge, getWeeklyLevelInfo, apiGet } from '../utils';
 import { Card, ProgressBar, Countdown } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
@@ -20,6 +20,12 @@ export function HomeScreen() {
 
   return (
     <div style={{ padding: "20px 16px", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        @keyframes fireGlow {
+          0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
+          50% { box-shadow: 0 0 28px 8px #ffae00, 0 0 48px 16px #ff6a00; }
+        }
+      `}</style>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <button onClick={() => setScreen("avatar")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 0 }}>
@@ -125,10 +131,14 @@ export function HomeScreen() {
           });
         });
         const weekVal = weekly.type === "touch" ? weekTouch : weekMins;
-        const weekPct = Math.min(100, Math.round((weekVal / weekly.goal) * 100));
-        const weekDone = weekPct >= 100;
+        const weekDone = weekVal >= weekly.goal;
+        const levelInfo = getWeeklyLevelInfo(weekVal, weekly.goal);
         return (
-          <Card style={{ marginBottom: 12, padding: "16px 16px 14px", cursor: "pointer" }} onClick={() => setScreen("challenges")}>
+          <Card style={{ marginBottom: 12, padding: "16px 16px 14px", cursor: "pointer",
+            border: levelInfo.isMaxLevel ? "2px solid #ff6a00" : undefined,
+            background: levelInfo.isMaxLevel ? "rgba(255,100,0,0.08)" : undefined,
+            animation: levelInfo.isMaxLevel ? "fireGlow 1.5s ease-in-out infinite" : undefined,
+          }} onClick={() => setScreen("challenges")}>
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>⚡ Utmaningar</div>
@@ -156,18 +166,25 @@ export function HomeScreen() {
 
             {/* Weekly section */}
             <div>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-                🤝 Lagets veckoutmaning
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
+                  🤝 Lagets veckoutmaning
+                </div>
+                {levelInfo.level > 0 && (
+                  <div style={{ color: levelInfo.isMaxLevel ? "#ff6a00" : COLORS.lime, fontSize: 11, fontWeight: 700 }}>
+                    {levelInfo.isMaxLevel ? "🔥 " : ""}{levelInfo.levelName}
+                  </div>
+                )}
               </div>
-              <div style={{ color: weekDone ? COLORS.lime : "#fff", fontSize: 13, fontWeight: 600, marginBottom: 8, lineHeight: 1.3 }}>
-                {weekly.label} {weekDone ? "🎉" : ""}
+              <div style={{ color: levelInfo.isMaxLevel ? "#ff6a00" : weekDone ? COLORS.lime : "#fff", fontSize: 13, fontWeight: 600, marginBottom: 8, lineHeight: 1.3 }}>
+                {weekly.label} {levelInfo.isMaxLevel ? "🔥" : weekDone ? "🎉" : ""}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <ProgressBar value={weekPct} color={weekDone ? COLORS.lime : COLORS.yellow} height={8} />
+                  <ProgressBar value={levelInfo.progress} color={levelInfo.isMaxLevel ? "#ff6a00" : weekDone ? COLORS.lime : COLORS.yellow} height={8} />
                 </div>
-                <span style={{ color: weekDone ? COLORS.lime : "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, flexShrink: 0, minWidth: 36, textAlign: "right" }}>
-                  {weekVal}/{weekly.goal}
+                <span style={{ color: levelInfo.isMaxLevel ? "#ff6a00" : weekDone ? COLORS.lime : "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, flexShrink: 0, textAlign: "right" }}>
+                  {levelInfo.isMaxLevel ? "MAX" : `${weekVal}/${levelInfo.nextThreshold}`}
                 </span>
               </div>
             </div>
