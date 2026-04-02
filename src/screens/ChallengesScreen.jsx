@@ -5,12 +5,12 @@ import { Card, ProgressBar } from '../components/common';
 import { useUser } from '../context/UserContext';
 
 export function ChallengesScreen() {
-  const { user, setScreen, handleCompleteDaily } = useUser();
+  const { user, setScreen, handleCompleteDaily, seasonStart } = useUser();
 
   const today = localToday();
   const weekStart = getWeekStart(today);
-  const daily = getDailyChallenge();
-  const weekly = getWeeklyChallenge();
+  const daily = getDailyChallenge(seasonStart);
+  const weekly = getWeeklyChallenge(seasonStart);
 
   const completedDaily = user.completedDaily || {};
   const dailyDoneToday = completedDaily[today] === daily.id;

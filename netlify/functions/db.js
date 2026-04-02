@@ -43,6 +43,11 @@ export async function initDb(db) {
       challenge_id TEXT NOT NULL,
       PRIMARY KEY (alias, date)
     );
+
+    CREATE TABLE IF NOT EXISTS config (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   // Migration: add display_password column if missing (existing tables)

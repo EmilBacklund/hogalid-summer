@@ -211,6 +211,32 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
+    // GET - config (season start date)
+    if (method === 'GET' && action === 'config') {
+      const result = await db.execute({
+        sql: "SELECT value FROM config WHERE key = 'season_start'",
+        args: [],
+      });
+      const seasonStart = result.rows.length > 0 ? result.rows[0].value : null;
+      return new Response(JSON.stringify({ seasonStart }), { status: 200, headers });
+    }
+
+    // PUT - reset season (clear all data, set new season start)
+    if (method === 'PUT' && action === 'resetseason') {
+      const today = new Date().toISOString().slice(0, 10);
+      await db.executeMultiple(`
+        DELETE FROM logs;
+        DELETE FROM bingo;
+        DELETE FROM completed_daily;
+        DELETE FROM users;
+      `);
+      await db.execute({
+        sql: "INSERT OR REPLACE INTO config (key, value) VALUES ('season_start', ?)",
+        args: [today],
+      });
+      return new Response(JSON.stringify({ ok: true, seasonStart: today }), { status: 200, headers });
+    }
+
     // PUT - admin reset password
     if (method === 'PUT' && action === 'resetpassword') {
       const body = await req.json();

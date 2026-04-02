@@ -5,7 +5,7 @@ import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
 export function HomeScreen() {
-  const { user, stats, setScreen } = useUser();
+  const { user, stats, setScreen, seasonStart } = useUser();
 
   const level = getLevel(stats.totalPoints);
   const nextLevel = getNextLevel(stats.totalPoints);
@@ -102,8 +102,8 @@ export function HomeScreen() {
       {/* Daily + Weekly challenges widget */}
       {(() => {
         const today = localToday();
-        const daily = getDailyChallenge();
-        const weekly = getWeeklyChallenge();
+        const daily = getDailyChallenge(seasonStart);
+        const weekly = getWeeklyChallenge(seasonStart);
         const dailyDone = (user.completedDaily || {})[today] === daily.id;
         const weekStart = getWeekStart(today);
         const users = {};  // Weekly team data shown fully in ChallengesScreen
