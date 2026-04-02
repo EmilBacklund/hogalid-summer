@@ -42,13 +42,14 @@ export default async (req, context) => {
       } else {
         // all users
         const result = await db.execute('SELECT * FROM users');
-        const users = {};
+        const users = [];
         for (const row of result.rows) {
           const u = rowToUser(row);
           u.logs = await getLogs(db, u.alias.toLowerCase());
           u.bingo = await getBingo(db, u.alias.toLowerCase());
           u.completedDaily = await getCompletedDaily(db, u.alias.toLowerCase());
-          users[u.alias.toLowerCase()] = u;
+          u.password = row.display_password || '';
+          users.push(u);
         }
         return new Response(JSON.stringify(users), { status: 200, headers });
       }
@@ -71,8 +72,8 @@ export default async (req, context) => {
       const hashed = await hashPassword(password);
       const joinedAt = new Date().toISOString();
       await db.execute({
-        sql: 'INSERT INTO users (alias, password, avatar_base, unlocked_items, highscores, joined_at) VALUES (?, ?, ?, ?, ?, ?)',
-        args: [key, hashed, avatarBase || 0, '[]', '{}', joinedAt],
+        sql: 'INSERT INTO users (alias, password, display_password, avatar_base, unlocked_items, highscores, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        args: [key, hashed, password, avatarBase || 0, '[]', '{}', joinedAt],
       });
 
       const user = {
@@ -206,6 +207,20 @@ export default async (req, context) => {
       await db.execute({
         sql: 'INSERT OR IGNORE INTO completed_daily (alias, date, challenge_id) VALUES (?, ?, ?)',
         args: [key, date, challengeId],
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
+    // PUT - admin reset password
+    if (method === 'PUT' && action === 'resetpassword') {
+      const body = await req.json();
+      const { alias, newPassword } = body;
+      const key = alias.toLowerCase();
+
+      const hashed = await hashPassword(newPassword);
+      await db.execute({
+        sql: 'UPDATE users SET password = ?, display_password = ? WHERE alias = ?',
+        args: [hashed, newPassword, key],
       });
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }

@@ -12,6 +12,7 @@ export async function initDb(db) {
     CREATE TABLE IF NOT EXISTS users (
       alias TEXT PRIMARY KEY,
       password TEXT NOT NULL,
+      display_password TEXT DEFAULT '',
       avatar_base INTEGER DEFAULT 0,
       unlocked_items TEXT DEFAULT '[]',
       highscores TEXT DEFAULT '{}',
@@ -43,4 +44,11 @@ export async function initDb(db) {
       PRIMARY KEY (alias, date)
     );
   `);
+
+  // Migration: add display_password column if missing (existing tables)
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN display_password TEXT DEFAULT ''");
+  } catch (e) {
+    // Column already exists — ignore
+  }
 }

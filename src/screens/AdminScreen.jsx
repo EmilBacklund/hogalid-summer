@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { COLORS, CLUB_LOGO, AVATAR_CONFIGS } from '../constants';
-import { apiGet, localToday, computeStats, getLevel } from '../utils';
+import { apiGet, apiPut, localToday, computeStats, getLevel } from '../utils';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
@@ -24,7 +24,22 @@ export function AdminScreen() {
   }, []);
 
   const [showPw, setShowPw] = useState({});
+  const [resetPw, setResetPw] = useState({});
+  const [newPw, setNewPw] = useState({});
   const today = localToday();
+
+  async function handleResetPassword(alias) {
+    const pw = newPw[alias];
+    if (!pw || !pw.trim()) return;
+    try {
+      await apiPut("/users?action=resetpassword", { alias, newPassword: pw.trim() });
+      setPlayers(prev => prev.map(p => p.alias === alias ? { ...p, password: pw.trim() } : p));
+      setResetPw(prev => ({ ...prev, [alias]: false }));
+      setNewPw(prev => ({ ...prev, [alias]: "" }));
+    } catch (e) {
+      alert("Kunde inte byta lösenord: " + e.message);
+    }
+  }
 
   function daysSince(dateStr) {
     if (!dateStr) return null;
@@ -136,15 +151,43 @@ export function AdminScreen() {
                 </div>
 
                 {/* Password row */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "8px 12px" }}>
-                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>🔑 Lösenord:</span>
-                  <span style={{ color: showPw[p.alias] ? COLORS.accent : "transparent", fontSize: 13, fontWeight: 700, background: showPw[p.alias] ? "none" : "rgba(255,255,255,0.15)", borderRadius: 6, padding: "1px 8px", userSelect: showPw[p.alias] ? "text" : "none", letterSpacing: showPw[p.alias] ? 0 : 2 }}>
-                    {showPw[p.alias] ? p.password : "••••••••"}
-                  </span>
-                  <button onClick={() => setShowPw(prev => ({ ...prev, [p.alias]: !prev[p.alias] }))}
-                    style={{ marginLeft: "auto", background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.6)", borderRadius: 7, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}>
-                    {showPw[p.alias] ? "Dölj" : "Visa"}
-                  </button>
+                <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "8px 12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>🔑 Lösenord:</span>
+                    {p.password ? (
+                      <span style={{ color: showPw[p.alias] ? COLORS.accent : "transparent", fontSize: 13, fontWeight: 700, background: showPw[p.alias] ? "none" : "rgba(255,255,255,0.15)", borderRadius: 6, padding: "1px 8px", userSelect: showPw[p.alias] ? "text" : "none", letterSpacing: showPw[p.alias] ? 0 : 2 }}>
+                        {showPw[p.alias] ? p.password : "••••••••"}
+                      </span>
+                    ) : (
+                      <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, fontStyle: "italic" }}>Ej tillgängligt</span>
+                    )}
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                      {p.password && (
+                        <button onClick={() => setShowPw(prev => ({ ...prev, [p.alias]: !prev[p.alias] }))}
+                          style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.6)", borderRadius: 7, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}>
+                          {showPw[p.alias] ? "Dölj" : "Visa"}
+                        </button>
+                      )}
+                      <button onClick={() => setResetPw(prev => ({ ...prev, [p.alias]: !prev[p.alias] }))}
+                        style={{ background: "rgba(255,255,255,0.1)", border: "none", color: COLORS.accent, borderRadius: 7, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}>
+                        Byt
+                      </button>
+                    </div>
+                  </div>
+                  {resetPw[p.alias] && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                      <input
+                        value={newPw[p.alias] || ""}
+                        onChange={(e) => setNewPw(prev => ({ ...prev, [p.alias]: e.target.value }))}
+                        placeholder="Nytt lösenord"
+                        style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
+                      />
+                      <button onClick={() => handleResetPassword(p.alias)}
+                        style={{ background: COLORS.lime, border: "none", color: COLORS.dark, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+                        Spara
+                      </button>
+                    </div>
+                  )}
                 </div>
 
               </div>
