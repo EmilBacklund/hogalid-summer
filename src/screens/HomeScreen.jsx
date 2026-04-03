@@ -10,6 +10,7 @@ import {
   getWeeklyChallenge,
   getWeeklyLevelInfo,
   fetchAllUsers,
+  computeWeeklyHistory,
 } from '../utils';
 import { Card, ProgressBar, Countdown } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
@@ -234,6 +235,35 @@ export function HomeScreen() {
               </div>
             </div>
           </Card>
+        );
+      })()}
+      {/* Last week's result */}
+      {(() => {
+        const history = computeWeeklyHistory(allUsers, seasonStart);
+        if (history.length === 0) return null;
+        const last = history[0];
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 14px', marginBottom: 12 }}>
+            <div style={{ fontSize: 18 }}>
+              {last.levelInfo.level > 0 ? (last.levelInfo.isMaxLevel ? '🔥' : '✅') : '❌'}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Förra veckan</div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{last.challenge.label}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              {last.levelInfo.level > 0 ? (
+                <div style={{ color: last.levelInfo.isMaxLevel ? '#ff6a00' : COLORS.lime, fontWeight: 700, fontSize: 13 }}>
+                  Nivå {last.levelInfo.level} — {last.levelInfo.levelName}
+                </div>
+              ) : (
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: 13 }}>Ej klar</div>
+              )}
+              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+                {last.value} {last.challenge.type === 'touch' ? 'touch' : 'min'}
+              </div>
+            </div>
+          </div>
         );
       })()}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>

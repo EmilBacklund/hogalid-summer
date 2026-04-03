@@ -48,6 +48,16 @@ export async function initDb(db) {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS weekly_results (
+      week_start TEXT PRIMARY KEY,
+      challenge_label TEXT NOT NULL,
+      challenge_type TEXT NOT NULL,
+      value INTEGER NOT NULL,
+      goal INTEGER NOT NULL,
+      level INTEGER NOT NULL,
+      level_name TEXT
+    );
   `);
 
   // Migrations

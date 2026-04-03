@@ -224,6 +224,31 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ seasonStart }), { status: 200, headers });
     }
 
+    // GET - weekly results history
+    if (method === 'GET' && action === 'weeklyresults') {
+      const result = await db.execute('SELECT * FROM weekly_results ORDER BY week_start DESC');
+      return new Response(JSON.stringify(result.rows.map(r => ({
+        weekStart: r.week_start,
+        challengeLabel: r.challenge_label,
+        challengeType: r.challenge_type,
+        value: r.value,
+        goal: r.goal,
+        level: r.level,
+        levelName: r.level_name,
+      }))), { status: 200, headers });
+    }
+
+    // POST - save weekly result
+    if (method === 'POST' && action === 'saveweeklyresult') {
+      const body = await req.json();
+      const { weekStart, challengeLabel, challengeType, value, goal, level, levelName } = body;
+      await db.execute({
+        sql: 'INSERT OR REPLACE INTO weekly_results (week_start, challenge_label, challenge_type, value, goal, level, level_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        args: [weekStart, challengeLabel, challengeType, value, goal, level, levelName || null],
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
     // PUT - reset season (clear all data, set new season start)
     if (method === 'PUT' && action === 'resetseason') {
       const today = new Date().toISOString().slice(0, 10);
@@ -232,6 +257,7 @@ export default async (req, context) => {
         DELETE FROM bingo;
         DELETE FROM completed_daily;
         DELETE FROM users;
+        DELETE FROM weekly_results;
       `);
       await db.execute({
         sql: "INSERT OR REPLACE INTO config (key, value) VALUES ('season_start', ?)",
