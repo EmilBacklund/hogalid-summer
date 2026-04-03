@@ -42,12 +42,23 @@ export function TeamScreen() {
   }, []);
 
   async function toggleReaction(eventKey, emoji) {
-    const current = reactions[eventKey] || {};
-    const myEmoji = current[user.alias];
-    const removing = myEmoji === emoji;
-    await apiPost('/users?action=react', { eventKey, alias: user.alias, emoji: removing ? null : emoji });
-    const updated = await apiGet('/users?action=reactions');
-    setReactions(updated);
+    try {
+      const current = reactions[eventKey] || {};
+      const myEmoji = current[user.alias];
+      const removing = myEmoji === emoji;
+      // Optimistic update
+      setReactions(prev => {
+        const copy = { ...prev, [eventKey]: { ...(prev[eventKey] || {}) } };
+        if (removing) delete copy[eventKey][user.alias];
+        else copy[eventKey][user.alias] = emoji;
+        return copy;
+      });
+      await apiPost('/users?action=react', { eventKey, alias: user.alias, emoji: removing ? null : emoji });
+      const updated = await apiGet('/users?action=reactions');
+      setReactions(updated);
+    } catch (e) {
+      alert('Kunde inte spara reaktion: ' + e.message);
+    }
   }
 
   const allStats = allUsers.map((u) => {
