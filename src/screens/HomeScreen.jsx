@@ -402,6 +402,7 @@ export function HomeScreen() {
       </div>
 
       {/* Streak row */}
+      <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Mina stats:</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
         {[
           { label: 'Fotboll', val: stats.streak,         icon: '⚽', color: COLORS.lime },
