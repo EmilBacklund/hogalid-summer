@@ -19,7 +19,7 @@ export function LogHistoryScreen() {
       const found = (log.exercises || []).find(e => e.id === ex.id);
       return { id: ex.id, value: found ? String(found.value) : "", highscore: "" };
     });
-    setEditing({ _idx: log._idx, date: log.date, exercises: exState });
+    setEditing({ id: log.id, date: log.date, exercises: exState });
   }
 
   function setVal(id, val) {
@@ -36,7 +36,7 @@ export function LogHistoryScreen() {
     }, 0);
     const points = totalTouch + totalMins * 5;
     const updated = { date: editing.date, exercises: filled.map(e => ({ id: e.id, value: Number(e.value) })), points, minutes: totalMins };
-    handleUpdateLog("edit", editing._idx, updated);
+    handleUpdateLog("edit", editing.id, updated);
     setEditing(null);
   }
 
