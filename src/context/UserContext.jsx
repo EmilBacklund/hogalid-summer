@@ -166,6 +166,7 @@ export function UserProvider({ children }) {
       } else if (action === "edit") {
         await apiPut("/users?action=editlog", { logId, log: updatedLog });
       }
+      invalidateUsersCache();
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
     } catch (e) {
