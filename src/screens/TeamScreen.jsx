@@ -292,7 +292,7 @@ export function TeamScreen() {
 
       {/* Activity feed */}
       {(() => {
-        const feed = generateFeed(allUsers, user.alias);
+        const feed = generateFeed(allUsers, user.alias, seasonStart);
         if (feed.length === 0) return null;
         const visible = showFeed ? feed.slice(0, 15) : [];
         return (

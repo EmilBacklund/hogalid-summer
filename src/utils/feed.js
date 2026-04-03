@@ -1,11 +1,22 @@
 import { EXERCISES, DAILY_CHALLENGES, BADGES } from '../constants';
 import { getLevel } from './levels';
 import { computeStats } from './stats';
-import { localToday } from './date';
+import { localToday, getWeekStart } from './date';
+import { computeWeeklyHistory } from './weeklyHistory';
+import { getWeeklyLevelInfo, WEEKLY_LEVEL_NAMES } from './challenges';
+import { getWeeklyChallengeForDate } from './weeklyHistory';
 
 const STREAK_MILESTONES = [3, 5, 7, 10, 14, 21, 30];
 
-export function generateFeed(allUsers, myAlias) {
+function addDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
+export function generateFeed(allUsers, myAlias, seasonStart) {
   const events = [];
   const today = localToday();
 
@@ -88,6 +99,66 @@ export function generateFeed(allUsers, myAlias) {
       }
     }
   });
+
+  // Weekly challenge: level-ups during current week (day by day)
+  if (seasonStart) {
+    const today = localToday();
+    const weekStart = getWeekStart(today);
+    const weekEnd = today;
+    const challenge = getWeeklyChallengeForDate(weekStart, seasonStart);
+
+    // Collect all relevant dates in the current week
+    const allDates = [...new Set(
+      allUsers.flatMap(u => (u.logs || [])
+        .filter(l => !l.bingo && l.date >= weekStart && l.date <= weekEnd)
+        .map(l => l.date)
+      )
+    )].sort();
+
+    let prevLevel = 0;
+    allDates.forEach(date => {
+      let touch = 0, minutes = 0;
+      allUsers.forEach(u => {
+        (u.logs || []).filter(l => !l.bingo && l.date >= weekStart && l.date <= date).forEach(l => {
+          minutes += l.minutes || 0;
+          (l.exercises || []).forEach(e => {
+            const ex = EXERCISES.find(x => x.id === e.id);
+            if (ex && !ex.isTime && e.id !== 'skott') touch += e.value || 0;
+          });
+        });
+      });
+      const val = challenge.type === 'touch' ? touch : minutes;
+      const levelInfo = getWeeklyLevelInfo(val, challenge.goal);
+      if (levelInfo.level > prevLevel) {
+        for (let lvl = prevLevel + 1; lvl <= levelInfo.level; lvl++) {
+          events.push({
+            date,
+            type: 'weeklylevel',
+            alias: 'Laget',
+            isMe: false,
+            text: `nådde Nivå ${lvl} — ${WEEKLY_LEVEL_NAMES[lvl - 1]} i veckoutmaningen! ${lvl === 10 ? '🔥' : '🏅'}`,
+            icon: lvl === 10 ? '🔥' : '🏅',
+          });
+        }
+        prevLevel = levelInfo.level;
+      }
+    });
+
+    // Historical week endings
+    const history = computeWeeklyHistory(allUsers, seasonStart);
+    history.forEach(({ weekStart: ws, weekEnd: we, challenge: c, levelInfo: li }) => {
+      events.push({
+        date: we,
+        type: 'weeklyend',
+        alias: 'Laget',
+        isMe: false,
+        text: li.level > 0
+          ? `avslutade veckan på Nivå ${li.level} — ${li.levelName} ${li.isMaxLevel ? '🔥' : '✅'}`
+          : `klarade inte veckoutmaningen den veckan ❌`,
+        icon: li.level > 0 ? (li.isMaxLevel ? '🔥' : '🏆') : '❌',
+      });
+    });
+  }
 
   // Deduplicate badge events (keep only one per alias+badge)
   const seen = new Set();
