@@ -71,151 +71,6 @@ export function HomeScreen() {
 
       {/* Countdown */}
       <Countdown />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <Card style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 32 }}>🔥</div>
-          <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 28, color: COLORS.yellow }}>
-            {stats.streak}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>dagars streak</div>
-        </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 32 }}>⭐</div>
-          <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 28, color: COLORS.accent }}>
-            {stats.totalPoints}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>totala poäng</div>
-        </Card>
-      </div>
-
-      {/* Level progress */}
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>
-            {level.icon} {level.name}
-          </span>
-          {nextLevel && (
-            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-              → {nextLevel.icon} {nextLevel.name}
-            </span>
-          )}
-        </div>
-        <ProgressBar value={progress} color={COLORS.lime} height={12} />
-        {nextLevel && (
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 6 }}>
-            {nextLevel.min - stats.totalPoints} poäng kvar
-          </div>
-        )}
-      </Card>
-
-      {/* 2x2 Streak grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-        {[
-          { label: 'Fotbollstreak', val: stats.streak, icon: '⚽', color: COLORS.lime },
-          { label: 'Glasstreak', val: stats.iceCreamStreak, icon: '🍦', color: '#f9a8d4' },
-          { label: 'Badstreak', val: stats.swimStreak, icon: '🏊', color: '#60a5fa' },
-          { label: 'Lässtreak', val: stats.readStreak, icon: '📖', color: '#86efac' },
-        ].map(({ label, val, icon, color }) => (
-          <Card key={label} style={{ textAlign: 'center', padding: '14px 8px' }}>
-            <div style={{ fontSize: 26 }}>{icon}</div>
-            <div
-              style={{ fontFamily: "'Fredoka One', cursive", fontSize: 28, color, lineHeight: 1.1 }}
-            >
-              {val}
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 2 }}>
-              dagar i rad
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{label}</div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Stats row */}
-      <div
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}
-      >
-        {[
-          { label: 'Träningsmin', val: stats.totalMinutes, icon: '⏱' },
-          { label: 'Touch totalt', val: stats.totalTouch, icon: '🦶' },
-          { label: 'Längsta streak', val: stats.maxStreak, icon: '💪' },
-          { label: 'Glassar', val: stats.totalIceCream, icon: '🍦' },
-          { label: 'Bad', val: stats.totalSwim, icon: '🏊' },
-          { label: 'Sidor lästa', val: stats.totalPages, icon: '📖' },
-        ].map(({ label, val, icon }) => (
-          <Card key={label} style={{ textAlign: 'center', padding: '12px 8px' }}>
-            <div style={{ fontSize: 22 }}>{icon}</div>
-            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: '#fff' }}>
-              {val}
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{label}</div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Badges */}
-      {earnedBadges.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              color: 'rgba(255,255,255,0.7)',
-              fontSize: 13,
-              fontWeight: 600,
-              marginBottom: 8,
-            }}
-          >
-            Mina badges
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {earnedBadges.map((b) => (
-              <div
-                key={b.id}
-                style={{
-                  background: 'rgba(240,220,0,0.12)',
-                  border: `1px solid rgba(240,220,0,0.35)`,
-                  borderRadius: 10,
-                  padding: '6px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span style={{ fontSize: 18 }}>{b.icon}</span>
-                <span style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 600 }}>
-                  {b.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Highscores */}
-      {Object.keys(user.highscores || {}).length > 0 && (
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ color: COLORS.accent, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
-            🏆 Mina rekord
-          </div>
-          {Object.entries(user.highscores).map(([id, val]) => {
-            const ex = EXERCISES.find((e) => e.id === id);
-            return ex ? (
-              <div
-                key={id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  color: 'rgba(255,255,255,0.8)',
-                  fontSize: 13,
-                  marginBottom: 4,
-                }}
-              >
-                <span>{ex.label}</span>
-                <span style={{ color: COLORS.accent, fontWeight: 700 }}>{val} i rad</span>
-              </div>
-            ) : null;
-          })}
-        </Card>
-      )}
 
       {/* Daily + Weekly challenges widget */}
       {(() => {
@@ -384,6 +239,79 @@ export function HomeScreen() {
           </Card>
         );
       })()}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+        <Card style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 32 }}>🔥</div>
+          <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 28, color: COLORS.yellow }}>
+            {stats.streak}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>dagars streak</div>
+        </Card>
+        <Card style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 32 }}>⭐</div>
+          <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 28, color: COLORS.accent }}>
+            {stats.totalPoints}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>totala poäng</div>
+        </Card>
+      </div>
+
+      {/* Level progress */}
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>
+            {level.icon} {level.name}
+          </span>
+          {nextLevel && (
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
+              → {nextLevel.icon} {nextLevel.name}
+            </span>
+          )}
+        </div>
+        <ProgressBar value={progress} color={COLORS.lime} height={12} />
+        {nextLevel && (
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 6 }}>
+            {nextLevel.min - stats.totalPoints} poäng kvar
+          </div>
+        )}
+      </Card>
+
+      {/* Badges */}
+      {earnedBadges.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: 13,
+              fontWeight: 600,
+              marginBottom: 8,
+            }}
+          >
+            Mina badges
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {earnedBadges.map((b) => (
+              <div
+                key={b.id}
+                style={{
+                  background: 'rgba(240,220,0,0.12)',
+                  border: `1px solid rgba(240,220,0,0.35)`,
+                  borderRadius: 10,
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 18 }}>{b.icon}</span>
+                <span style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 600 }}>
+                  {b.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Action buttons */}
       <button
@@ -424,7 +352,7 @@ export function HomeScreen() {
       >
         🌞 Sommarlovsbingo — {(user.bingo || []).length}/50 klara
       </button>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
         <button
           onClick={() => setScreen('avatar')}
           style={{
@@ -453,7 +381,7 @@ export function HomeScreen() {
             cursor: 'pointer',
           }}
         >
-          🤝 Laget
+          🤝 Högalid F15
         </button>
         <button
           onClick={() => setScreen('history')}
@@ -472,6 +400,73 @@ export function HomeScreen() {
           📋 Mina träningar
         </button>
       </div>
+
+      {/* Streak row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+        {[
+          { label: 'Fotboll', val: stats.streak,         icon: '⚽', color: COLORS.lime },
+          { label: 'Glass',   val: stats.iceCreamStreak, icon: '🍦', color: '#f9a8d4' },
+          { label: 'Bad',     val: stats.swimStreak,     icon: '🏊', color: '#60a5fa' },
+          { label: 'Läsning', val: stats.readStreak,     icon: '📖', color: '#86efac' },
+        ].map(({ label, val, icon, color }) => (
+          <Card key={label} style={{ textAlign: 'center', padding: '10px 4px' }}>
+            <div style={{ fontSize: 20 }}>{icon}</div>
+            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color, lineHeight: 1.1 }}>{val}</div>
+            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 1 }}>dagar</div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{label}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Stats row */}
+      <div
+        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}
+      >
+        {[
+          { label: 'Träningsmin', val: stats.totalMinutes, icon: '⏱' },
+          { label: 'Touch totalt', val: stats.totalTouch, icon: '🦶' },
+          { label: 'Längsta streak', val: stats.maxStreak, icon: '💪' },
+          { label: 'Glassar', val: stats.totalIceCream, icon: '🍦' },
+          { label: 'Bad', val: stats.totalSwim, icon: '🏊' },
+          { label: 'Sidor lästa', val: stats.totalPages, icon: '📖' },
+        ].map(({ label, val, icon }) => (
+          <Card key={label} style={{ textAlign: 'center', padding: '12px 8px' }}>
+            <div style={{ fontSize: 22 }}>{icon}</div>
+            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: '#fff' }}>
+              {val}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{label}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Highscores */}
+      {Object.keys(user.highscores || {}).length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <div style={{ color: COLORS.accent, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+            🏆 Mina rekord
+          </div>
+          {Object.entries(user.highscores).map(([id, val]) => {
+            const ex = EXERCISES.find((e) => e.id === id);
+            return ex ? (
+              <div
+                key={id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  color: 'rgba(255,255,255,0.8)',
+                  fontSize: 13,
+                  marginBottom: 4,
+                }}
+              >
+                <span>{ex.label}</span>
+                <span style={{ color: COLORS.accent, fontWeight: 700 }}>{val} i rad</span>
+              </div>
+            ) : null;
+          })}
+        </Card>
+      )}
+
     </div>
   );
 }
