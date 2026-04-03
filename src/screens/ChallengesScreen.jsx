@@ -73,6 +73,25 @@ export function ChallengesScreen() {
         )}
       </Card>
 
+      {/* Daily history */}
+      {dailyHistory.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>✨ Senaste klarade dagsuppdrag</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {dailyHistory.map(({ date, challenge }) => (
+              <div key={date} style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "10px 14px" }}>
+                <div style={{ fontSize: 22 }}>{challenge.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, textDecoration: "line-through" }}>{challenge.label}</div>
+                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 2 }}>{date}</div>
+                </div>
+                <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 700 }}>+{challenge.points}p</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Weekly team challenge */}
       <style>{`
         @keyframes fireGlow {
@@ -172,24 +191,6 @@ export function ChallengesScreen() {
         </div>
       </Card>
 
-      {/* Daily history */}
-      {dailyHistory.length > 0 && (
-        <>
-          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>✨ Senaste klarade</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {dailyHistory.map(({ date, challenge }) => (
-              <div key={date} style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "10px 14px" }}>
-                <div style={{ fontSize: 22 }}>{challenge.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, textDecoration: "line-through" }}>{challenge.label}</div>
-                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 2 }}>{date}</div>
-                </div>
-                <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 700 }}>+{challenge.points}p</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }
