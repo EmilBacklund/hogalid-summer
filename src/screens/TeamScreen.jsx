@@ -25,6 +25,7 @@ export function TeamScreen() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showRoster, setShowRoster] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAllLevels, setShowAllLevels] = useState(false);
 
   useEffect(() => {
     fetchAllUsers()
@@ -454,33 +455,48 @@ export function TeamScreen() {
         </div>
 
         {/* Level list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {WEEKLY_LEVEL_NAMES.map((name, i) => {
-            const threshold = levelInfo.thresholds[i];
-            const done = i + 1 <= levelInfo.level;
-            const isCurrent = i + 1 === levelInfo.level + 1 && !levelInfo.isMaxLevel;
-            const isMax = i === 9;
-            return (
-              <div key={name} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '6px 10px', borderRadius: 10,
-                background: done ? 'rgba(168,230,61,0.08)' : isCurrent ? 'rgba(255,255,255,0.06)' : 'transparent',
-                border: done ? `1px solid ${isMax ? '#ff6a00' : COLORS.lime}44` : isCurrent ? '1px solid rgba(255,255,255,0.12)' : 'none',
-                opacity: done || isCurrent ? 1 : 0.4,
-              }}>
-                <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>
-                  {done ? (isMax ? '🔥' : '✅') : isCurrent ? '🎯' : '○'}
-                </span>
-                <span style={{ flex: 1, color: done ? (isMax ? '#ff6a00' : COLORS.lime) : isCurrent ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: done || isCurrent ? 700 : 400 }}>
-                  Nivå {i + 1} — {isMax ? '🔥 ' : ''}{name}
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
-                  {threshold} {weekly.type === 'touch' ? 'touch' : 'min'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        {(() => {
+          const visibleIndexes = showAllLevels
+            ? WEEKLY_LEVEL_NAMES.map((_, i) => i)
+            : WEEKLY_LEVEL_NAMES.map((_, i) => i).filter(i => {
+                const isLastDone = i + 1 === levelInfo.level;
+                const isCurrent = i + 1 === levelInfo.level + 1 && !levelInfo.isMaxLevel;
+                return isLastDone || isCurrent || (levelInfo.isMaxLevel && i === 9);
+              });
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {WEEKLY_LEVEL_NAMES.map((name, i) => {
+                if (!visibleIndexes.includes(i)) return null;
+                const threshold = levelInfo.thresholds[i];
+                const done = i + 1 <= levelInfo.level;
+                const isCurrent = i + 1 === levelInfo.level + 1 && !levelInfo.isMaxLevel;
+                const isMax = i === 9;
+                return (
+                  <div key={name} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '6px 10px', borderRadius: 10,
+                    background: done ? 'rgba(168,230,61,0.08)' : isCurrent ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    border: done ? `1px solid ${isMax ? '#ff6a00' : COLORS.lime}44` : isCurrent ? '1px solid rgba(255,255,255,0.12)' : 'none',
+                    opacity: done || isCurrent ? 1 : 0.4,
+                  }}>
+                    <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>
+                      {done ? (isMax ? '🔥' : '✅') : isCurrent ? '🎯' : '○'}
+                    </span>
+                    <span style={{ flex: 1, color: done ? (isMax ? '#ff6a00' : COLORS.lime) : isCurrent ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: done || isCurrent ? 700 : 400 }}>
+                      Nivå {i + 1} — {isMax ? '🔥 ' : ''}{name}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+                      {threshold} {weekly.type === 'touch' ? 'touch' : 'min'}
+                    </span>
+                  </div>
+                );
+              })}
+              <button onClick={() => setShowAllLevels(v => !v)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', marginTop: 4, textAlign: 'center' }}>
+                {showAllLevels ? '▲ Visa färre' : '▼ Visa alla 10 nivåer'}
+              </button>
+            </div>
+          );
+        })()}
 
         <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 10, textAlign: 'center' }}>
           Träna och logga — det räknas automatiskt!
