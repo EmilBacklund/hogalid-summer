@@ -209,27 +209,20 @@ export function HomeScreen() {
               >
                 {weekly.label} {levelInfo.isMaxLevel ? '🔥' : weekDone ? '🎉' : ''}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <ProgressBar
-                    value={levelInfo.progress}
-                    color={
-                      levelInfo.isMaxLevel ? '#ff6a00' : weekDone ? COLORS.lime : COLORS.yellow
-                    }
-                    height={8}
-                  />
-                </div>
+              <ProgressBar
+                value={levelInfo.progress}
+                color={levelInfo.isMaxLevel ? '#ff6a00' : weekDone ? COLORS.lime : COLORS.yellow}
+                height={8}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                  {weekly.type === 'touch' ? `${weekVal} touch` : `${weekVal} min`}
+                </span>
                 <span
                   style={{
-                    color: levelInfo.isMaxLevel
-                      ? '#ff6a00'
-                      : weekDone
-                        ? COLORS.lime
-                        : COLORS.yellow,
+                    color: levelInfo.isMaxLevel ? '#ff6a00' : weekDone ? COLORS.lime : COLORS.yellow,
                     fontSize: 12,
                     fontWeight: 700,
-                    flexShrink: 0,
-                    textAlign: 'right',
                   }}
                 >
                   {levelInfo.isMaxLevel
