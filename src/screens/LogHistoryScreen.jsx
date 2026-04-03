@@ -87,7 +87,7 @@ export function LogHistoryScreen() {
             const ex = EXERCISES.find(x => x.id === e.id);
             return s + (ex && !ex.isTime && e.id !== "skott" ? (e.value || 0) : 0);
           }, 0);
-          const isConfirming = confirmDelete === log._idx;
+          const isConfirming = confirmDelete === log.id;
           return (
             <Card key={log._idx} style={{ padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -103,7 +103,7 @@ export function LogHistoryScreen() {
               </div>
               {isConfirming ? (
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => deleteLog(log._idx)}
+                  <button onClick={() => deleteLog(log.id)}
                     style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "none", background: COLORS.red, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                     🗑 Ja, ta bort
                   </button>
@@ -118,7 +118,7 @@ export function LogHistoryScreen() {
                     style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "none", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                     ✏️ Redigera
                   </button>
-                  <button onClick={() => setConfirmDelete(log._idx)}
+                  <button onClick={() => setConfirmDelete(log.id)}
                     style={{ padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(220,40,40,0.4)", background: "transparent", color: COLORS.red, fontSize: 14, cursor: "pointer" }}>
                     🗑
                   </button>
