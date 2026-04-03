@@ -1,16 +1,67 @@
 import { DAILY_CHALLENGES, WEEKLY_CHALLENGES } from '../constants';
 import { localToday } from './date';
 
-// Get today's daily challenge (same for all players, cycles through all 70)
-export function getDailyChallenge() {
+const WEEKLY_LEVEL_NAMES = ["Brons", "Silver", "Guld", "Platina", "Diamant", "Mästare", "Elite", "Legend", "Odödlig", "Gudarnas nivå"];
+
+export function getWeeklyLevelInfo(value, goal) {
+  // Build thresholds for all 10 levels: goal, goal*1.2, goal*1.2², ...
+  const thresholds = [];
+  let t = goal;
+  for (let i = 0; i < 10; i++) {
+    thresholds.push(Math.round(t));
+    t *= 1.2;
+  }
+
+  // Find current level (how many thresholds have been passed)
+  let level = 0;
+  for (let i = 0; i < 10; i++) {
+    if (value >= thresholds[i]) level = i + 1;
+    else break;
+  }
+
+  const isMaxLevel = level === 10;
+  const levelName = level > 0 ? WEEKLY_LEVEL_NAMES[level - 1] : null;
+  const nextLevelName = level < 10 ? WEEKLY_LEVEL_NAMES[level] : null;
+
+  // Progress toward next level
+  let progress;
+  if (isMaxLevel) {
+    progress = 100;
+  } else if (level === 0) {
+    progress = Math.round((value / thresholds[0]) * 100);
+  } else {
+    const from = thresholds[level - 1];
+    const to = thresholds[level];
+    progress = Math.round(((value - from) / (to - from)) * 100);
+  }
+
+  return {
+    level,
+    levelName,
+    nextLevelName,
+    isMaxLevel,
+    progress: Math.min(100, Math.max(0, progress)),
+    nextThreshold: isMaxLevel ? thresholds[9] : thresholds[level],
+    thresholds,
+  };
+}
+
+// Get today's daily challenge (same for all players, cycles through all)
+// If seasonStart is provided, day 0 = first day of season
+export function getDailyChallenge(seasonStart) {
   const today = localToday();
-  const dayNum = Math.floor(new Date(today).getTime() / 86400000);
-  return DAILY_CHALLENGES[dayNum % DAILY_CHALLENGES.length];
+  const base = seasonStart || today;
+  const dayNum = Math.floor((new Date(today).getTime() - new Date(base).getTime()) / 86400000);
+  const index = ((dayNum % DAILY_CHALLENGES.length) + DAILY_CHALLENGES.length) % DAILY_CHALLENGES.length;
+  return DAILY_CHALLENGES[index];
 }
 
 // Get this week's team challenge
-export function getWeeklyChallenge() {
+// If seasonStart is provided, week 0 = first week of season
+export function getWeeklyChallenge(seasonStart) {
   const today = localToday();
-  const weekNum = Math.floor(new Date(today).getTime() / (86400000 * 7));
-  return WEEKLY_CHALLENGES[weekNum % WEEKLY_CHALLENGES.length];
+  const base = seasonStart || today;
+  const weekNum = Math.floor((new Date(today).getTime() - new Date(base).getTime()) / (86400000 * 7));
+  const index = ((weekNum % WEEKLY_CHALLENGES.length) + WEEKLY_CHALLENGES.length) % WEEKLY_CHALLENGES.length;
+  return WEEKLY_CHALLENGES[index];
 }

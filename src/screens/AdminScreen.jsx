@@ -5,10 +5,13 @@ import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
 export function AdminScreen() {
-  const { handleLogout } = useUser();
+  const { handleLogout, setSeasonStart } = useUser();
 
   const [players, setPlayers] = useState([]);
   const [loadingAdmin, setLoadingAdmin] = useState(true);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   useEffect(() => {
     apiGet("/users").then(users => {
@@ -22,6 +25,20 @@ export function AdminScreen() {
       setPlayers(mapped);
     }).catch(() => setPlayers([])).finally(() => setLoadingAdmin(false));
   }, []);
+
+  async function handleResetSeason() {
+    setResetLoading(true);
+    try {
+      const result = await apiPut("/users?action=resetseason", {});
+      setSeasonStart(result.seasonStart);
+      setPlayers([]);
+      setResetDone(true);
+      setShowResetConfirm(false);
+    } catch (e) {
+      alert("Kunde inte nollställa: " + e.message);
+    }
+    setResetLoading(false);
+  }
 
   const [showPw, setShowPw] = useState({});
   const [resetPw, setResetPw] = useState({});
@@ -89,6 +106,38 @@ export function AdminScreen() {
             </div>
           ))}
         </div>
+
+        {/* Reset season */}
+        {resetDone ? (
+          <div style={{ background: "rgba(168,230,61,0.1)", border: `1px solid ${COLORS.lime}`, borderRadius: 16, padding: "16px", marginBottom: 20, textAlign: "center" }}>
+            <div style={{ fontSize: 28, marginBottom: 6 }}>✅</div>
+            <div style={{ color: COLORS.lime, fontWeight: 700, fontSize: 16 }}>Säsongen är nollställd!</div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 4 }}>Alla spelare och träningar är borttagna. Utmaningarna börjar nu om från vecka 1.</div>
+          </div>
+        ) : showResetConfirm ? (
+          <div style={{ background: "rgba(220,40,40,0.1)", border: "1px solid rgba(220,40,40,0.5)", borderRadius: 16, padding: "16px", marginBottom: 20 }}>
+            <div style={{ fontSize: 24, marginBottom: 6 }}>⚠️</div>
+            <div style={{ color: "#f87171", fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Är du helt säker?</div>
+            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+              Detta tar bort <strong style={{ color: "#fff" }}>alla spelare</strong>, <strong style={{ color: "#fff" }}>alla träningar</strong>, all bingo och alla dagliga utmaningar. Det går inte att ångra.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleResetSeason} disabled={resetLoading}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none", background: COLORS.red, color: "#fff", fontFamily: "'Fredoka One', cursive", fontSize: 16, cursor: resetLoading ? "not-allowed" : "pointer", opacity: resetLoading ? 0.6 : 1 }}>
+                {resetLoading ? "Nollställer..." : "Ja, nollställ allt"}
+              </button>
+              <button onClick={() => setShowResetConfirm(false)}
+                style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>
+                Avbryt
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setShowResetConfirm(true)}
+            style={{ width: "100%", padding: "13px 0", borderRadius: 14, border: "1px solid rgba(220,40,40,0.4)", background: "rgba(220,40,40,0.08)", color: "#f87171", fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 20 }}>
+            🔄 Nollställ säsong inför sommarlovet
+          </button>
+        )}
 
         {/* Player cards */}
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>

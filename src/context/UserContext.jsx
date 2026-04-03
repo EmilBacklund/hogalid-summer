@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useMemo } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { apiGet, apiPost, apiPut, localToday, computeStats } from '../utils';
 import { BINGO } from '../constants';
 
@@ -8,6 +8,13 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
   const [screen, setScreen] = useState("home");
   const [loading, setLoading] = useState(false);
+  const [seasonStart, setSeasonStart] = useState(null);
+
+  useEffect(() => {
+    apiGet("/users?action=config")
+      .then(data => setSeasonStart(data.seasonStart))
+      .catch(() => {});
+  }, []);
 
   const stats = useMemo(() => {
     if (!user || user.isAdmin) return null;
@@ -112,6 +119,8 @@ export function UserProvider({ children }) {
     loading,
     screen,
     setScreen,
+    seasonStart,
+    setSeasonStart,
     handleLogin,
     handleLogout,
     handleSaveLog,

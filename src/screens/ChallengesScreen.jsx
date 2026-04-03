@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { COLORS, EXERCISES, DAILY_CHALLENGES } from '../constants';
-import { apiGet, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge } from '../utils';
+import { apiGet, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge, getWeeklyLevelInfo } from '../utils';
 import { Card, ProgressBar } from '../components/common';
 import { useUser } from '../context/UserContext';
 
 export function ChallengesScreen() {
-  const { user, setScreen, handleCompleteDaily } = useUser();
+  const { user, setScreen, handleCompleteDaily, seasonStart } = useUser();
 
   const today = localToday();
   const weekStart = getWeekStart(today);
-  const daily = getDailyChallenge();
-  const weekly = getWeeklyChallenge();
+  const daily = getDailyChallenge(seasonStart);
+  const weekly = getWeeklyChallenge(seasonStart);
 
   const completedDaily = user.completedDaily || {};
   const dailyDoneToday = completedDaily[today] === daily.id;
@@ -33,8 +33,8 @@ export function ChallengesScreen() {
     });
   });
   const weekValue = weekly.type === "touch" ? weekTouch : weekMinutes;
-  const weekProgress = Math.min(100, Math.round((weekValue / weekly.goal) * 100));
   const weekDone = weekValue >= weekly.goal;
+  const levelInfo = getWeeklyLevelInfo(weekValue, weekly.goal);
 
   // History of completed daily challenges
   const dailyHistory = Object.entries(completedDaily)
@@ -74,25 +74,75 @@ export function ChallengesScreen() {
       </Card>
 
       {/* Weekly team challenge */}
+      <style>{`
+        @keyframes fireGlow {
+          0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
+          50% { box-shadow: 0 0 28px 8px #ffae00, 0 0 48px 16px #ff6a00; }
+        }
+      `}</style>
       <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🤝 Veckans lagutmaning</div>
-      <Card style={{ marginBottom: 20, border: weekDone ? `1.5px solid ${COLORS.lime}` : "1px solid rgba(255,255,255,0.15)", background: weekDone ? "rgba(240,220,0,0.08)" : "rgba(255,255,255,0.06)" }}>
+      <Card style={{
+        marginBottom: 20,
+        border: levelInfo.isMaxLevel ? "2px solid #ff6a00" : weekDone ? `1.5px solid ${COLORS.lime}` : "1px solid rgba(255,255,255,0.15)",
+        background: levelInfo.isMaxLevel ? "rgba(255,100,0,0.1)" : weekDone ? "rgba(168,230,61,0.08)" : "rgba(255,255,255,0.06)",
+        animation: levelInfo.isMaxLevel ? "fireGlow 1.5s ease-in-out infinite" : "none",
+      }}>
+        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <div style={{ fontSize: 32 }}>{weekly.type === "touch" ? "🦶" : "⏱"}</div>
+          <div style={{ fontSize: 32 }}>{levelInfo.isMaxLevel ? "🔥" : weekly.type === "touch" ? "🦶" : "⏱"}</div>
           <div style={{ flex: 1 }}>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, lineHeight: 1.3 }}>{weekly.label}</div>
             <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 2 }}>Vecka från {weekStart}</div>
           </div>
+          {levelInfo.level > 0 && (
+            <div style={{
+              background: levelInfo.isMaxLevel ? "linear-gradient(135deg, #ff6a00, #ffae00)" : weekDone ? "rgba(168,230,61,0.2)" : "rgba(255,255,255,0.1)",
+              border: `1px solid ${levelInfo.isMaxLevel ? "#ff6a00" : weekDone ? COLORS.lime : "rgba(255,255,255,0.2)"}`,
+              borderRadius: 10, padding: "4px 10px", textAlign: "center",
+            }}>
+              <div style={{ color: levelInfo.isMaxLevel ? "#fff" : weekDone ? COLORS.lime : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Nivå {levelInfo.level}</div>
+              <div style={{ color: levelInfo.isMaxLevel ? "#fff" : weekDone ? COLORS.lime : "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: 700 }}>{levelInfo.isMaxLevel ? "🔥 " : ""}{levelInfo.levelName}{levelInfo.isMaxLevel ? " 🔥" : ""}</div>
+            </div>
+          )}
         </div>
-        <ProgressBar value={weekProgress} color={weekDone ? COLORS.lime : COLORS.yellow} height={14} />
+
+        {/* Progress bar */}
+        <ProgressBar value={levelInfo.progress} color={levelInfo.isMaxLevel ? "#ff6a00" : weekDone ? COLORS.lime : COLORS.yellow} height={14} />
+
+        {/* Progress labels */}
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
           <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
-            {weekly.type === "touch" ? `${weekTouch} touch` : `${weekMinutes} min`}
+            {weekly.type === "touch" ? `${weekValue} touch` : `${weekValue} min`}
           </span>
-          <span style={{ color: weekDone ? COLORS.lime : COLORS.yellow, fontWeight: 700, fontSize: 13 }}>
-            {weekDone ? "🎉 Klart!" : `${weekly.goal - weekValue} kvar`}
+          <span style={{ color: levelInfo.isMaxLevel ? "#ff6a00" : weekDone ? COLORS.lime : COLORS.yellow, fontWeight: 700, fontSize: 13 }}>
+            {levelInfo.isMaxLevel
+              ? "🔥 Max uppnådd!"
+              : levelInfo.level === 0
+                ? `${weekly.goal - weekValue} kvar till Nivå 1`
+                : `${levelInfo.nextThreshold - weekValue} kvar till ${levelInfo.nextLevelName}`}
           </span>
         </div>
-        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 6, textAlign: "center" }}>
+
+        {/* Level ladder */}
+        {levelInfo.level > 0 && !levelInfo.isMaxLevel && (
+          <div style={{ marginTop: 10, display: "flex", gap: 4, justifyContent: "center" }}>
+            {[...Array(10)].map((_, i) => (
+              <div key={i} style={{
+                width: 18, height: 6, borderRadius: 3,
+                background: i < levelInfo.level ? COLORS.lime : "rgba(255,255,255,0.12)",
+              }} />
+            ))}
+          </div>
+        )}
+        {levelInfo.isMaxLevel && (
+          <div style={{ marginTop: 10, display: "flex", gap: 4, justifyContent: "center" }}>
+            {[...Array(10)].map((_, i) => (
+              <div key={i} style={{ width: 18, height: 6, borderRadius: 3, background: "#ff6a00" }} />
+            ))}
+          </div>
+        )}
+
+        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 8, textAlign: "center" }}>
           Träna och logga — det räknas automatiskt!
         </div>
       </Card>
