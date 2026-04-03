@@ -51,6 +51,7 @@ export function UserProvider({ children }) {
   /* ── Screen ↔ URL sync ── */
   const setScreen = useCallback((newScreen) => {
     setScreenState(newScreen);
+    window.scrollTo(0, 0);
     const path = SCREEN_PATHS[newScreen] || "/";
     if (window.location.pathname !== path) {
       window.history.pushState(null, "", path);
