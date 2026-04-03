@@ -224,6 +224,29 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ seasonStart }), { status: 200, headers });
     }
 
+    // GET - feed reactions
+    if (method === 'GET' && action === 'reactions') {
+      const result = await db.execute('SELECT event_key, alias, emoji FROM feed_reactions');
+      const data = {};
+      result.rows.forEach(r => {
+        if (!data[r.event_key]) data[r.event_key] = {};
+        data[r.event_key][r.alias] = r.emoji;
+      });
+      return new Response(JSON.stringify(data), { status: 200, headers });
+    }
+
+    // POST - add/remove reaction
+    if (method === 'POST' && action === 'react') {
+      const body = await req.json();
+      const { eventKey, alias, emoji } = body;
+      if (!emoji) {
+        await db.execute({ sql: 'DELETE FROM feed_reactions WHERE event_key = ? AND alias = ?', args: [eventKey, alias] });
+      } else {
+        await db.execute({ sql: 'INSERT OR REPLACE INTO feed_reactions (event_key, alias, emoji) VALUES (?, ?, ?)', args: [eventKey, alias, emoji] });
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
     // GET - weekly results history
     if (method === 'GET' && action === 'weeklyresults') {
       const result = await db.execute('SELECT * FROM weekly_results ORDER BY week_start DESC');
@@ -258,6 +281,7 @@ export default async (req, context) => {
         DELETE FROM completed_daily;
         DELETE FROM users;
         DELETE FROM weekly_results;
+        DELETE FROM feed_reactions;
       `);
       await db.execute({
         sql: "INSERT OR REPLACE INTO config (key, value) VALUES ('season_start', ?)",
