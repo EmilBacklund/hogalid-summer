@@ -1,14 +1,46 @@
-import { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut, localToday, computeStats, invalidateUsersCache } from '../utils';
 import { BINGO } from '../constants';
 
 const UserContext = createContext(null);
 
+/* ── URL ↔ screen mapping ── */
+const SCREEN_PATHS = {
+  home: "/", log: "/log", avatar: "/avatar", bingo: "/bingo",
+  team: "/team", challenges: "/challenges", history: "/history",
+};
+const PATH_SCREENS = Object.fromEntries(
+  Object.entries(SCREEN_PATHS).map(([s, p]) => [p, s])
+);
+function screenFromPath() {
+  return PATH_SCREENS[window.location.pathname] || "home";
+}
+
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreenState] = useState(screenFromPath);
   const [loading, setLoading] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(true);
   const [seasonStart, setSeasonStart] = useState(null);
+
+  /* ── Auto-login from localStorage ── */
+  useEffect(() => {
+    const saved = localStorage.getItem("hogalid_session");
+    if (saved) {
+      try {
+        const { alias, password } = JSON.parse(saved);
+        apiPost("/users?action=login", { alias, password })
+          .then(u => setUser(u))
+          .catch(() => localStorage.removeItem("hogalid_session"))
+          .finally(() => setAutoLoading(false));
+      } catch {
+        localStorage.removeItem("hogalid_session");
+        setAutoLoading(false);
+      }
+    } else {
+      setAutoLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     apiGet("/users?action=config")
@@ -16,17 +48,36 @@ export function UserProvider({ children }) {
       .catch(() => {});
   }, []);
 
+  /* ── Screen ↔ URL sync ── */
+  const setScreen = useCallback((newScreen) => {
+    setScreenState(newScreen);
+    const path = SCREEN_PATHS[newScreen] || "/";
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, "", path);
+    }
+  }, []);
+
+  useEffect(() => {
+    function onPopState() { setScreenState(screenFromPath()); }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   const stats = useMemo(() => {
     if (!user || user.isAdmin) return null;
     return computeStats(user);
   }, [user]);
 
-  function handleLogin(u) {
+  function handleLogin(u, credentials) {
+    if (credentials) {
+      localStorage.setItem("hogalid_session", JSON.stringify(credentials));
+    }
     setUser(u);
     setScreen("home");
   }
 
   function handleLogout() {
+    localStorage.removeItem("hogalid_session");
     setUser(null);
     setScreen("home");
   }
@@ -124,6 +175,7 @@ export function UserProvider({ children }) {
     setScreen,
     seasonStart,
     setSeasonStart,
+    autoLoading,
     handleLogin,
     handleLogout,
     handleSaveLog,

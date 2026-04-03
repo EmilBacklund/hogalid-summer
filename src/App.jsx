@@ -14,7 +14,7 @@ import {
 } from './screens';
 
 function AppContent() {
-  const { user, loading, screen, handleLogout } = useUser();
+  const { user, loading, autoLoading, screen, handleLogout } = useUser();
 
   const bgStyle = {
     minHeight: "100vh",
@@ -25,6 +25,14 @@ function AppContent() {
     margin: "0 auto",
     position: "relative",
   };
+
+  if (autoLoading) {
+    return (
+      <div style={bgStyle}>
+        <style>{`body { background: ${COLORS.dark}; }`}</style>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
