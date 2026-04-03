@@ -28,7 +28,6 @@ export function TeamScreen() {
   const [showRoster, setShowRoster] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAllLevels, setShowAllLevels] = useState(false);
-  const [showFeed, setShowFeed] = useState(false);
   const [reactions, setReactions] = useState({});
   const [feedExpanded, setFeedExpanded] = useState(false);
 
@@ -309,20 +308,13 @@ export function TeamScreen() {
       {(() => {
         const feed = generateFeed(allUsers, user.alias, seasonStart);
         if (feed.length === 0) return null;
-        const visible = showFeed ? (feedExpanded ? feed : feed.slice(0, 3)) : [];
+        const visible = feedExpanded ? feed : feed.slice(0, 3);
         return (
           <Card style={{ marginBottom: 16 }}>
-            <button
-              onClick={() => setShowFeed(v => !v)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: showFeed ? 12 : 0 }}
-            >
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700 }}>
-                📰 Lagflöde
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 18 }}>{showFeed ? '▲' : '▼'}</div>
-            </button>
-            {showFeed && (
-              <>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
+              📰 Lagflöde
+            </div>
+            <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {visible.map((e, idx) => {
                     const eventKey = `${e.type}|${e.alias}|${e.date}|${e.icon}`;
@@ -366,8 +358,7 @@ export function TeamScreen() {
                     {feedExpanded ? '▲ Visa färre' : `▼ Visa alla ${feed.length} händelser`}
                   </button>
                 )}
-              </>
-            )}
+            </>
           </Card>
         );
       })()}
