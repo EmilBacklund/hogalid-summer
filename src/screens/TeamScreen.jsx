@@ -13,6 +13,7 @@ import {
   WEEKLY_LEVEL_NAMES,
   computeWeeklyHistory,
   saveWeeklyResult,
+  generateFeed,
 } from '../utils';
 import { Card, ProgressBar, Confetti } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
@@ -26,6 +27,7 @@ export function TeamScreen() {
   const [showRoster, setShowRoster] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAllLevels, setShowAllLevels] = useState(false);
+  const [showFeed, setShowFeed] = useState(true);
 
   useEffect(() => {
     fetchAllUsers()
@@ -287,6 +289,55 @@ export function TeamScreen() {
           </div>
         </div>
       )}
+
+      {/* Activity feed */}
+      {(() => {
+        const feed = generateFeed(allUsers, user.alias);
+        if (feed.length === 0) return null;
+        const visible = showFeed ? feed.slice(0, 15) : [];
+        return (
+          <Card style={{ marginBottom: 16 }}>
+            <button
+              onClick={() => setShowFeed(v => !v)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: showFeed ? 12 : 0 }}
+            >
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700 }}>
+                📰 Lagflöde
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 18 }}>{showFeed ? '▲' : '▼'}</div>
+            </button>
+            {showFeed && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {visible.map((e, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      background: e.isMe ? 'rgba(240,220,0,0.08)' : 'rgba(255,255,255,0.04)',
+                      border: e.isMe ? '1px solid rgba(240,220,0,0.25)' : '1px solid transparent',
+                      borderRadius: 12,
+                      padding: '8px 12px',
+                    }}
+                  >
+                    <div style={{ fontSize: 20, flexShrink: 0 }}>{e.icon}</div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: e.isMe ? COLORS.yellow : COLORS.lime, fontWeight: 700, fontSize: 13 }}>
+                        {e.alias}
+                      </span>
+                      <span style={{ color: e.isMe ? 'rgba(240,220,0,0.8)' : 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+                        {' '}{e.text}
+                      </span>
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, flexShrink: 0 }}>{e.date}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Team streak */}
       <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
