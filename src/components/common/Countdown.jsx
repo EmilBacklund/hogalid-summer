@@ -31,21 +31,17 @@ export function Countdown() {
   );
 
   return (
-    <Card style={{ marginBottom: 16, background: "rgba(240,220,0,0.07)", border: `1.5px solid rgba(240,220,0,0.4)` }}>
-      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-        ⚽ Första träningen efter sommarlovet
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
-        {[["days","dagar"],["hours","tim"],["minutes","min"],["seconds","sek"]].map(([key, lbl]) => (
-          <div key={key} style={{ textAlign: "center", background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: "8px 4px" }}>
-            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 24, color: COLORS.accent, lineHeight: 1 }}>
-              {String(t[key]).padStart(2, "0")}
-            </div>
-            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginTop: 2 }}>{lbl}</div>
-          </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(240,220,0,0.07)", border: `1.5px solid rgba(240,220,0,0.3)`, borderRadius: 14, padding: "8px 14px", marginBottom: 14 }}>
+      <span style={{ fontSize: 16 }}>⚽</span>
+      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, flex: 1 }}>Första träningen</div>
+      <div style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+        {[["days","d"],["hours","h"],["minutes","m"],["seconds","s"]].map(([key, lbl]) => (
+          <span key={key}>
+            <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 16, color: COLORS.accent }}>{String(t[key]).padStart(2, "0")}</span>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>{lbl} </span>
+          </span>
         ))}
       </div>
-      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, textAlign: "center", marginTop: 8 }}>17 augusti 🗓</div>
-    </Card>
+    </div>
   );
 }

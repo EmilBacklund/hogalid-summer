@@ -1,7 +1,7 @@
 import { DAILY_CHALLENGES, WEEKLY_CHALLENGES } from '../constants';
 import { localToday } from './date';
 
-const WEEKLY_LEVEL_NAMES = ["Brons", "Silver", "Guld", "Platina", "Diamant", "Mästare", "Elite", "Legend", "Odödlig", "Gudarnas nivå"];
+export const WEEKLY_LEVEL_NAMES = ["Brons", "Silver", "Guld", "Platina", "Diamant", "Mästare", "Elite", "Legend", "Odödlig", "Gudarnas nivå"];
 
 export function getWeeklyLevelInfo(value, goal) {
   // Build thresholds for all 10 levels: goal, goal*1.2, goal*1.2², ...

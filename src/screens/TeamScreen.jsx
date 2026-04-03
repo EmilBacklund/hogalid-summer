@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { COLORS, EXERCISES, TEAM_LEVELS } from '../constants';
 import {
-  apiGet,
+  fetchAllUsers,
   localToday,
   getWeekStart,
   computeStats,
@@ -10,8 +10,12 @@ import {
   calcTeamProgress,
   getWeeklyChallenge,
   getWeeklyLevelInfo,
+  WEEKLY_LEVEL_NAMES,
+  computeWeeklyHistory,
+  saveWeeklyResult,
 } from '../utils';
 import { Card, ProgressBar, Confetti } from '../components/common';
+import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
 export function TeamScreen() {
@@ -19,9 +23,12 @@ export function TeamScreen() {
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showRoster, setShowRoster] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showAllLevels, setShowAllLevels] = useState(false);
 
   useEffect(() => {
-    apiGet('/users')
+    fetchAllUsers()
       .then(setAllUsers)
       .catch(() => setAllUsers([]))
       .finally(() => setLoadingTeam(false));
@@ -110,6 +117,13 @@ export function TeamScreen() {
   const weekDone = weekValue >= weekly.goal;
   const levelInfo = getWeeklyLevelInfo(weekValue, weekly.goal);
 
+  // Save previous week's result to DB in the background
+  useEffect(() => {
+    if (!loadingTeam && allUsers.length > 0 && seasonStart) {
+      saveWeeklyResult(allUsers, seasonStart).catch(() => {});
+    }
+  }, [loadingTeam, seasonStart]);
+
   // Show confetti briefly on mount if we just leveled up (stored in sessionStorage)
   useEffect(() => {
     if (loadingTeam) return;
@@ -169,7 +183,7 @@ export function TeamScreen() {
           marginBottom: 4,
         }}
       >
-        Laget 💪
+        Högalid F15 💪
       </div>
       <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 20 }}>
         Träna mer — klättra upp i nivåer!
@@ -224,6 +238,55 @@ export function TeamScreen() {
           )}
         </div>
       </Card>
+
+      {/* Upcoming levels teaser */}
+      {upcomingLevels.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: 12,
+              fontWeight: 600,
+              marginBottom: 8,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+            }}
+          >
+            Kommande nivåer
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {upcomingLevels.map((lvl, i) => (
+              <div
+                key={lvl.name}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 12,
+                  padding: '10px 8px',
+                  textAlign: 'center',
+                  opacity: 1 - i * 0.2,
+                }}
+              >
+                <div style={{ fontSize: 22 }}>{lvl.icon}</div>
+                <div
+                  style={{
+                    color: 'rgba(255,255,255,0.6)',
+                    fontSize: 11,
+                    marginTop: 3,
+                    fontWeight: 600,
+                  }}
+                >
+                  {lvl.name}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 2 }}>
+                  {lvl.min.toLocaleString('sv')} p
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Team streak */}
       <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -355,6 +418,21 @@ export function TeamScreen() {
           )}
         </div>
 
+        {/* Grattis-banner */}
+        {weekDone && (
+          <div style={{ background: levelInfo.isMaxLevel ? "rgba(255,100,0,0.2)" : "rgba(168,230,61,0.15)", border: `1px solid ${levelInfo.isMaxLevel ? "#ff6a00" : COLORS.lime}`, borderRadius: 12, padding: "10px 14px", marginBottom: 12, textAlign: "center" }}>
+            <div style={{ fontSize: 20, marginBottom: 2 }}>{levelInfo.isMaxLevel ? "🔥" : "🎉"}</div>
+            <div style={{ color: levelInfo.isMaxLevel ? "#ff6a00" : COLORS.lime, fontWeight: 700, fontSize: 14 }}>
+              {levelInfo.isMaxLevel ? "Ni har nått Gudarnas nivå!" : "Grattis! Ni har klarat veckans utmaning!"}
+            </div>
+            {!levelInfo.isMaxLevel && (
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 3 }}>
+                Fortsätt träna för att klättra till nästa nivå 💪
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Progress bar */}
         <ProgressBar
           value={levelInfo.progress}
@@ -363,17 +441,11 @@ export function TeamScreen() {
         />
 
         {/* Progress text */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, marginBottom: 14 }}>
           <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
             {weekly.type === 'touch' ? `${weekValue} touch` : `${weekValue} min`}
           </span>
-          <span
-            style={{
-              color: levelInfo.isMaxLevel ? '#ff6a00' : weekDone ? COLORS.lime : COLORS.yellow,
-              fontWeight: 700,
-              fontSize: 13,
-            }}
-          >
+          <span style={{ color: levelInfo.isMaxLevel ? '#ff6a00' : weekDone ? COLORS.lime : COLORS.yellow, fontWeight: 700, fontSize: 13 }}>
             {levelInfo.isMaxLevel
               ? '🔥 Max uppnådd!'
               : levelInfo.level === 0
@@ -382,75 +454,54 @@ export function TeamScreen() {
           </span>
         </div>
 
-        {/* Level dots */}
-        <div style={{ marginTop: 10, display: 'flex', gap: 4, justifyContent: 'center' }}>
-          {[...Array(10)].map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: 18,
-                height: 6,
-                borderRadius: 3,
-                background:
-                  i < levelInfo.level
-                    ? levelInfo.isMaxLevel
-                      ? '#ff6a00'
-                      : COLORS.lime
-                    : 'rgba(255,255,255,0.12)',
-              }}
-            />
-          ))}
+        {/* Level list */}
+        {(() => {
+          const visibleIndexes = showAllLevels
+            ? WEEKLY_LEVEL_NAMES.map((_, i) => i)
+            : WEEKLY_LEVEL_NAMES.map((_, i) => i).filter(i => {
+                const isLastDone = i + 1 === levelInfo.level;
+                const isCurrent = i + 1 === levelInfo.level + 1 && !levelInfo.isMaxLevel;
+                return isLastDone || isCurrent || (levelInfo.isMaxLevel && i === 9);
+              });
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {WEEKLY_LEVEL_NAMES.map((name, i) => {
+                if (!visibleIndexes.includes(i)) return null;
+                const threshold = levelInfo.thresholds[i];
+                const done = i + 1 <= levelInfo.level;
+                const isCurrent = i + 1 === levelInfo.level + 1 && !levelInfo.isMaxLevel;
+                const isMax = i === 9;
+                return (
+                  <div key={name} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '6px 10px', borderRadius: 10,
+                    background: done ? 'rgba(168,230,61,0.08)' : isCurrent ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    border: done ? `1px solid ${isMax ? '#ff6a00' : COLORS.lime}44` : isCurrent ? '1px solid rgba(255,255,255,0.12)' : 'none',
+                    opacity: done || isCurrent ? 1 : 0.4,
+                  }}>
+                    <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>
+                      {done ? (isMax ? '🔥' : '✅') : isCurrent ? '🎯' : '○'}
+                    </span>
+                    <span style={{ flex: 1, color: done ? (isMax ? '#ff6a00' : COLORS.lime) : isCurrent ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: done || isCurrent ? 700 : 400 }}>
+                      Nivå {i + 1} — {isMax ? '🔥 ' : ''}{name}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+                      {threshold} {weekly.type === 'touch' ? 'touch' : 'min'}
+                    </span>
+                  </div>
+                );
+              })}
+              <button onClick={() => setShowAllLevels(v => !v)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', marginTop: 4, textAlign: 'center' }}>
+                {showAllLevels ? '▲ Visa färre' : '▼ Visa alla 10 nivåer'}
+              </button>
+            </div>
+          );
+        })()}
+
+        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 10, textAlign: 'center' }}>
+          Träna och logga — det räknas automatiskt!
         </div>
       </Card>
-
-      {/* Upcoming levels teaser */}
-      {upcomingLevels.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              color: 'rgba(255,255,255,0.5)',
-              fontSize: 12,
-              fontWeight: 600,
-              marginBottom: 8,
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-            }}
-          >
-            Kommande nivåer
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {upcomingLevels.map((lvl, i) => (
-              <div
-                key={lvl.name}
-                style={{
-                  flex: 1,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 12,
-                  padding: '10px 8px',
-                  textAlign: 'center',
-                  opacity: 1 - i * 0.2,
-                }}
-              >
-                <div style={{ fontSize: 22 }}>{lvl.icon}</div>
-                <div
-                  style={{
-                    color: 'rgba(255,255,255,0.6)',
-                    fontSize: 11,
-                    marginTop: 3,
-                    fontWeight: 600,
-                  }}
-                >
-                  {lvl.name}
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 2 }}>
-                  {lvl.min.toLocaleString('sv')} p
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Team stats */}
       <Card style={{ marginBottom: 16 }}>
@@ -493,6 +544,111 @@ export function TeamScreen() {
             <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{val}</span>
           </div>
         ))}
+      </Card>
+
+      {/* Weekly history */}
+      {(() => {
+        const history = computeWeeklyHistory(allUsers, seasonStart);
+        if (history.length === 0) return null;
+        const last = history[0];
+        return (
+          <Card style={{ marginBottom: 16 }}>
+            {/* Last week summary */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: history.length > 1 ? 12 : 0 }}>
+              <div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>Förra veckan</div>
+                <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{last.challenge.label}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                {last.levelInfo.level > 0 ? (
+                  <>
+                    <div style={{ fontSize: 18 }}>{last.levelInfo.isMaxLevel ? '🔥' : '✅'}</div>
+                    <div style={{ color: last.levelInfo.isMaxLevel ? '#ff6a00' : COLORS.lime, fontWeight: 700, fontSize: 13 }}>
+                      Nivå {last.levelInfo.level} — {last.levelInfo.levelName}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+                      {last.value} {last.challenge.type === 'touch' ? 'touch' : 'min'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 18 }}>❌</div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700, fontSize: 13 }}>Ej klar</div>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+                      {last.value}/{last.challenge.goal} {last.challenge.type === 'touch' ? 'touch' : 'min'}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Expandable full history */}
+            {history.length > 1 && (
+              <>
+                <button
+                  onClick={() => setShowHistory(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10, cursor: 'pointer' }}
+                >
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 600 }}>Alla veckor ({history.length})</div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16 }}>{showHistory ? '▲' : '▼'}</div>
+                </button>
+                {showHistory && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+                    {history.map(({ weekStart, challenge, value, levelInfo }) => (
+                      <div key={weekStart} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 12px' }}>
+                        <div style={{ fontSize: 18 }}>
+                          {levelInfo.level > 0 ? (levelInfo.isMaxLevel ? '🔥' : '✅') : '❌'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{weekStart}</div>
+                          <div style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{challenge.label}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          {levelInfo.level > 0 ? (
+                            <div style={{ color: levelInfo.isMaxLevel ? '#ff6a00' : COLORS.lime, fontSize: 12, fontWeight: 700 }}>
+                              Nivå {levelInfo.level} — {levelInfo.levelName}
+                            </div>
+                          ) : (
+                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Ej klar</div>
+                          )}
+                          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+                            {value} {challenge.type === 'touch' ? 'touch' : 'min'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        );
+      })()}
+
+      {/* Roster */}
+      <Card style={{ marginBottom: 16 }}>
+        <button
+          onClick={() => setShowRoster(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700 }}>
+            👥 Lagkompisar ({allUsers.length})
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 18, lineHeight: 1 }}>{showRoster ? '▲' : '▼'}</div>
+        </button>
+        {showRoster && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 14 }}>
+            {allUsers.map(u => (
+              <div key={u.alias} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '50%', padding: 4, border: u.alias === user.alias ? `2px solid ${COLORS.lime}` : '2px solid transparent' }}>
+                  <AvatarSVG avatarConfig={u.avatarConfig} size={52} />
+                </div>
+                <div style={{ color: u.alias === user.alias ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{u.alias}</div>
+                {u.alias === user.alias && <div style={{ color: COLORS.lime, fontSize: 10 }}>Du</div>}
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* My contribution */}

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useMemo, useEffect } from 'react';
-import { apiGet, apiPost, apiPut, localToday, computeStats } from '../utils';
+import { apiGet, apiPost, apiPut, localToday, computeStats, invalidateUsersCache } from '../utils';
 import { BINGO } from '../constants';
 
 const UserContext = createContext(null);
@@ -36,6 +36,7 @@ export function UserProvider({ children }) {
     try {
       await apiPost("/users?action=addlog", { alias: user.alias, log });
       await apiPut("/users?action=update", { alias: user.alias, highscores: newHighscores, unlockedItems: user.unlockedItems, avatarConfig: user.avatarConfig });
+      invalidateUsersCache();
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
       setScreen("home");
@@ -77,6 +78,7 @@ export function UserProvider({ children }) {
         alias: user.alias,
         log: { date: localToday(), exercises: [], points: bonusPoints, minutes: 0, bingo: true, bingoFootball: isFootball }
       });
+      invalidateUsersCache();
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
     } catch (e) {
@@ -92,6 +94,7 @@ export function UserProvider({ children }) {
         alias: user.alias,
         log: { date: today, exercises: [], points, minutes: 0, dailyChallenge: true }
       });
+      invalidateUsersCache();
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
     } catch (e) {

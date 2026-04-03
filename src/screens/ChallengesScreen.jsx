@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { COLORS, EXERCISES, DAILY_CHALLENGES } from '../constants';
-import { apiGet, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge, getWeeklyLevelInfo } from '../utils';
+import { fetchAllUsers, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge, getWeeklyLevelInfo, WEEKLY_LEVEL_NAMES } from '../utils';
 import { Card, ProgressBar } from '../components/common';
 import { useUser } from '../context/UserContext';
 
@@ -16,8 +16,9 @@ export function ChallengesScreen() {
   const dailyDoneToday = completedDaily[today] === daily.id;
 
   const [allUsers, setAllUsers] = useState([]);
+  const [showAllLevels, setShowAllLevels] = useState(false);
   useEffect(() => {
-    apiGet("/users").then(setAllUsers).catch(() => setAllUsers([]));
+    fetchAllUsers().then(setAllUsers).catch(() => setAllUsers([]));
   }, []);
 
   let weekTouch = 0, weekMinutes = 0;
@@ -73,6 +74,25 @@ export function ChallengesScreen() {
         )}
       </Card>
 
+      {/* Daily history */}
+      {dailyHistory.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>✨ Senaste klarade dagsuppdrag</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {dailyHistory.map(({ date, challenge }) => (
+              <div key={date} style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "10px 14px" }}>
+                <div style={{ fontSize: 22 }}>{challenge.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, textDecoration: "line-through" }}>{challenge.label}</div>
+                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 2 }}>{date}</div>
+                </div>
+                <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 700 }}>+{challenge.points}p</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Weekly team challenge */}
       <style>{`
         @keyframes fireGlow {
@@ -106,11 +126,26 @@ export function ChallengesScreen() {
           )}
         </div>
 
+        {/* Grattis-banner */}
+        {weekDone && (
+          <div style={{ background: levelInfo.isMaxLevel ? "rgba(255,100,0,0.2)" : "rgba(168,230,61,0.15)", border: `1px solid ${levelInfo.isMaxLevel ? "#ff6a00" : COLORS.lime}`, borderRadius: 12, padding: "10px 14px", marginBottom: 12, textAlign: "center" }}>
+            <div style={{ fontSize: 20, marginBottom: 2 }}>{levelInfo.isMaxLevel ? "🔥" : "🎉"}</div>
+            <div style={{ color: levelInfo.isMaxLevel ? "#ff6a00" : COLORS.lime, fontWeight: 700, fontSize: 14 }}>
+              {levelInfo.isMaxLevel ? "Ni har nått Gudarnas nivå!" : "Grattis! Ni har klarat veckans utmaning!"}
+            </div>
+            {!levelInfo.isMaxLevel && (
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 3 }}>
+                Fortsätt träna för att klättra till nästa nivå 💪
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Progress bar */}
         <ProgressBar value={levelInfo.progress} color={levelInfo.isMaxLevel ? "#ff6a00" : weekDone ? COLORS.lime : COLORS.yellow} height={14} />
 
         {/* Progress labels */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, marginBottom: 14 }}>
           <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
             {weekly.type === "touch" ? `${weekValue} touch` : `${weekValue} min`}
           </span>
@@ -123,48 +158,57 @@ export function ChallengesScreen() {
           </span>
         </div>
 
-        {/* Level ladder */}
-        {levelInfo.level > 0 && !levelInfo.isMaxLevel && (
-          <div style={{ marginTop: 10, display: "flex", gap: 4, justifyContent: "center" }}>
-            {[...Array(10)].map((_, i) => (
-              <div key={i} style={{
-                width: 18, height: 6, borderRadius: 3,
-                background: i < levelInfo.level ? COLORS.lime : "rgba(255,255,255,0.12)",
-              }} />
-            ))}
-          </div>
-        )}
-        {levelInfo.isMaxLevel && (
-          <div style={{ marginTop: 10, display: "flex", gap: 4, justifyContent: "center" }}>
-            {[...Array(10)].map((_, i) => (
-              <div key={i} style={{ width: 18, height: 6, borderRadius: 3, background: "#ff6a00" }} />
-            ))}
-          </div>
-        )}
+        {/* Level list */}
+        {(() => {
+          const visibleIndexes = showAllLevels
+            ? WEEKLY_LEVEL_NAMES.map((_, i) => i)
+            : WEEKLY_LEVEL_NAMES.map((_, i) => i).filter(i => {
+                const done = i + 1 <= levelInfo.level;
+                const isCurrent = i + 1 === levelInfo.level + 1 && !levelInfo.isMaxLevel;
+                // Show: last done level + current/next level only
+                const isLastDone = i + 1 === levelInfo.level;
+                return isLastDone || isCurrent || (levelInfo.isMaxLevel && i === 9);
+              });
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {WEEKLY_LEVEL_NAMES.map((name, i) => {
+                if (!visibleIndexes.includes(i)) return null;
+                const threshold = levelInfo.thresholds[i];
+                const done = i + 1 <= levelInfo.level;
+                const isCurrent = i + 1 === levelInfo.level + 1 && !levelInfo.isMaxLevel;
+                const isMax = i === 9;
+                return (
+                  <div key={name} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "6px 10px", borderRadius: 10,
+                    background: done ? "rgba(168,230,61,0.08)" : isCurrent ? "rgba(255,255,255,0.06)" : "transparent",
+                    border: done ? `1px solid ${isMax ? "#ff6a00" : COLORS.lime}44` : isCurrent ? "1px solid rgba(255,255,255,0.12)" : "none",
+                    opacity: done || isCurrent ? 1 : 0.4,
+                  }}>
+                    <span style={{ fontSize: 14, width: 20, textAlign: "center" }}>
+                      {done ? (isMax ? "🔥" : "✅") : isCurrent ? "🎯" : "○"}
+                    </span>
+                    <span style={{ flex: 1, color: done ? (isMax ? "#ff6a00" : COLORS.lime) : isCurrent ? "#fff" : "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: done || isCurrent ? 700 : 400 }}>
+                      Nivå {i + 1} — {isMax ? "🔥 " : ""}{name}
+                    </span>
+                    <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
+                      {threshold} {weekly.type === "touch" ? "touch" : "min"}
+                    </span>
+                  </div>
+                );
+              })}
+              <button onClick={() => setShowAllLevels(v => !v)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 12, cursor: "pointer", marginTop: 4, textAlign: "center" }}>
+                {showAllLevels ? "▲ Visa färre" : `▼ Visa alla 10 nivåer`}
+              </button>
+            </div>
+          );
+        })()}
 
-        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 8, textAlign: "center" }}>
+        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 10, textAlign: "center" }}>
           Träna och logga — det räknas automatiskt!
         </div>
       </Card>
 
-      {/* Daily history */}
-      {dailyHistory.length > 0 && (
-        <>
-          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>✨ Senaste klarade</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {dailyHistory.map(({ date, challenge }) => (
-              <div key={date} style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "10px 14px" }}>
-                <div style={{ fontSize: 22 }}>{challenge.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, textDecoration: "line-through" }}>{challenge.label}</div>
-                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 2 }}>{date}</div>
-                </div>
-                <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 700 }}>+{challenge.points}p</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }
