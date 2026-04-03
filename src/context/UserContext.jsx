@@ -87,7 +87,12 @@ export function UserProvider({ children }) {
   }
 
   async function handleCompleteDaily(challengeId, points) {
+    if (loading) return;
     const today = localToday();
+    // Guard against double submission
+    const alreadyDone = (user.completedDaily || {})[today] === challengeId;
+    if (alreadyDone) return;
+    setLoading(true);
     try {
       await apiPost("/users?action=daily", { alias: user.alias, date: today, challengeId });
       await apiPost("/users?action=addlog", {
@@ -100,6 +105,7 @@ export function UserProvider({ children }) {
     } catch (e) {
       alert("Kunde inte markera utmaning: " + e.message);
     }
+    setLoading(false);
   }
 
   async function handleUpdateLog(action, logId, updatedLog) {
