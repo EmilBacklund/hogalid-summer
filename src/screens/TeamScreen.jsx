@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { COLORS, EXERCISES, TEAM_LEVELS } from '../constants';
 import {
-  apiGet,
+  fetchAllUsers,
   localToday,
   getWeekStart,
   computeStats,
@@ -24,7 +24,7 @@ export function TeamScreen() {
   const [showRoster, setShowRoster] = useState(false);
 
   useEffect(() => {
-    apiGet('/users')
+    fetchAllUsers()
       .then(setAllUsers)
       .catch(() => setAllUsers([]))
       .finally(() => setLoadingTeam(false));

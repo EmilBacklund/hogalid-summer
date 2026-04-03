@@ -9,7 +9,7 @@ import {
   getDailyChallenge,
   getWeeklyChallenge,
   getWeeklyLevelInfo,
-  apiGet,
+  fetchAllUsers,
 } from '../utils';
 import { Card, ProgressBar, Countdown } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
@@ -20,7 +20,7 @@ export function HomeScreen() {
   const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
-    apiGet('/users')
+    fetchAllUsers()
       .then(setAllUsers)
       .catch(() => setAllUsers([]));
   }, []);

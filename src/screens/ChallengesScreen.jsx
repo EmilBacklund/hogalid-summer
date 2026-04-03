@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { COLORS, EXERCISES, DAILY_CHALLENGES } from '../constants';
-import { apiGet, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge, getWeeklyLevelInfo, WEEKLY_LEVEL_NAMES } from '../utils';
+import { fetchAllUsers, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge, getWeeklyLevelInfo, WEEKLY_LEVEL_NAMES } from '../utils';
 import { Card, ProgressBar } from '../components/common';
 import { useUser } from '../context/UserContext';
 
@@ -17,7 +17,7 @@ export function ChallengesScreen() {
 
   const [allUsers, setAllUsers] = useState([]);
   useEffect(() => {
-    apiGet("/users").then(setAllUsers).catch(() => setAllUsers([]));
+    fetchAllUsers().then(setAllUsers).catch(() => setAllUsers([]));
   }, []);
 
   let weekTouch = 0, weekMinutes = 0;
