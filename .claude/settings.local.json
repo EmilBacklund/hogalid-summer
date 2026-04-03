@@ -27,7 +27,8 @@
       "Bash(npm ls:*)",
       "WebSearch",
       "WebFetch(domain:www.dicebear.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(claude --version)"
     ]
   }
 }

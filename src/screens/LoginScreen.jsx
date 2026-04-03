@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { COLORS, CLUB_LOGO, STARTER_OPTIONS, randomAvatarConfig } from '../constants';
+import { COLORS, STARTER_OPTIONS, randomAvatarConfig } from '../constants';
 import { apiPost } from '../utils';
 import { Card } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
