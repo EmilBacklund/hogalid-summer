@@ -225,14 +225,18 @@ export function HomeScreen() {
                       ? '#ff6a00'
                       : weekDone
                         ? COLORS.lime
-                        : 'rgba(255,255,255,0.5)',
+                        : COLORS.yellow,
                     fontSize: 12,
                     fontWeight: 700,
                     flexShrink: 0,
                     textAlign: 'right',
                   }}
                 >
-                  {levelInfo.isMaxLevel ? 'MAX' : `${weekVal}/${levelInfo.nextThreshold}`}
+                  {levelInfo.isMaxLevel
+                    ? '🔥 Max!'
+                    : levelInfo.level === 0
+                      ? `${weekly.goal - weekVal} kvar till Nivå 1`
+                      : `${levelInfo.nextThreshold - weekVal} kvar till ${levelInfo.nextLevelName}`}
                 </span>
               </div>
             </div>
