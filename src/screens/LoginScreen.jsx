@@ -27,16 +27,16 @@ export function LoginScreen() {
     setBusy(true);
     setError('');
     try {
+      const creds = { alias: alias.trim(), password };
       if (mode === 'register') {
         const user = await apiPost('/users?action=register', {
-          alias: alias.trim(),
-          password,
+          ...creds,
           avatarConfig,
         });
-        handleLogin(user);
+        handleLogin(user, creds);
       } else {
-        const user = await apiPost('/users?action=login', { alias: alias.trim(), password });
-        handleLogin(user);
+        const user = await apiPost('/users?action=login', creds);
+        handleLogin(user, creds);
       }
     } catch (e) {
       if (e.message.includes('409') || e.message.includes('alias_taken')) {
