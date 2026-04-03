@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { COLORS, CLUB_LOGO, AVATAR_CONFIGS } from '../constants';
+import { COLORS, CLUB_LOGO } from '../constants';
 import { apiGet, apiPut, localToday, computeStats, getLevel } from '../utils';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
@@ -111,7 +111,7 @@ export function AdminScreen() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <AvatarSVG config={AVATAR_CONFIGS[p.avatarBase || 0]} size={32} items={p.unlockedItems || []} />
+                      <AvatarSVG avatarConfig={p.avatarConfig} size={32} />
                       <div>
                         <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{p.alias}</div>
                         <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>{level.icon} {level.name}</div>

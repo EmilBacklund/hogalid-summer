@@ -58,7 +58,7 @@ export default async (req, context) => {
     // POST - register new user
     if (method === 'POST' && action === 'register') {
       const body = await req.json();
-      const { alias, password, avatarBase } = body;
+      const { alias, password, avatarConfig } = body;
       const key = alias.toLowerCase();
 
       const existing = await db.execute({
@@ -72,13 +72,13 @@ export default async (req, context) => {
       const hashed = await hashPassword(password);
       const joinedAt = new Date().toISOString();
       await db.execute({
-        sql: 'INSERT INTO users (alias, password, display_password, avatar_base, unlocked_items, highscores, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        args: [key, hashed, password, avatarBase || 0, '[]', '{}', joinedAt],
+        sql: 'INSERT INTO users (alias, password, display_password, avatar_config, unlocked_items, highscores, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        args: [key, hashed, password, JSON.stringify(avatarConfig || {}), '[]', '{}', joinedAt],
       });
 
       const user = {
         alias: key,
-        avatarBase: avatarBase || 0,
+        avatarConfig: avatarConfig || {},
         unlockedItems: [],
         highscores: {},
         logs: [],
@@ -123,15 +123,15 @@ export default async (req, context) => {
       return new Response(JSON.stringify(user), { status: 200, headers });
     }
 
-    // PUT - update user (highscores, unlockedItems)
+    // PUT - update user (highscores, unlockedItems, avatarConfig)
     if (method === 'PUT' && action === 'update') {
       const body = await req.json();
-      const { alias, highscores, unlockedItems } = body;
+      const { alias, highscores, unlockedItems, avatarConfig } = body;
       const key = alias.toLowerCase();
 
       await db.execute({
-        sql: 'UPDATE users SET highscores = ?, unlocked_items = ? WHERE alias = ?',
-        args: [JSON.stringify(highscores), JSON.stringify(unlockedItems), key],
+        sql: 'UPDATE users SET highscores = ?, unlocked_items = ?, avatar_config = ? WHERE alias = ?',
+        args: [JSON.stringify(highscores), JSON.stringify(unlockedItems), JSON.stringify(avatarConfig || {}), key],
       });
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
@@ -235,7 +235,7 @@ export default async (req, context) => {
 function rowToUser(row) {
   return {
     alias: row.alias,
-    avatarBase: row.avatar_base,
+    avatarConfig: JSON.parse(row.avatar_config || '{}'),
     unlockedItems: JSON.parse(row.unlocked_items || '[]'),
     highscores: JSON.parse(row.highscores || '{}'),
     joinedAt: row.joined_at,

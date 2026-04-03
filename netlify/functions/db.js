@@ -13,7 +13,7 @@ export async function initDb(db) {
       alias TEXT PRIMARY KEY,
       password TEXT NOT NULL,
       display_password TEXT DEFAULT '',
-      avatar_base INTEGER DEFAULT 0,
+      avatar_config TEXT DEFAULT '{}',
       unlocked_items TEXT DEFAULT '[]',
       highscores TEXT DEFAULT '{}',
       joined_at TEXT
@@ -48,6 +48,13 @@ export async function initDb(db) {
   // Migration: add display_password column if missing (existing tables)
   try {
     await db.execute("ALTER TABLE users ADD COLUMN display_password TEXT DEFAULT ''");
+  } catch (e) {
+    // Column already exists — ignore
+  }
+
+  // Migration: add avatar_config column if missing (replaces old avatar_base)
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN avatar_config TEXT DEFAULT '{}'");
   } catch (e) {
     // Column already exists — ignore
   }

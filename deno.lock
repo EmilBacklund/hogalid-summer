@@ -12,10 +12,12 @@
     "packageJson": {
       "dependencies": [
         "npm:@libsql/client@0.14",
+        "npm:@tailwindcss/vite@^4.2.2",
         "npm:@vitejs/plugin-react@^4.2.1",
         "npm:netlify-cli@^24.9.0",
         "npm:react-dom@^18.2.0",
         "npm:react@^18.2.0",
+        "npm:tailwindcss@^4.2.2",
         "npm:vite@5"
       ]
     }

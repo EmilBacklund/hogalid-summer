@@ -28,7 +28,7 @@ export function UserProvider({ children }) {
     setLoading(true);
     try {
       await apiPost("/users?action=addlog", { alias: user.alias, log });
-      await apiPut("/users?action=update", { alias: user.alias, highscores: newHighscores, unlockedItems: user.unlockedItems });
+      await apiPut("/users?action=update", { alias: user.alias, highscores: newHighscores, unlockedItems: user.unlockedItems, avatarConfig: user.avatarConfig });
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
       setScreen("home");
@@ -43,11 +43,20 @@ export function UserProvider({ children }) {
     if (currentStats.totalPoints < cost) return;
     const newItems = [...(user.unlockedItems || []), itemId];
     try {
-      await apiPut("/users?action=update", { alias: user.alias, unlockedItems: newItems, highscores: user.highscores });
+      await apiPut("/users?action=update", { alias: user.alias, unlockedItems: newItems, highscores: user.highscores, avatarConfig: user.avatarConfig });
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
     } catch (e) {
       alert("Kunde inte låsa upp: " + e.message);
+    }
+  }
+
+  async function handleAvatarUpdate(newConfig) {
+    try {
+      await apiPut("/users?action=update", { alias: user.alias, avatarConfig: newConfig, highscores: user.highscores, unlockedItems: user.unlockedItems });
+      setUser({ ...user, avatarConfig: newConfig });
+    } catch (e) {
+      alert("Kunde inte spara avatar: " + e.message);
     }
   }
 
@@ -107,6 +116,7 @@ export function UserProvider({ children }) {
     handleLogout,
     handleSaveLog,
     handleUnlock,
+    handleAvatarUpdate,
     handleBingoDone,
     handleCompleteDaily,
     handleUpdateLog,

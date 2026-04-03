@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { COLORS, EXERCISES, TEAM_LEVELS, AVATAR_CONFIGS } from '../constants';
+import { COLORS, EXERCISES, TEAM_LEVELS } from '../constants';
 import { apiGet, localToday, computeStats, getTeamLevel, getNextTeamLevel, calcTeamProgress } from '../utils';
 import { Card, ProgressBar, Confetti } from '../components/common';
-import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
 export function TeamScreen() {

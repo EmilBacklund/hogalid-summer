@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dicebear/collection": "^9.4.2",
+    "@dicebear/core": "^9.4.2",
     "@libsql/client": "^0.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

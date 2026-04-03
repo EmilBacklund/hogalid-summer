@@ -1,4 +1,4 @@
-import { COLORS, BADGES, EXERCISES, AVATAR_CONFIGS } from '../constants';
+import { COLORS, BADGES, EXERCISES } from '../constants';
 import { getLevel, getNextLevel, calcProgress, localToday, getWeekStart, getDailyChallenge, getWeeklyChallenge } from '../utils';
 import { Card, ProgressBar, Countdown } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
@@ -17,7 +17,7 @@ export function HomeScreen() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <button onClick={() => setScreen("avatar")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 0 }}>
-          <AvatarSVG config={AVATAR_CONFIGS[user.avatarBase || 0]} size={56} items={user.unlockedItems || []} />
+          <AvatarSVG avatarConfig={user.avatarConfig} size={56} />
         </button>
         <div>
           <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 24, color: "#fff", lineHeight: 1.1 }}>Hej, {user.alias}! 👋</div>
@@ -185,7 +185,7 @@ export function HomeScreen() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <button onClick={() => setScreen("avatar")}
           style={{ padding: "14px 0", borderRadius: 14, border: "none", background: "rgba(255,255,255,0.1)", color: "#fff", fontFamily: "'Fredoka One', cursive", fontSize: 16, cursor: "pointer" }}>
-          👧 Min gubbe
+          👧 Min avatar
         </button>
         <button onClick={() => setScreen("team")}
           style={{ padding: "14px 0", borderRadius: 14, border: "none", background: "rgba(255,255,255,0.1)", color: "#fff", fontFamily: "'Fredoka One', cursive", fontSize: 16, cursor: "pointer" }}>
