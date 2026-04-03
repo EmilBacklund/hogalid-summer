@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { COLORS, CLUB_LOGO } from '../constants';
+import { COLORS } from '../constants';
 import { apiGet, apiPut, localToday, computeStats, getLevel } from '../utils';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
@@ -84,7 +84,7 @@ export function AdminScreen() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><img src={CLUB_LOGO} alt="" style={{ width: 32, height: 32 }} /><span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: COLORS.lime }}>Admin — Högalid F15</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><img src="/img/hogalid-logo.png" alt="" style={{ width: 32, height: 32 }} /><span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: COLORS.lime }}>Admin — Högalid F15</span></div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Sommarlovet 2026</div>
         </div>
         <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 13, borderRadius: 8, padding: "6px 12px" }}>Logga ut</button>
