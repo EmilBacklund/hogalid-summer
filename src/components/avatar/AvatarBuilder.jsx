@@ -97,7 +97,7 @@ export function AvatarBuilder({
   unlockedOptions = {},
   compact = false,
 }) {
-  const [activeTab, setActiveTab] = useState('skinColor');
+  const [activeTab, setActiveTab] = useState('hair');
 
   // Determine which categories to show
   const visibleCats = CATEGORIES.filter((cat) => {

@@ -1,7 +1,7 @@
 export { LoginScreen } from './LoginScreen';
 export { HomeScreen } from './HomeScreen';
 export { LogScreen } from './LogScreen';
-export { AvatarScreen } from './AvatarScreen';
+export { ProfileScreen } from './ProfileScreen';
 export { BingoScreen } from './BingoScreen';
 export { TeamScreen } from './TeamScreen';
 export { ChallengesScreen } from './ChallengesScreen';

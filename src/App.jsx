@@ -1,11 +1,11 @@
 import { COLORS } from './constants';
 import { UserProvider, useUser } from './context/UserContext';
-import { TopBar } from './components/common';
+import { TopBar, LoadingSpinner, TopLoadingBar } from './components/common';
 import {
   LoginScreen,
   HomeScreen,
   LogScreen,
-  AvatarScreen,
+  ProfileScreen,
   BingoScreen,
   TeamScreen,
   ChallengesScreen,
@@ -29,7 +29,11 @@ function AppContent() {
   if (autoLoading) {
     return (
       <div style={bgStyle}>
-        <style>{`body { background: ${COLORS.dark}; }`}</style>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap');
+          body { background: ${COLORS.dark}; }
+        `}</style>
+        <LoadingSpinner size="splash" text="Laddar din profil..." />
       </div>
     );
   }
@@ -57,9 +61,7 @@ function AppContent() {
         input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); }
       `}</style>
 
-      {loading && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999, height: 3, background: COLORS.lime, animation: "none" }} />
-      )}
+      {loading && <TopLoadingBar />}
 
       <TopBar onLogout={handleLogout} />
 
@@ -67,7 +69,7 @@ function AppContent() {
       {screen === "log"        && <LogScreen />}
       {screen === "challenges" && <ChallengesScreen />}
       {screen === "history"    && <LogHistoryScreen />}
-      {screen === "avatar"     && <AvatarScreen />}
+      {screen === "profile"    && <ProfileScreen />}
       {screen === "team"       && <TeamScreen />}
       {screen === "bingo"      && <BingoScreen />}
     </div>

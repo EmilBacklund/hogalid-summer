@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { COLORS, EXERCISES } from '../constants';
-import { Card } from '../components/common';
+import { Card, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
 
 export function LogHistoryScreen() {
@@ -13,6 +13,7 @@ export function LogHistoryScreen() {
 
   const [editing, setEditing] = useState(null); // { _idx, date, exercises[] }
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   function startEdit(log) {
     const exState = EXERCISES.map(ex => {
@@ -26,7 +27,9 @@ export function LogHistoryScreen() {
     setEditing(prev => ({ ...prev, exercises: prev.exercises.map(e => e.id === id ? { ...e, value: val } : e) }));
   }
 
-  function saveEdit() {
+  async function saveEdit() {
+    if (busy) return;
+    setBusy(true);
     const filled = editing.exercises.filter(e => e.value !== "" && Number(e.value) > 0);
     const freeEx = editing.exercises.find(e => e.id === "fritraning");
     const totalMins = freeEx?.value ? Number(freeEx.value) : 0;
@@ -36,13 +39,17 @@ export function LogHistoryScreen() {
     }, 0);
     const points = totalTouch + totalMins * 5;
     const updated = { date: editing.date, exercises: filled.map(e => ({ id: e.id, value: Number(e.value) })), points, minutes: totalMins };
-    handleUpdateLog("edit", editing._idx, updated);
+    await handleUpdateLog("edit", editing._idx, updated);
     setEditing(null);
+    setBusy(false);
   }
 
-  function deleteLog(idx) {
-    handleUpdateLog("delete", idx, null);
+  async function deleteLog(idx) {
+    if (busy) return;
+    setBusy(true);
+    await handleUpdateLog("delete", idx, null);
     setConfirmDelete(null);
+    setBusy(false);
   }
 
   if (editing) return (
@@ -64,8 +71,9 @@ export function LogHistoryScreen() {
         })}
       </div>
       <button onClick={saveEdit}
-        style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive", fontSize: 19, cursor: "pointer" }}>
-        💾 Spara ändringar
+        disabled={busy}
+        style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: busy ? 'rgba(240,220,0,0.5)' : COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive", fontSize: 19, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, transition: 'all 0.2s' }}>
+        {busy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '💾 Spara ändringar'}
       </button>
     </div>
   );
@@ -104,10 +112,12 @@ export function LogHistoryScreen() {
               {isConfirming ? (
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => deleteLog(log._idx)}
-                    style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "none", background: COLORS.red, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                    🗑 Ja, ta bort
+                    disabled={busy}
+                    style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "none", background: COLORS.red, color: "#fff", fontWeight: 700, fontSize: 14, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1 }}>
+                    {busy ? <><ButtonLoader /> Tar bort...</> : '🗑 Ja, ta bort'}
                   </button>
                   <button onClick={() => setConfirmDelete(null)}
+                    disabled={busy}
                     style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>
                     Avbryt
                   </button>

@@ -43,11 +43,13 @@ export function AdminScreen() {
   const [showPw, setShowPw] = useState({});
   const [resetPw, setResetPw] = useState({});
   const [newPw, setNewPw] = useState({});
+  const [resettingPw, setResettingPw] = useState({});
   const today = localToday();
 
   async function handleResetPassword(alias) {
     const pw = newPw[alias];
     if (!pw || !pw.trim()) return;
+    setResettingPw(prev => ({ ...prev, [alias]: true }));
     try {
       await apiPut("/users?action=resetpassword", { alias, newPassword: pw.trim() });
       setPlayers(prev => prev.map(p => p.alias === alias ? { ...p, password: pw.trim() } : p));
@@ -56,6 +58,7 @@ export function AdminScreen() {
     } catch (e) {
       alert("Kunde inte byta lösenord: " + e.message);
     }
+    setResettingPw(prev => ({ ...prev, [alias]: false }));
   }
 
   function daysSince(dateStr) {
@@ -232,8 +235,9 @@ export function AdminScreen() {
                         style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
                       />
                       <button onClick={() => handleResetPassword(p.alias)}
-                        style={{ background: COLORS.lime, border: "none", color: COLORS.dark, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
-                        Spara
+                        disabled={resettingPw[p.alias]}
+                        style={{ background: resettingPw[p.alias] ? 'rgba(240,220,0,0.5)' : COLORS.lime, border: "none", color: COLORS.dark, borderRadius: 8, padding: "6px 14px", cursor: resettingPw[p.alias] ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, opacity: resettingPw[p.alias] ? 0.7 : 1, transition: 'all 0.2s', minWidth: 60 }}>
+                        {resettingPw[p.alias] ? 'Sparar...' : 'Spara'}
                       </button>
                     </div>
                   )}

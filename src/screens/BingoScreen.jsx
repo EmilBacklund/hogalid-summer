@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { COLORS, BINGO, BADGES } from '../constants';
-import { Card, ProgressBar, Confetti } from '../components/common';
+import { Card, ProgressBar, Confetti, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
 
 export function BingoScreen() {
@@ -18,6 +18,7 @@ export function BingoScreen() {
   const totalPoints   = done.reduce((s, id) => s + (BINGO.find(b => b.id === id)?.points || 0), 0);
 
   const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   function pickRandom() {
     const pool = remaining.filter(b => filter === "all" || b.cat === filter);
@@ -26,12 +27,15 @@ export function BingoScreen() {
     setRandomPick(pick);
   }
 
-  function markDone(id) {
+  async function markDone(id) {
+    if (busy) return;
+    setBusy(true);
     const challenge = BINGO.find(b => b.id === id);
-    handleBingoDone(id, challenge?.points || 0);
+    await handleBingoDone(id, challenge?.points || 0);
     setJustDone(id);
     setRandomPick(null);
     setShowConfetti(true);
+    setBusy(false);
     setTimeout(() => { setJustDone(null); setShowConfetti(false); }, 2500);
   }
 
@@ -119,12 +123,14 @@ export function BingoScreen() {
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 14, lineHeight: 1.3 }}>{randomPick.label}</div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => markDone(randomPick.id)}
+              disabled={busy}
               style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
-                background: COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive",
-                fontSize: 16, cursor: "pointer" }}>
-              ✅ Klart!
+                background: busy ? 'rgba(240,220,0,0.5)' : COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive",
+                fontSize: 16, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, transition: 'all 0.2s' }}>
+              {busy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '✅ Klart!'}
             </button>
             <button onClick={() => setRandomPick(null)}
+              disabled={busy}
               style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)",
                 background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>
               ✕
@@ -187,13 +193,15 @@ export function BingoScreen() {
               {selectedChallenge?.id === challenge.id && (
                 <div style={{ background: "rgba(168,230,61,0.08)", border: `1px solid ${COLORS.lime}`, borderTop: "none", borderRadius: "0 0 14px 14px", padding: "12px 14px" }}>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => { markDone(challenge.id); setSelectedChallenge(null); }}
+                    <button onClick={() => { markDone(challenge.id).then(() => setSelectedChallenge(null)); }}
+                      disabled={busy}
                       style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
-                        background: COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive",
-                        fontSize: 16, cursor: "pointer" }}>
-                      ✅ Klart!
+                        background: busy ? 'rgba(240,220,0,0.5)' : COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive",
+                        fontSize: 16, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, transition: 'all 0.2s' }}>
+                      {busy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '✅ Klart!'}
                     </button>
                     <button onClick={() => setSelectedChallenge(null)}
+                      disabled={busy}
                       style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)",
                         background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>
                       ✕
