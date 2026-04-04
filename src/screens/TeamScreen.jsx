@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { COLORS, EXERCISES, TEAM_LEVELS } from '../constants';
+import { apiGet, apiPost } from '../utils/api';
 import {
   fetchAllUsers,
   localToday,
@@ -13,6 +14,7 @@ import {
   WEEKLY_LEVEL_NAMES,
   computeWeeklyHistory,
   saveWeeklyResult,
+  generateFeed,
 } from '../utils';
 import { Card, ProgressBar, Confetti } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
@@ -26,13 +28,38 @@ export function TeamScreen() {
   const [showRoster, setShowRoster] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAllLevels, setShowAllLevels] = useState(false);
+  const [reactions, setReactions] = useState({});
+  const [feedExpanded, setFeedExpanded] = useState(false);
 
   useEffect(() => {
     fetchAllUsers()
       .then(setAllUsers)
       .catch(() => setAllUsers([]))
       .finally(() => setLoadingTeam(false));
+    apiGet('/users?action=reactions')
+      .then(data => setReactions(data))
+      .catch(() => {});
   }, []);
+
+  async function toggleReaction(eventKey, emoji) {
+    try {
+      const current = reactions[eventKey] || {};
+      const myEmoji = current[user.alias];
+      const removing = myEmoji === emoji;
+      // Optimistic update
+      setReactions(prev => {
+        const copy = { ...prev, [eventKey]: { ...(prev[eventKey] || {}) } };
+        if (removing) delete copy[eventKey][user.alias];
+        else copy[eventKey][user.alias] = emoji;
+        return copy;
+      });
+      await apiPost('/users?action=react', { eventKey, alias: user.alias, emoji: removing ? null : emoji });
+      const updated = await apiGet('/users?action=reactions');
+      setReactions(updated);
+    } catch (e) {
+      alert('Kunde inte spara reaktion: ' + e.message);
+    }
+  }
 
   const allStats = allUsers.map((u) => {
     const s = computeStats(u);
@@ -287,6 +314,65 @@ export function TeamScreen() {
           </div>
         </div>
       )}
+
+      {/* Activity feed */}
+      {(() => {
+        const feed = generateFeed(allUsers, user.alias, seasonStart);
+        if (feed.length === 0) return null;
+        const visible = feedExpanded ? feed : feed.slice(0, 3);
+        return (
+          <Card style={{ marginBottom: 16 }}>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
+              📰 Lagflöde
+            </div>
+            <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {visible.map((e, idx) => {
+                    const eventKey = `${e.type}|${e.alias}|${e.date}|${e.icon}`;
+                    const eventReactions = reactions[eventKey] || {};
+                    const reactionCounts = {};
+                    Object.values(eventReactions).forEach(em => {
+                      reactionCounts[em] = (reactionCounts[em] || 0) + 1;
+                    });
+                    const myReaction = eventReactions[user.alias];
+                    return (
+                      <div key={idx} style={{ background: e.isMe ? 'rgba(240,220,0,0.08)' : 'rgba(255,255,255,0.04)', border: e.isMe ? '1px solid rgba(240,220,0,0.25)' : '1px solid transparent', borderRadius: 12, padding: '8px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ fontSize: 20, flexShrink: 0 }}>{e.icon}</div>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ color: e.isMe ? COLORS.yellow : COLORS.lime, fontWeight: 700, fontSize: 13 }}>
+                              {e.alias}
+                            </span>
+                            <span style={{ color: e.isMe ? 'rgba(240,220,0,0.8)' : 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+                              {' '}{e.text}
+                            </span>
+                          </div>
+                          <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, flexShrink: 0 }}>{e.date}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                          {['🔥', '👏', '⚽', '💪'].map(emoji => {
+                            const count = reactionCounts[emoji] || 0;
+                            const mine = myReaction === emoji;
+                            return (
+                              <button key={emoji} onClick={() => toggleReaction(eventKey, emoji)} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {emoji}{count > 0 && <span style={{ fontSize: 11 }}>{count}</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {feed.length > 3 && (
+                  <button onClick={() => setFeedExpanded(v => !v)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', marginTop: 10, width: '100%', textAlign: 'center' }}>
+                    {feedExpanded ? '▲ Visa färre' : `▼ Visa alla ${feed.length} händelser`}
+                  </button>
+                )}
+            </>
+          </Card>
+        );
+      })()}
 
       {/* Team streak */}
       <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>

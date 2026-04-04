@@ -49,6 +49,13 @@ export async function initDb(db) {
       value TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS feed_reactions (
+      event_key TEXT NOT NULL,
+      alias TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      PRIMARY KEY (event_key, alias)
+    );
+
     CREATE TABLE IF NOT EXISTS weekly_results (
       week_start TEXT PRIMARY KEY,
       challenge_label TEXT NOT NULL,

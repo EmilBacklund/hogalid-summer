@@ -5,3 +5,4 @@ export { computeStats } from './stats';
 export { getDailyChallenge, getWeeklyChallenge, getWeeklyLevelInfo, WEEKLY_LEVEL_NAMES } from './challenges';
 export { fetchAllUsers, invalidateUsersCache } from './usersCache';
 export { computeWeeklyHistory, saveWeeklyResult, getWeeklyChallengeForDate } from './weeklyHistory';
+export { generateFeed } from './feed';

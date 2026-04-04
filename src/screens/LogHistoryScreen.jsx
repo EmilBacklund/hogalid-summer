@@ -20,7 +20,7 @@ export function LogHistoryScreen() {
       const found = (log.exercises || []).find(e => e.id === ex.id);
       return { id: ex.id, value: found ? String(found.value) : "", highscore: "" };
     });
-    setEditing({ _idx: log._idx, date: log.date, exercises: exState });
+    setEditing({ id: log.id, date: log.date, exercises: exState });
   }
 
   function setVal(id, val) {
@@ -39,7 +39,7 @@ export function LogHistoryScreen() {
     }, 0);
     const points = totalTouch + totalMins * 5;
     const updated = { date: editing.date, exercises: filled.map(e => ({ id: e.id, value: Number(e.value) })), points, minutes: totalMins };
-    await handleUpdateLog("edit", editing._idx, updated);
+    await handleUpdateLog("edit", editing.id, updated);
     setEditing(null);
     setBusy(false);
   }
@@ -95,7 +95,7 @@ export function LogHistoryScreen() {
             const ex = EXERCISES.find(x => x.id === e.id);
             return s + (ex && !ex.isTime && e.id !== "skott" ? (e.value || 0) : 0);
           }, 0);
-          const isConfirming = confirmDelete === log._idx;
+          const isConfirming = confirmDelete === log.id;
           return (
             <Card key={log._idx} style={{ padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -111,7 +111,7 @@ export function LogHistoryScreen() {
               </div>
               {isConfirming ? (
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => deleteLog(log._idx)}
+                  <button onClick={() => deleteLog(log.id)}
                     disabled={busy}
                     style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "none", background: COLORS.red, color: "#fff", fontWeight: 700, fontSize: 14, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1 }}>
                     {busy ? <><ButtonLoader /> Tar bort...</> : '🗑 Ja, ta bort'}
@@ -128,7 +128,7 @@ export function LogHistoryScreen() {
                     style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "none", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                     ✏️ Redigera
                   </button>
-                  <button onClick={() => setConfirmDelete(log._idx)}
+                  <button onClick={() => setConfirmDelete(log.id)}
                     style={{ padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(220,40,40,0.4)", background: "transparent", color: COLORS.red, fontSize: 14, cursor: "pointer" }}>
                     🗑
                   </button>
