@@ -107,7 +107,10 @@ export function HomeScreen() {
               cursor: 'pointer',
               border: !loadingTeam && levelInfo.isMaxLevel ? '2px solid #ff6a00' : undefined,
               background: !loadingTeam && levelInfo.isMaxLevel ? 'rgba(255,100,0,0.08)' : undefined,
-              animation: !loadingTeam && levelInfo.isMaxLevel ? 'fireGlow 1.5s ease-in-out infinite' : undefined,
+              animation:
+                !loadingTeam && levelInfo.isMaxLevel
+                  ? 'fireGlow 1.5s ease-in-out infinite'
+                  : undefined,
             }}
             onClick={() => setScreen('challenges')}
           >
@@ -228,7 +231,9 @@ export function HomeScreen() {
                   </div>
                   <ProgressBar
                     value={levelInfo.progress}
-                    color={levelInfo.isMaxLevel ? '#ff6a00' : weekDone ? COLORS.lime : COLORS.yellow}
+                    color={
+                      levelInfo.isMaxLevel ? '#ff6a00' : weekDone ? COLORS.lime : COLORS.yellow
+                    }
                     height={8}
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
@@ -260,64 +265,65 @@ export function HomeScreen() {
         );
       })()}
       {/* Last week's result */}
-      {!loadingTeam && (() => {
-        const history = computeWeeklyHistory(allUsers, seasonStart);
-        if (history.length === 0) return null;
-        const last = history[0];
-        return (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              background: 'rgba(255,255,255,0.05)',
-              borderRadius: 12,
-              padding: '10px 14px',
-              marginBottom: 12,
-            }}
-          >
-            <div style={{ fontSize: 18 }}>
-              {last.levelInfo.level > 0 ? (last.levelInfo.isMaxLevel ? '🔥' : '✅') : '❌'}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  color: 'rgba(255,255,255,0.4)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
-              >
-                Förra veckan
+      {!loadingTeam &&
+        (() => {
+          const history = computeWeeklyHistory(allUsers, seasonStart);
+          if (history.length === 0) return null;
+          const last = history[0];
+          return (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 12,
+                padding: '10px 14px',
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ fontSize: 18 }}>
+                {last.levelInfo.level > 0 ? (last.levelInfo.isMaxLevel ? '🔥' : '✅') : '❌'}
               </div>
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
-                {last.challenge.label}
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              {last.levelInfo.level > 0 ? (
+              <div style={{ flex: 1 }}>
                 <div
                   style={{
-                    color: last.levelInfo.isMaxLevel ? '#ff6a00' : COLORS.lime,
-                    fontWeight: 700,
-                    fontSize: 13,
+                    color: 'rgba(255,255,255,0.4)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
                   }}
                 >
-                  Nivå {last.levelInfo.level} — {last.levelInfo.levelName}
+                  Förra veckan
                 </div>
-              ) : (
-                <div style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: 13 }}>
-                  Ej klar
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
+                  {last.challenge.label}
                 </div>
-              )}
-              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
-                {last.value} {last.challenge.type === 'touch' ? 'touch' : 'min'}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                {last.levelInfo.level > 0 ? (
+                  <div
+                    style={{
+                      color: last.levelInfo.isMaxLevel ? '#ff6a00' : COLORS.lime,
+                      fontWeight: 700,
+                      fontSize: 13,
+                    }}
+                  >
+                    Nivå {last.levelInfo.level} — {last.levelInfo.levelName}
+                  </div>
+                ) : (
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: 13 }}>
+                    Ej klar
+                  </div>
+                )}
+                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+                  {last.value} {last.challenge.type === 'touch' ? 'touch' : 'min'}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
         <Card style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 32 }}>🔥</div>
@@ -373,7 +379,7 @@ export function HomeScreen() {
           letterSpacing: 0.5,
         }}
       >
-        📒 Dagbok
+        📕 Dagbok
       </button>
       <button
         onClick={() => setScreen('bingo')}
