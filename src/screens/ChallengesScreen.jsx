@@ -11,6 +11,7 @@ import {
 } from '../utils';
 import { Card, ProgressBar, SkeletonBar, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
+import { ArrowLeft } from 'lucide-react';
 
 export function ChallengesScreen() {
   const { user, setScreen, handleCompleteDaily, loading, seasonStart } = useUser();
@@ -62,6 +63,9 @@ export function ChallengesScreen() {
       <button
         onClick={() => setScreen('home')}
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
           background: 'none',
           border: 'none',
           color: COLORS.lime,
@@ -72,7 +76,8 @@ export function ChallengesScreen() {
           padding: 0,
         }}
       >
-        ← Tillbaka
+        <ArrowLeft size={16} />
+        Tillbaka
       </button>
       <div
         style={{

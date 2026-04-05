@@ -12,6 +12,7 @@ import { getLevel, getNextLevel, calcProgress } from '../utils';
 import { Card, ProgressBar, ButtonLoader } from '../components/common';
 import { AvatarSVG, AvatarBuilder } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { ArrowLeft } from 'lucide-react';
 
 // Base avatar config for reward preview thumbnails
 const PREVIEW_BASE = {
@@ -95,6 +96,9 @@ export function ProfileScreen() {
       <button
         onClick={() => setScreen('home')}
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
           background: 'none',
           border: 'none',
           color: COLORS.lime,
@@ -105,7 +109,8 @@ export function ProfileScreen() {
           padding: 0,
         }}
       >
-        ← Tillbaka
+        <ArrowLeft size={16} />
+        Tillbaka
       </button>
 
       {/* Profile header */}

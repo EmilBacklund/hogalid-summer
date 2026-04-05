@@ -5,5 +5,4 @@ export { ProfileScreen } from './ProfileScreen';
 export { BingoScreen } from './BingoScreen';
 export { TeamScreen } from './TeamScreen';
 export { ChallengesScreen } from './ChallengesScreen';
-export { LogHistoryScreen } from './LogHistoryScreen';
 export { AdminScreen } from './AdminScreen';

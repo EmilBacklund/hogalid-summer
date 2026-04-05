@@ -19,6 +19,7 @@ import {
 import { Card, ProgressBar, Confetti } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export function TeamScreen() {
   const { user, setScreen, seasonStart } = useUser();
@@ -190,6 +191,9 @@ export function TeamScreen() {
       <button
         onClick={() => setScreen('home')}
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
           background: 'none',
           border: 'none',
           color: COLORS.lime,
@@ -200,7 +204,8 @@ export function TeamScreen() {
           padding: 0,
         }}
       >
-        ← Tillbaka
+        <ArrowLeft size={16} />
+        Tillbaka
       </button>
       <div
         style={{
@@ -256,8 +261,8 @@ export function TeamScreen() {
             {teamPoints.toLocaleString('sv')} poäng
           </span>
           {nextTeamLevel ? (
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
-              → {nextTeamLevel.icon} {nextTeamLevel.name} (
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <ArrowRight size={14} /> {nextTeamLevel.icon} {nextTeamLevel.name} (
               {(nextTeamLevel.min - teamPoints).toLocaleString('sv')} kvar)
             </span>
           ) : (

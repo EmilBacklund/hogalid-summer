@@ -73,6 +73,8 @@ export async function initDb(db) {
     "ALTER TABLE logs ADD COLUMN ice_cream INTEGER DEFAULT 0",
     "ALTER TABLE logs ADD COLUMN swim INTEGER DEFAULT 0",
     "ALTER TABLE logs ADD COLUMN pages INTEGER DEFAULT 0",
+    "ALTER TABLE logs ADD COLUMN title TEXT DEFAULT ''",
+    "ALTER TABLE logs ADD COLUMN created_at TEXT DEFAULT ''",
   ];
   for (const sql of migrations) {
     try { await db.execute(sql); } catch (e) { /* column already exists */ }

@@ -164,7 +164,7 @@ export default async (req, context) => {
       const key = alias.toLowerCase();
 
       await db.execute({
-        sql: 'INSERT INTO logs (alias, date, exercises, points, minutes, bingo, bingo_football, daily_challenge, ice_cream, swim, pages) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        sql: 'INSERT INTO logs (alias, date, exercises, points, minutes, bingo, bingo_football, daily_challenge, ice_cream, swim, pages, title, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         args: [
           key,
           log.date,
@@ -177,6 +177,8 @@ export default async (req, context) => {
           log.iceCream || 0,
           log.swim || 0,
           log.pages || 0,
+          log.title || '',
+          new Date().toISOString(),
         ],
       });
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
@@ -188,12 +190,16 @@ export default async (req, context) => {
       const { logId, log } = body;
 
       await db.execute({
-        sql: 'UPDATE logs SET date = ?, exercises = ?, points = ?, minutes = ? WHERE id = ?',
+        sql: 'UPDATE logs SET date = ?, exercises = ?, points = ?, minutes = ?, ice_cream = ?, swim = ?, pages = ?, title = ? WHERE id = ?',
         args: [
           log.date,
           JSON.stringify(log.exercises || []),
           log.points || 0,
           log.minutes || 0,
+          log.iceCream || 0,
+          log.swim || 0,
+          log.pages || 0,
+          log.title || '',
           logId,
         ],
       });
@@ -338,6 +344,8 @@ async function getLogs(db, alias) {
     iceCream: row.ice_cream || 0,
     swim: row.swim || 0,
     pages: row.pages || 0,
+    title: row.title || '',
+    createdAt: row.created_at || '',
   }));
 }
 

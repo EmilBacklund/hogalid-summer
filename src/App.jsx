@@ -9,7 +9,6 @@ import {
   BingoScreen,
   TeamScreen,
   ChallengesScreen,
-  LogHistoryScreen,
   AdminScreen,
 } from './screens';
 
@@ -68,7 +67,6 @@ function AppContent() {
       {screen === "home"       && <HomeScreen />}
       {screen === "log"        && <LogScreen />}
       {screen === "challenges" && <ChallengesScreen />}
-      {screen === "history"    && <LogHistoryScreen />}
       {screen === "profile"    && <ProfileScreen />}
       {screen === "team"       && <TeamScreen />}
       {screen === "bingo"      && <BingoScreen />}

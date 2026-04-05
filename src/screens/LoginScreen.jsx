@@ -5,6 +5,7 @@ import { Card } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { AvatarBuilder } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { ArrowRight } from 'lucide-react';
 
 export function LoginScreen() {
   const { handleLogin } = useUser();
@@ -208,6 +209,10 @@ export function LoginScreen() {
             onClick={handleSubmit}
             disabled={busy}
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
               width: '100%',
               padding: '14px 0',
               borderRadius: 14,
@@ -222,7 +227,7 @@ export function LoginScreen() {
               boxShadow: `0 4px 20px ${COLORS.lime}55`,
             }}
           >
-            {busy ? 'Laddar...' : mode === 'login' ? 'Spela! →' : 'Skapa konto →'}
+            {busy ? 'Laddar...' : mode === 'login' ? <>Spela! <ArrowRight size={18} /></> : <>Skapa konto <ArrowRight size={18} /></>}
           </button>
 
           {mode === 'login' && (

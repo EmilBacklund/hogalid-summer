@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { COLORS, BINGO, BADGES } from '../constants';
 import { Card, ProgressBar, Confetti, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
+import { ArrowLeft } from 'lucide-react';
 
 export function BingoScreen() {
   const { user, setScreen, handleBingoDone } = useUser();
@@ -56,7 +57,7 @@ export function BingoScreen() {
   return (
     <div style={{ padding: "20px 16px 32px", fontFamily: "'Nunito', sans-serif" }}>
       <Confetti active={showConfetti} />
-      <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: COLORS.lime, cursor: "pointer", fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}>← Tillbaka</button>
+      <button onClick={() => setScreen("home")} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: COLORS.lime, cursor: "pointer", fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}><ArrowLeft size={16} />Tillbaka</button>
 
       <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: "#fff", marginBottom: 2 }}>Sommarlovsbingo 🌞</div>
       <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 18 }}>50 utmaningar — en hel sommar att klara dem!</div>

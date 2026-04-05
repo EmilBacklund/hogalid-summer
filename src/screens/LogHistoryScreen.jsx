@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { COLORS, EXERCISES } from '../constants';
 import { Card, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
+import { ArrowLeft } from 'lucide-react';
 
 export function LogHistoryScreen() {
   const { user, setScreen, handleUpdateLog } = useUser();
@@ -54,7 +55,7 @@ export function LogHistoryScreen() {
 
   if (editing) return (
     <div style={{ padding: "20px 16px", fontFamily: "'Nunito', sans-serif" }}>
-      <button onClick={() => setEditing(null)} style={{ background: "none", border: "none", color: COLORS.lime, cursor: "pointer", fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}>← Avbryt</button>
+      <button onClick={() => setEditing(null)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: COLORS.lime, cursor: "pointer", fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}><ArrowLeft size={16} />Avbryt</button>
       <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 24, color: "#fff", marginBottom: 4 }}>Redigera träning</div>
       <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 18 }}>{editing.date}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
@@ -80,7 +81,7 @@ export function LogHistoryScreen() {
 
   return (
     <div style={{ padding: "20px 16px 32px", fontFamily: "'Nunito', sans-serif" }}>
-      <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: COLORS.lime, cursor: "pointer", fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}>← Tillbaka</button>
+      <button onClick={() => setScreen("home")} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: COLORS.lime, cursor: "pointer", fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}><ArrowLeft size={16} />Tillbaka</button>
       <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: "#fff", marginBottom: 4 }}>Mina träningar</div>
       <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 20 }}>{logs.length} pass loggade</div>
 

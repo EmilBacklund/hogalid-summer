@@ -7,11 +7,12 @@ const UserContext = createContext(null);
 /* ── URL ↔ screen mapping ── */
 const SCREEN_PATHS = {
   home: "/", log: "/log", profile: "/profile", bingo: "/bingo",
-  team: "/team", challenges: "/challenges", history: "/history",
+  team: "/team", challenges: "/challenges",
 };
-const PATH_SCREENS = Object.fromEntries(
-  Object.entries(SCREEN_PATHS).map(([s, p]) => [p, s])
-);
+const PATH_SCREENS = {
+  ...Object.fromEntries(Object.entries(SCREEN_PATHS).map(([s, p]) => [p, s])),
+  "/history": "log",  // history is now a tab inside log
+};
 function screenFromPath() {
   return PATH_SCREENS[window.location.pathname] || "home";
 }
@@ -91,11 +92,13 @@ export function UserProvider({ children }) {
       invalidateUsersCache();
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
-      setScreen("home");
+      setLoading(false);
+      return true;
     } catch (e) {
       alert("Kunde inte spara: " + e.message);
+      setLoading(false);
+      return false;
     }
-    setLoading(false);
   }
 
   async function handleUnlock(itemId, cost) {

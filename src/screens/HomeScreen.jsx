@@ -15,6 +15,7 @@ import {
 import { Card, ProgressBar, Countdown, SkeletonBar } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { ArrowRight } from 'lucide-react';
 
 export function HomeScreen() {
   const { user, stats, setScreen, seasonStart } = useUser();
@@ -124,7 +125,7 @@ export function HomeScreen() {
               }}
             >
               <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>⚡ Utmaningar</div>
-              <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 600 }}>Se alla →</div>
+              <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>Se alla <ArrowRight size={13} /></div>
             </div>
 
             {/* Daily section */}
@@ -348,8 +349,8 @@ export function HomeScreen() {
             {level.icon} {level.name}
           </span>
           {nextLevel && (
-            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-              → {nextLevel.icon} {nextLevel.name}
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <ArrowRight size={14} /> {nextLevel.icon} {nextLevel.name}
             </span>
           )}
         </div>
@@ -430,22 +431,6 @@ export function HomeScreen() {
           }}
         >
           🤝 Högalid F15
-        </button>
-        <button
-          onClick={() => setScreen('history')}
-          style={{
-            padding: '14px 0',
-            borderRadius: 14,
-            border: 'none',
-            background: 'rgba(255,255,255,0.1)',
-            color: '#fff',
-            fontFamily: "'Fredoka One', cursive",
-            fontSize: 16,
-            cursor: 'pointer',
-            gridColumn: 'span 2',
-          }}
-        >
-          📋 Mina träningar
         </button>
       </div>
     </div>
