@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { COLORS, EXERCISES, TEAM_LEVELS } from '../constants';
 import { apiGet, apiPost } from '../utils/api';
 import {
@@ -32,11 +32,13 @@ export function TeamScreen() {
   const [reactions, setReactions] = useState({});
   const [feedExpanded, setFeedExpanded] = useState(teamFeedOpen);
   const [feedPage, setFeedPage] = useState(0);
+  const feedRef = useRef(null);
 
   useEffect(() => {
     if (teamFeedOpen) {
       setFeedExpanded(true);
       setTeamFeedOpen(false);
+      setTimeout(() => feedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
   }, []);
   const FEED_PAGE_SIZE = 20;
@@ -408,7 +410,7 @@ export function TeamScreen() {
         }
 
         return (
-          <Card style={{ marginBottom: 16 }}>
+          <div ref={feedRef} /><Card style={{ marginBottom: 16 }}>
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
               📰 Lagflöde
             </div>
