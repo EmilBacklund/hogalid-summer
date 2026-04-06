@@ -211,8 +211,19 @@ export function HomeScreen() {
                 )}
               </div>
               {loadingTeam ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0 4px' }}>
-                  <div style={{ fontSize: 28, animation: 'footballBounce 0.8s ease-in-out infinite', lineHeight: 1 }}>⚽</div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 6, padding: '10px 0 4px' }}>
+                  {[0, 0.1, 0.2, 0.3, 0.4].map((delay, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        fontSize: 22,
+                        lineHeight: 1,
+                        animation: `footballBounce 0.8s ease-in-out ${delay}s infinite`,
+                      }}
+                    >
+                      ⚽
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <>
