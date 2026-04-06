@@ -1,6 +1,6 @@
 import { apiGet } from './api';
 
-const CACHE_TTL = 60 * 1000; // 60 seconds
+const CACHE_TTL = 120 * 1000; // 2 minutes
 
 let cachedUsers = null;
 let cacheTime = 0;

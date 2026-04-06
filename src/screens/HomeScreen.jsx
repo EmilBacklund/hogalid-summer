@@ -12,7 +12,7 @@ import {
   fetchAllUsers,
   computeWeeklyHistory,
 } from '../utils';
-import { Card, ProgressBar, Countdown, SkeletonBar } from '../components/common';
+import { Card, ProgressBar, Countdown } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 import { ArrowRight } from 'lucide-react';
@@ -39,6 +39,10 @@ export function HomeScreen() {
         @keyframes fireGlow {
           0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
           50% { box-shadow: 0 0 28px 8px #ffae00, 0 0 48px 16px #ff6a00; }
+        }
+        @keyframes footballBounce {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-12px) rotate(180deg); }
         }
       `}</style>
       {/* Header */}
@@ -207,15 +211,8 @@ export function HomeScreen() {
                 )}
               </div>
               {loadingTeam ? (
-                <div>
-                  <SkeletonBar height={12} width="70%" borderRadius={6} />
-                  <div style={{ marginTop: 10 }}>
-                    <SkeletonBar height={8} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                    <SkeletonBar height={10} width="25%" borderRadius={4} />
-                    <SkeletonBar height={10} width="35%" borderRadius={4} />
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0 4px' }}>
+                  <div style={{ fontSize: 28, animation: 'footballBounce 0.8s ease-in-out infinite', lineHeight: 1 }}>⚽</div>
                 </div>
               ) : (
                 <>
