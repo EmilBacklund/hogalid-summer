@@ -322,6 +322,32 @@ export function TeamScreen() {
         </div>
       )}
 
+      {/* Roster */}
+      <Card style={{ marginBottom: 16 }}>
+        <button
+          onClick={() => setShowRoster(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700 }}>
+            👥 Lagkompisar ({allUsers.length})
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 18, lineHeight: 1 }}>{showRoster ? '▲' : '▼'}</div>
+        </button>
+        {showRoster && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 14 }}>
+            {allUsers.map(u => (
+              <div key={u.alias} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '50%', padding: 4, border: u.alias === user.alias ? `2px solid ${COLORS.lime}` : '2px solid transparent' }}>
+                  <AvatarSVG avatarConfig={u.avatarConfig} size={52} />
+                </div>
+                <div style={{ color: u.alias === user.alias ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{u.alias}</div>
+                {u.alias === user.alias && <div style={{ color: COLORS.lime, fontSize: 10 }}>Du</div>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {/* Activity feed */}
       {(() => {
         const feed = generateFeed(allUsers, user.alias, seasonStart);
@@ -745,32 +771,6 @@ export function TeamScreen() {
           </Card>
         );
       })()}
-
-      {/* Roster */}
-      <Card style={{ marginBottom: 16 }}>
-        <button
-          onClick={() => setShowRoster(v => !v)}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-        >
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700 }}>
-            👥 Lagkompisar ({allUsers.length})
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 18, lineHeight: 1 }}>{showRoster ? '▲' : '▼'}</div>
-        </button>
-        {showRoster && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 14 }}>
-            {allUsers.map(u => (
-              <div key={u.alias} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '50%', padding: 4, border: u.alias === user.alias ? `2px solid ${COLORS.lime}` : '2px solid transparent' }}>
-                  <AvatarSVG avatarConfig={u.avatarConfig} size={52} />
-                </div>
-                <div style={{ color: u.alias === user.alias ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{u.alias}</div>
-                {u.alias === user.alias && <div style={{ color: COLORS.lime, fontSize: 10 }}>Du</div>}
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
 
       {/* My contribution */}
       {myStats && (
