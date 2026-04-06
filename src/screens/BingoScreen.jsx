@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { COLORS, BINGO, BADGES } from '../constants';
 import { Card, ProgressBar, Confetti, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
@@ -11,6 +11,9 @@ export function BingoScreen() {
   const remaining = BINGO.filter(b => !done.includes(b.id));
   const [filter, setFilter] = useState("all"); // all | ⚽ | ☀️
   const [randomPick, setRandomPick] = useState(null);
+  const [wheelNum, setWheelNum] = useState(null);
+  const [spinning, setSpinning] = useState(false);
+  const spinTimerRef = useRef(null);
   const [justDone, setJustDone] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -21,11 +24,38 @@ export function BingoScreen() {
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  function pickRandom() {
+  function startSpin() {
     const pool = remaining.filter(b => filter === "all" || b.cat === filter);
-    if (pool.length === 0) return;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    setRandomPick(pick);
+    if (pool.length === 0 || spinning) return;
+
+    const target = pool[Math.floor(Math.random() * pool.length)];
+    const targetNum = BINGO.findIndex(b => b.id === target.id) + 1;
+
+    setSpinning(true);
+    setRandomPick(null);
+
+    const totalSteps = 28;
+    // Pre-calculate start so sequential scrolling naturally lands on targetNum
+    const startNum = ((targetNum - totalSteps - 1) % 50 + 50) % 50 + 1;
+    let current = startNum;
+    let step = 0;
+
+    function tick() {
+      step++;
+      current = (current % 50) + 1;
+      setWheelNum(current);
+
+      if (step < totalSteps) {
+        const progress = step / totalSteps;
+        const delay = 30 + progress * progress * 220;
+        spinTimerRef.current = setTimeout(tick, delay);
+      } else {
+        setSpinning(false);
+        spinTimerRef.current = setTimeout(() => setRandomPick(target), 500);
+      }
+    }
+
+    spinTimerRef.current = setTimeout(tick, 50);
   }
 
   async function markDone(id) {
@@ -104,15 +134,113 @@ export function BingoScreen() {
         );
       })}
 
-      {/* Random pick button */}
-      <button onClick={pickRandom}
-        style={{ width: "100%", padding: "15px 0", borderRadius: 16, border: "none",
-          background: `linear-gradient(135deg, ${COLORS.red}, ${COLORS.navy})`,
-          color: "#fff", fontFamily: "'Fredoka One', cursive", fontSize: 19,
-          cursor: remaining.filter(b => filter === "all" || b.cat === filter).length === 0 ? "not-allowed" : "pointer",
-          marginBottom: 14, boxShadow: `0 4px 20px rgba(220,40,40,0.4)`, letterSpacing: 0.5 }}>
-        🎲 Slumpa ett uppdrag!
-      </button>
+      {/* Slot machine wheel */}
+      {(() => {
+        const canSpin = !spinning && remaining.filter(b => filter === "all" || b.cat === filter).length > 0;
+        const isYellow = wheelNum !== null && wheelNum % 2 === 1;
+        const prevNum = wheelNum !== null ? ((wheelNum - 2 + 50) % 50) + 1 : null;
+        const nextNum = wheelNum !== null ? (wheelNum % 50) + 1 : null;
+
+        return (
+          <div
+            onClick={canSpin ? startSpin : undefined}
+            style={{
+              marginBottom: 14,
+              borderRadius: 16,
+              overflow: 'hidden',
+              cursor: canSpin ? 'pointer' : 'default',
+              position: 'relative',
+              height: 126,
+              boxShadow: spinning
+                ? `0 0 32px ${isYellow ? COLORS.yellow : COLORS.red}88`
+                : wheelNum !== null
+                ? `0 0 20px ${isYellow ? COLORS.yellow : COLORS.red}55`
+                : '0 4px 20px rgba(220,40,40,0.35)',
+              transition: 'box-shadow 0.15s',
+              userSelect: 'none',
+            }}
+          >
+            {wheelNum === null ? (
+              /* Idle state */
+              <div style={{
+                width: '100%', height: '100%',
+                background: `linear-gradient(135deg, ${COLORS.red}, ${COLORS.navy})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              }}>
+                <span style={{ fontSize: 26 }}>🎰</span>
+                <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: '#fff', letterSpacing: 0.5 }}>
+                  Slumpa ett uppdrag
+                </span>
+              </div>
+            ) : (
+              /* Spinning / result state */
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* Top cell — previous number, dimmed, half-visible */}
+                <div style={{
+                  height: 28,
+                  background: prevNum % 2 === 1 ? COLORS.yellow : COLORS.red,
+                  opacity: 0.22,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden',
+                }}>
+                  <span style={{
+                    fontFamily: "'Fredoka One', cursive",
+                    fontSize: 20,
+                    color: prevNum % 2 === 1 ? COLORS.dark : '#fff',
+                  }}>{prevNum}</span>
+                </div>
+
+                {/* Center cell — current number */}
+                <div style={{
+                  height: 70,
+                  background: isYellow ? COLORS.yellow : COLORS.red,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative',
+                }}>
+                  {/* Side gradient shadows for depth */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 8,
+                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)',
+                    pointerEvents: 'none',
+                  }} />
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, height: 8,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)',
+                    pointerEvents: 'none',
+                  }} />
+                  <span
+                    key={wheelNum}
+                    style={{
+                      fontFamily: "'Fredoka One', cursive",
+                      fontSize: 52,
+                      lineHeight: 1,
+                      color: isYellow ? COLORS.dark : '#fff',
+                      animation: !spinning ? 'none' : undefined,
+                    }}
+                  >
+                    {wheelNum}
+                  </span>
+                </div>
+
+                {/* Bottom cell — next number, dimmed, half-visible */}
+                <div style={{
+                  height: 28,
+                  background: nextNum % 2 === 1 ? COLORS.yellow : COLORS.red,
+                  opacity: 0.22,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden',
+                }}>
+                  <span style={{
+                    fontFamily: "'Fredoka One', cursive",
+                    fontSize: 20,
+                    color: nextNum % 2 === 1 ? COLORS.dark : '#fff',
+                  }}>{nextNum}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Random pick card */}
       {randomPick && (
