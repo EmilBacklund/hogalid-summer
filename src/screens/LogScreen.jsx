@@ -3,7 +3,7 @@ import { COLORS, EXERCISES, SUMMER_ACTIVITIES } from '../constants';
 import { localToday } from '../utils';
 import { Card, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 
 function clamp(val, min, max) {
   if (val === '') return '';
@@ -634,7 +634,7 @@ export function LogScreen() {
                         >
                           {time && (
                             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
-                              Loggad kl {time}
+                              kl {time}
                             </span>
                           )}
                           <span style={{ color: COLORS.lime, fontSize: 11, fontWeight: 600 }}>
@@ -933,11 +933,15 @@ export function LogScreen() {
                           flex: 1,
                           padding: '9px 0',
                           borderRadius: 10,
-                          border: 'none',
-                          background: COLORS.red,
-                          color: '#fff',
-                          fontWeight: 700,
+                          border: '1px solid rgba(255,59,48,0.4)',
+                          background: 'rgba(255,59,48,0.12)',
+                          color: '#ff6b6b',
+                          fontWeight: 600,
                           fontSize: 14,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 4,
                           cursor: busy ? 'not-allowed' : 'pointer',
                           opacity: busy ? 0.7 : 1,
                         }}
@@ -947,7 +951,7 @@ export function LogScreen() {
                             <ButtonLoader /> Tar bort...
                           </>
                         ) : (
-                          '🗑 Ja, ta bort'
+                          <><Trash2 size={15} /> Ja, ta bort</>
                         )}
                       </button>
                       <button
@@ -990,14 +994,14 @@ export function LogScreen() {
                         style={{
                           padding: '9px 14px',
                           borderRadius: 10,
-                          border: '1px solid rgba(220,40,40,0.4)',
-                          background: 'transparent',
-                          color: COLORS.red,
+                          border: '1px solid rgba(255,59,48,0.4)',
+                          background: 'rgba(255,59,48,0.12)',
+                          color: '#ff6b6b',
                           fontSize: 14,
                           cursor: 'pointer',
                         }}
                       >
-                        🗑
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   )}
