@@ -31,6 +31,8 @@ export function TeamScreen() {
   const [showAllLevels, setShowAllLevels] = useState(false);
   const [reactions, setReactions] = useState({});
   const [feedExpanded, setFeedExpanded] = useState(false);
+  const [feedPage, setFeedPage] = useState(0);
+  const FEED_PAGE_SIZE = 20;
 
   useEffect(() => {
     fetchAllUsers()
@@ -324,57 +326,85 @@ export function TeamScreen() {
       {(() => {
         const feed = generateFeed(allUsers, user.alias, seasonStart);
         if (feed.length === 0) return null;
-        const visible = feedExpanded ? feed : feed.slice(0, 3);
+        const totalPages = Math.ceil(feed.length / FEED_PAGE_SIZE);
+        const pageStart = feedPage * FEED_PAGE_SIZE;
+        const paginated = feed.slice(pageStart, pageStart + FEED_PAGE_SIZE);
+
+        function renderEvent(e, idx) {
+          const isMaxLevel = e.type === 'weeklylevel' && e.text.includes('Nivå 10');
+          const eventKey = `${e.type}|${e.alias}|${e.date}|${e.icon}`;
+          const eventReactions = reactions[eventKey] || {};
+          const reactionCounts = {};
+          Object.values(eventReactions).forEach(em => {
+            reactionCounts[em] = (reactionCounts[em] || 0) + 1;
+          });
+          const myReaction = eventReactions[user.alias];
+          return (
+            <div key={idx} style={{
+              background: isMaxLevel ? 'rgba(255,100,0,0.1)' : e.isMe ? 'rgba(240,220,0,0.08)' : 'rgba(255,255,255,0.04)',
+              border: isMaxLevel ? '2px solid #ff6a00' : e.isMe ? '1px solid rgba(240,220,0,0.25)' : '1px solid transparent',
+              borderRadius: 12,
+              padding: '8px 12px',
+              animation: isMaxLevel ? 'fireGlow 1.5s ease-in-out infinite' : 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontSize: 20, flexShrink: 0 }}>{e.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <span style={{ color: isMaxLevel ? '#ff6a00' : e.isMe ? COLORS.yellow : COLORS.lime, fontWeight: 700, fontSize: 13 }}>
+                    {e.alias}
+                  </span>
+                  <span style={{ color: isMaxLevel ? 'rgba(255,100,0,0.9)' : e.isMe ? 'rgba(240,220,0,0.8)' : 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+                    {' '}{e.text}
+                  </span>
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, flexShrink: 0 }}>{e.date}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                {['🔥', '👏', '⚽', '💪'].map(emoji => {
+                  const count = reactionCounts[emoji] || 0;
+                  const mine = myReaction === emoji;
+                  return (
+                    <button key={emoji} onClick={() => toggleReaction(eventKey, emoji)} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {emoji}{count > 0 && <span style={{ fontSize: 11 }}>{count}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+
         return (
           <Card style={{ marginBottom: 16 }}>
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
               📰 Lagflöde
             </div>
-            <>
+            {!feedExpanded ? (
+              <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {visible.map((e, idx) => {
-                    const eventKey = `${e.type}|${e.alias}|${e.date}|${e.icon}`;
-                    const eventReactions = reactions[eventKey] || {};
-                    const reactionCounts = {};
-                    Object.values(eventReactions).forEach(em => {
-                      reactionCounts[em] = (reactionCounts[em] || 0) + 1;
-                    });
-                    const myReaction = eventReactions[user.alias];
-                    return (
-                      <div key={idx} style={{ background: e.isMe ? 'rgba(240,220,0,0.08)' : 'rgba(255,255,255,0.04)', border: e.isMe ? '1px solid rgba(240,220,0,0.25)' : '1px solid transparent', borderRadius: 12, padding: '8px 12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ fontSize: 20, flexShrink: 0 }}>{e.icon}</div>
-                          <div style={{ flex: 1 }}>
-                            <span style={{ color: e.isMe ? COLORS.yellow : COLORS.lime, fontWeight: 700, fontSize: 13 }}>
-                              {e.alias}
-                            </span>
-                            <span style={{ color: e.isMe ? 'rgba(240,220,0,0.8)' : 'rgba(255,255,255,0.7)', fontSize: 13 }}>
-                              {' '}{e.text}
-                            </span>
-                          </div>
-                          <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, flexShrink: 0 }}>{e.date}</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                          {['🔥', '👏', '⚽', '💪'].map(emoji => {
-                            const count = reactionCounts[emoji] || 0;
-                            const mine = myReaction === emoji;
-                            return (
-                              <button key={emoji} onClick={() => toggleReaction(eventKey, emoji)} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                {emoji}{count > 0 && <span style={{ fontSize: 11 }}>{count}</span>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {feed.slice(0, 3).map((e, idx) => renderEvent(e, idx))}
                 </div>
                 {feed.length > 3 && (
-                  <button onClick={() => setFeedExpanded(v => !v)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', marginTop: 10, width: '100%', textAlign: 'center' }}>
-                    {feedExpanded ? '▲ Visa färre' : `▼ Visa alla ${feed.length} händelser`}
+                  <button onClick={() => { setFeedExpanded(true); setFeedPage(0); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', marginTop: 10, width: '100%', textAlign: 'center' }}>
+                    ▼ Visa alla {feed.length} händelser
                   </button>
                 )}
-            </>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {paginated.map((e, idx) => renderEvent(e, pageStart + idx))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+                  <button onClick={() => setFeedPage(v => v - 1)} disabled={feedPage === 0} style={{ background: 'none', border: 'none', color: feedPage === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', fontSize: 20, cursor: feedPage === 0 ? 'default' : 'pointer' }}>←</button>
+                  <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>Sida {feedPage + 1} av {totalPages}</span>
+                  <button onClick={() => setFeedPage(v => v + 1)} disabled={feedPage >= totalPages - 1} style={{ background: 'none', border: 'none', color: feedPage >= totalPages - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', fontSize: 20, cursor: feedPage >= totalPages - 1 ? 'default' : 'pointer' }}>→</button>
+                </div>
+                <button onClick={() => setFeedExpanded(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', marginTop: 6, width: '100%', textAlign: 'center' }}>
+                  ▲ Visa färre
+                </button>
+              </>
+            )}
           </Card>
         );
       })()}
