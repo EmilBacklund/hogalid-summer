@@ -410,7 +410,9 @@ export function TeamScreen() {
         }
 
         return (
-          <div ref={feedRef} /><Card style={{ marginBottom: 16 }}>
+          <>
+          <div ref={feedRef} />
+          <Card style={{ marginBottom: 16 }}>
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
               📰 Lagflöde
             </div>
@@ -441,6 +443,7 @@ export function TeamScreen() {
               </>
             )}
           </Card>
+          </>
         );
       })()}
 
