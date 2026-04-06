@@ -216,6 +216,11 @@ export function ProfileScreen() {
             </button>
           </div>
         )}
+        {editingName && (
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 6 }}>
+            Du loggar fortfarande in med <span style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700 }}>{user.alias}</span>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 6 }}>
           <span style={{ color: COLORS.lime, fontSize: 14, fontWeight: 700 }}>
             {level.icon} {level.name}
