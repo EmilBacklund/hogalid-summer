@@ -13,7 +13,7 @@ import {
 } from './screens';
 
 function AppContent() {
-  const { user, loading, autoLoading, screen, handleLogout } = useUser();
+  const { user, loading, autoLoading, screen, setScreen, handleLogout } = useUser();
 
   const bgStyle = {
     minHeight: "100vh",
@@ -62,7 +62,7 @@ function AppContent() {
 
       {loading && <TopLoadingBar />}
 
-      <TopBar onLogout={handleLogout} />
+      <TopBar onLogout={handleLogout} onHome={() => setScreen('home')} />
 
       {screen === "home"       && <HomeScreen />}
       {screen === "log"        && <LogScreen />}
