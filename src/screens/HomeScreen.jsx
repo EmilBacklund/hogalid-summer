@@ -211,7 +211,7 @@ export function HomeScreen() {
                 )}
               </div>
               {loadingTeam ? (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 6, padding: '10px 0 4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 4px' }}>
                   {[0, 0.1, 0.2, 0.3, 0.4].map((delay, i) => (
                     <div
                       key={i}
