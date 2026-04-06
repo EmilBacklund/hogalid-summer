@@ -22,7 +22,7 @@ import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export function TeamScreen() {
-  const { user, setScreen, seasonStart } = useUser();
+  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -30,8 +30,15 @@ export function TeamScreen() {
   const [showHistory, setShowHistory] = useState(false);
   const [showAllLevels, setShowAllLevels] = useState(false);
   const [reactions, setReactions] = useState({});
-  const [feedExpanded, setFeedExpanded] = useState(false);
+  const [feedExpanded, setFeedExpanded] = useState(teamFeedOpen);
   const [feedPage, setFeedPage] = useState(0);
+
+  useEffect(() => {
+    if (teamFeedOpen) {
+      setFeedExpanded(true);
+      setTeamFeedOpen(false);
+    }
+  }, []);
   const FEED_PAGE_SIZE = 20;
 
   useEffect(() => {

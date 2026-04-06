@@ -23,6 +23,7 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [autoLoading, setAutoLoading] = useState(true);
   const [seasonStart, setSeasonStart] = useState(null);
+  const [teamFeedOpen, setTeamFeedOpen] = useState(false);
 
   /* ── Auto-login from localStorage ── */
   useEffect(() => {
@@ -205,6 +206,8 @@ export function UserProvider({ children }) {
     handleCompleteDaily,
     handleUpdateLog,
     handleUpdateDisplayName,
+    teamFeedOpen,
+    setTeamFeedOpen,
   };
 
   return (
