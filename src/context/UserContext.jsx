@@ -23,6 +23,7 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [autoLoading, setAutoLoading] = useState(true);
   const [seasonStart, setSeasonStart] = useState(null);
+  const [teamFeedOpen, setTeamFeedOpen] = useState(false);
 
   /* ── Auto-login from localStorage ── */
   useEffect(() => {
@@ -123,6 +124,15 @@ export function UserProvider({ children }) {
     }
   }
 
+  async function handleUpdateDisplayName(displayName) {
+    try {
+      await apiPut("/users?action=updatedisplayname", { alias: user.alias, displayName });
+      setUser({ ...user, displayName });
+    } catch (e) {
+      alert("Kunde inte spara namn: " + e.message);
+    }
+  }
+
   async function handleBingoDone(challengeId, bonusPoints) {
     if ((user.bingo || []).includes(challengeId)) return;
     try {
@@ -195,6 +205,9 @@ export function UserProvider({ children }) {
     handleBingoDone,
     handleCompleteDaily,
     handleUpdateLog,
+    handleUpdateDisplayName,
+    teamFeedOpen,
+    setTeamFeedOpen,
   };
 
   return (

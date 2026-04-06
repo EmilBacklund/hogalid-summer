@@ -1,6 +1,6 @@
 import { COLORS } from '../../constants';
 
-export function TopBar({ onLogout }) {
+export function TopBar({ onLogout, onHome }) {
   return (
     <div
       style={{
@@ -10,12 +10,23 @@ export function TopBar({ onLogout }) {
         padding: '14px 16px 0',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <button
+        onClick={onHome}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'none',
+          border: 'none',
+          cursor: onHome ? 'pointer' : 'default',
+          padding: 0,
+        }}
+      >
         <img src="/img/hogalid-logo.png" alt="" style={{ height: 32, width: 'auto' }} />
         <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: COLORS.lime }}>
           Högalid
         </span>
-      </div>
+      </button>
       <button
         onClick={onLogout}
         style={{

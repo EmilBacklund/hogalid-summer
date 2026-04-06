@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { COLORS, EXERCISES } from '../constants';
 import {
   getLevel,
@@ -11,14 +11,15 @@ import {
   getWeeklyLevelInfo,
   fetchAllUsers,
   computeWeeklyHistory,
+  generateFeed,
 } from '../utils';
-import { Card, ProgressBar, Countdown, SkeletonBar } from '../components/common';
+import { Card, ProgressBar, Countdown } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 import { ArrowRight } from 'lucide-react';
 
 export function HomeScreen() {
-  const { user, stats, setScreen, seasonStart } = useUser();
+  const { user, stats, setScreen, seasonStart, setTeamFeedOpen } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
 
@@ -33,12 +34,25 @@ export function HomeScreen() {
   const nextLevel = getNextLevel(stats.totalPoints);
   const progress = calcProgress(stats.totalPoints);
 
+  const feedItems = useMemo(() => {
+    if (loadingTeam || !allUsers.length) return [];
+    return generateFeed(allUsers, user.alias, seasonStart).slice(0, 5);
+  }, [allUsers, loadingTeam, user.alias, seasonStart]);
+
   return (
     <div style={{ padding: '20px 16px', fontFamily: "'Nunito', sans-serif" }}>
       <style>{`
         @keyframes fireGlow {
           0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
           50% { box-shadow: 0 0 28px 8px #ffae00, 0 0 48px 16px #ff6a00; }
+        }
+        @keyframes footballBounce {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-12px) rotate(180deg); }
+        }
+        @keyframes ticker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
       `}</style>
       {/* Header */}
@@ -74,6 +88,59 @@ export function HomeScreen() {
 
       {/* Countdown */}
       <Countdown />
+
+      {/* Senaste nytt ticker */}
+      {feedItems.length > 0 && (
+        <button
+          onClick={() => { setTeamFeedOpen(true); setScreen('team'); }}
+          style={{
+            display: 'block',
+            width: '100%',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: '8px 0',
+            marginBottom: 12,
+            cursor: 'pointer',
+            overflow: 'hidden',
+            textAlign: 'left',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{
+              color: COLORS.lime,
+              fontWeight: 700,
+              fontSize: 11,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+              padding: '0 10px',
+              flexShrink: 0,
+              borderRight: '1px solid rgba(255,255,255,0.1)',
+              marginRight: 8,
+            }}>
+              Nytt
+            </span>
+            <div style={{ overflow: 'hidden', flex: 1 }}>
+              <div style={{
+                display: 'inline-flex',
+                whiteSpace: 'nowrap',
+                animation: `ticker ${feedItems.length * 4}s linear infinite`,
+              }}>
+                {[...feedItems, ...feedItems].map((item, i) => (
+                  <span key={i} style={{
+                    color: item.isMe ? COLORS.yellow : 'rgba(255,255,255,0.65)',
+                    fontSize: 12,
+                    fontWeight: item.isMe ? 700 : 400,
+                    marginRight: 32,
+                  }}>
+                    {item.icon} <span style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>{item.alias}</span> {item.text}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </button>
+      )}
 
       {/* Daily + Weekly challenges widget */}
       {(() => {
@@ -207,15 +274,19 @@ export function HomeScreen() {
                 )}
               </div>
               {loadingTeam ? (
-                <div>
-                  <SkeletonBar height={12} width="70%" borderRadius={6} />
-                  <div style={{ marginTop: 10 }}>
-                    <SkeletonBar height={8} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                    <SkeletonBar height={10} width="25%" borderRadius={4} />
-                    <SkeletonBar height={10} width="35%" borderRadius={4} />
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 4px' }}>
+                  {[0, 0.1, 0.2, 0.3, 0.4].map((delay, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        fontSize: 22,
+                        lineHeight: 1,
+                        animation: `footballBounce 0.8s ease-in-out ${delay}s infinite`,
+                      }}
+                    >
+                      ⚽
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <>
