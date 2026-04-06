@@ -1,9 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
 import { COLORS, EXERCISES, SUMMER_ACTIVITIES } from '../constants';
-import { localToday } from '../utils';
+import { localToday, getWeekStart } from '../utils';
 import { Card, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight } from 'lucide-react';
+
+const DAY_LABELS = ['Må', 'Ti', 'On', 'To', 'Fr', 'Lö', 'Sö'];
+
+function addDaysStr(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
+function getISOWeekNumber(dateStr) {
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+}
 
 function clamp(val, min, max) {
   if (val === '') return '';
@@ -66,6 +88,7 @@ export function LogScreen() {
   const [saving, setSaving] = useState(false);
   const [tooLittle, setTooLittle] = useState(false);
   const [todayOpen, setTodayOpen] = useState(false);
+  const [calWeekOffset, setCalWeekOffset] = useState(0);
   const [btnVisible, setBtnVisible] = useState(true);
   const lastScrollY = useRef(0);
   const sentinelRef = useRef(null);
@@ -649,24 +672,137 @@ export function LogScreen() {
             </Card>
           )}
 
-          {/* Date */}
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600 }}>
-              Datum
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              style={{
-                ...INPUT_STYLE,
-                display: 'block',
-                width: '100%',
-                marginTop: 5,
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
+          {/* Week calendar */}
+          {(() => {
+            const calWeekStart = addDaysStr(getWeekStart(today), calWeekOffset * 7);
+            const weekDays = Array.from({ length: 7 }, (_, i) => addDaysStr(calWeekStart, i));
+            const weekNumber = getISOWeekNumber(calWeekStart);
+            const logDates = new Set(
+              (user.logs || [])
+                .filter((l) => !l.bingo && !l.dailyChallenge)
+                .map((l) => l.date),
+            );
+            return (
+              <Card style={{ marginBottom: 20, padding: '14px 12px' }}>
+                {/* Header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 12,
+                  }}
+                >
+                  <button
+                    onClick={() => setCalWeekOffset((v) => v - 1)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'rgba(255,255,255,0.7)',
+                      fontSize: 20,
+                      cursor: 'pointer',
+                      padding: '0 6px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    ←
+                  </button>
+                  <span
+                    style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 700 }}
+                  >
+                    Vecka {weekNumber}
+                  </span>
+                  <button
+                    onClick={() => setCalWeekOffset((v) => v + 1)}
+                    disabled={calWeekOffset >= 0}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: calWeekOffset >= 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.7)',
+                      fontSize: 20,
+                      cursor: calWeekOffset >= 0 ? 'default' : 'pointer',
+                      padding: '0 6px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    →
+                  </button>
+                </div>
+
+                {/* Day cells */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    gap: 4,
+                  }}
+                >
+                  {weekDays.map((dayDate, i) => {
+                    const isFuture = dayDate > today;
+                    const isSelected = dayDate === date;
+                    const isToday = dayDate === today;
+                    const hasLog = logDates.has(dayDate);
+                    const dayNum = dayDate.slice(-2).replace(/^0/, '');
+                    return (
+                      <div
+                        key={dayDate}
+                        onClick={!isFuture ? () => setDate(dayDate) : undefined}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '8px 0',
+                          borderRadius: 10,
+                          cursor: isFuture ? 'default' : 'pointer',
+                          background: isSelected
+                            ? COLORS.lime
+                            : 'rgba(255,255,255,0.05)',
+                          opacity: isFuture ? 0.3 : 1,
+                          transition: 'background 0.15s',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: isSelected ? COLORS.dark : 'rgba(255,255,255,0.45)',
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          {DAY_LABELS[i]}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 700,
+                            color: isSelected ? COLORS.dark : isToday ? COLORS.lime : '#fff',
+                            textDecoration: isToday && !isSelected ? 'underline' : 'none',
+                            textUnderlineOffset: 3,
+                          }}
+                        >
+                          {dayNum}
+                        </span>
+                        {/* Log indicator dot */}
+                        <div
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: hasLog
+                              ? isSelected
+                                ? COLORS.dark
+                                : COLORS.yellow
+                              : 'transparent',
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            );
+          })()}
 
           {/* Title (optional) */}
           <div style={{ marginBottom: 18 }}>
