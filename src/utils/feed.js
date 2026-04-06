@@ -24,6 +24,19 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
     const isMe = u.alias === myAlias;
     const logs = [...(u.logs || [])].sort((a, b) => a.date.localeCompare(b.date));
 
+    // Joined team
+    if (u.joinedAt) {
+      const joinDate = u.joinedAt.slice(0, 10);
+      events.push({
+        date: joinDate,
+        type: 'joined',
+        alias: u.alias,
+        isMe,
+        text: `har just gått med i HögalidF15! 🎉`,
+        icon: '🆕',
+      });
+    }
+
     // Daily challenges completed
     Object.entries(u.completedDaily || {}).forEach(([date, challengeId]) => {
       const challenge = DAILY_CHALLENGES.find(c => c.id === challengeId);
