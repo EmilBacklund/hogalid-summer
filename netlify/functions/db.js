@@ -70,6 +70,7 @@ export async function initDb(db) {
   // Migrations
   const migrations = [
     "ALTER TABLE users ADD COLUMN display_password TEXT DEFAULT ''",
+    "ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''",
     "ALTER TABLE logs ADD COLUMN ice_cream INTEGER DEFAULT 0",
     "ALTER TABLE logs ADD COLUMN swim INTEGER DEFAULT 0",
     "ALTER TABLE logs ADD COLUMN pages INTEGER DEFAULT 0",

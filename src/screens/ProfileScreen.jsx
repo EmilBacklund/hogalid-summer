@@ -51,11 +51,14 @@ const TABS = [
 ];
 
 export function ProfileScreen() {
-  const { user, stats, setScreen, handleUnlock, handleAvatarUpdate } = useUser();
+  const { user, stats, setScreen, handleUnlock, handleAvatarUpdate, handleUpdateDisplayName } = useUser();
   const [activeTab, setActiveTab] = useState('avatar');
   const [localConfig, setLocalConfig] = useState(() => user.avatarConfig || {});
   const [saving, setSaving] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(user.displayName || user.alias);
+  const [savingName, setSavingName] = useState(false);
 
   async function handleUnlockWithLoading(itemId, cost) {
     if (unlocking) return;
@@ -118,14 +121,101 @@ export function ProfileScreen() {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
           <AvatarSVG avatarConfig={activeTab === 'avatar' ? localConfig : user.avatarConfig} size={100} />
         </div>
-        <div style={{
-          color: '#fff',
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 22,
-          marginTop: 6,
-        }}>
-          {user.alias}
-        </div>
+        {editingName ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 6 }}>
+            <input
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              maxLength={20}
+              autoFocus
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter') {
+                  setSavingName(true);
+                  await handleUpdateDisplayName(nameInput.trim() || user.alias);
+                  setSavingName(false);
+                  setEditingName(false);
+                } else if (e.key === 'Escape') {
+                  setNameInput(user.displayName || user.alias);
+                  setEditingName(false);
+                }
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: `1px solid ${COLORS.lime}`,
+                borderRadius: 8,
+                color: '#fff',
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: 20,
+                padding: '4px 10px',
+                textAlign: 'center',
+                outline: 'none',
+                width: 160,
+              }}
+            />
+            <button
+              onClick={async () => {
+                setSavingName(true);
+                await handleUpdateDisplayName(nameInput.trim() || user.alias);
+                setSavingName(false);
+                setEditingName(false);
+              }}
+              disabled={savingName}
+              style={{
+                background: COLORS.lime,
+                border: 'none',
+                borderRadius: 8,
+                color: COLORS.dark,
+                fontWeight: 700,
+                fontSize: 13,
+                padding: '5px 12px',
+                cursor: 'pointer',
+                fontFamily: "'Nunito', sans-serif",
+              }}
+            >
+              {savingName ? '...' : 'Spara'}
+            </button>
+            <button
+              onClick={() => { setNameInput(user.displayName || user.alias); setEditingName(false); }}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: 8,
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: 13,
+                padding: '5px 10px',
+                cursor: 'pointer',
+                fontFamily: "'Nunito', sans-serif",
+              }}
+            >
+              Avbryt
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 6 }}>
+            <span style={{
+              color: '#fff',
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: 22,
+            }}>
+              {user.displayName || user.alias}
+            </span>
+            <button
+              onClick={() => { setNameInput(user.displayName || user.alias); setEditingName(true); }}
+              title="Redigera smeknamn"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'rgba(255,255,255,0.35)',
+                fontSize: 14,
+                padding: '2px 4px',
+                lineHeight: 1,
+              }}
+            >
+              ✏️
+            </button>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 6 }}>
           <span style={{ color: COLORS.lime, fontSize: 14, fontWeight: 700 }}>
             {level.icon} {level.name}

@@ -157,6 +157,20 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
+    // PUT - update display name
+    if (method === 'PUT' && action === 'updatedisplayname') {
+      const body = await req.json();
+      const { alias, displayName } = body;
+      const key = alias.toLowerCase();
+      const name = (displayName || '').trim().slice(0, 20);
+
+      await db.execute({
+        sql: 'UPDATE users SET display_name = ? WHERE alias = ?',
+        args: [name, key],
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
     // POST - add log
     if (method === 'POST' && action === 'addlog') {
       const body = await req.json();
@@ -320,6 +334,7 @@ export default async (req, context) => {
 function rowToUser(row) {
   return {
     alias: row.alias,
+    displayName: row.display_name || '',
     avatarConfig: JSON.parse(row.avatar_config || '{}'),
     unlockedItems: JSON.parse(row.unlocked_items || '[]'),
     highscores: JSON.parse(row.highscores || '{}'),
