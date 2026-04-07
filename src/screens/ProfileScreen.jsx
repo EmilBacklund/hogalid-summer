@@ -46,7 +46,7 @@ function getPreviewItems(reward) {
 
 const TABS = [
   { id: 'avatar', label: 'Avatar', icon: '👧' },
-  { id: 'badges', label: 'Badges', icon: '🏅' },
+  { id: 'badges', label: 'Medaljer', icon: '🏅' },
   { id: 'stats', label: 'Stats', icon: '📊' },
 ];
 
@@ -516,7 +516,7 @@ function BadgesTab({ earnedBadges, stats }) {
         fontSize: 13,
         fontWeight: 600,
       }}>
-        {earnedBadges.length} av {allBadges.length} badges upplåsta
+        {earnedBadges.length} av {allBadges.length} medaljer upplåsta
       </div>
 
       {/* Badge grid */}

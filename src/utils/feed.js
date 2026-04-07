@@ -97,7 +97,7 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
         type: 'badge',
         alias: u.alias,
         isMe,
-        text: `fick badgen "${b.label}"`,
+        text: `fick medaljen "${b.label}"`,
         icon: b.icon,
       });
     });
