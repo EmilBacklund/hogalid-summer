@@ -27,6 +27,10 @@ export function HomeScreen() {
   }
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
+  const [fireSeenThisWeek, setFireSeenThisWeek] = useState(() => {
+    const weekKey = `fire_seen_${getWeekStart(localToday())}`;
+    return !!localStorage.getItem(weekKey);
+  });
 
   useEffect(() => {
     const stale = fetchAllUsersStale(fresh => {
@@ -176,6 +180,15 @@ export function HomeScreen() {
         const weekVal = weekly.type === 'touch' ? weekTouch : weekMins;
         const weekDone = weekVal >= weekly.goal;
         const levelInfo = getWeeklyLevelInfo(weekVal, weekly.goal);
+
+        // Mark fire as seen once — resets automatically each new week
+        if (!loadingTeam && levelInfo.isMaxLevel && !fireSeenThisWeek) {
+          const weekKey = `fire_seen_${getWeekStart(localToday())}`;
+          localStorage.setItem(weekKey, '1');
+          setFireSeenThisWeek(true);
+        }
+        const showFire = !loadingTeam && levelInfo.isMaxLevel && !fireSeenThisWeek;
+
         return (
           <Card
             style={{
@@ -183,10 +196,7 @@ export function HomeScreen() {
               padding: '16px 16px 14px',
               border: !loadingTeam && levelInfo.isMaxLevel ? '2px solid #ff6a00' : undefined,
               background: !loadingTeam && levelInfo.isMaxLevel ? 'rgba(255,100,0,0.08)' : undefined,
-              animation:
-                !loadingTeam && levelInfo.isMaxLevel
-                  ? 'fireGlow 1.5s ease-in-out infinite'
-                  : undefined,
+              animation: showFire ? 'fireGlow 1.5s ease-in-out infinite' : undefined,
             }}
           >
             {/* Header */}
