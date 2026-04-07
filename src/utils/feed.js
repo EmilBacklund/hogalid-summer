@@ -71,6 +71,20 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
       prevLevelName = after.name;
     });
 
+    // Penalty game results
+    (u.logs || []).filter(l => l.penaltyGame).forEach(l => {
+      const icon = l.goals === l.total ? '🏆' : l.goals >= 7 ? '⚽' : l.goals >= 4 ? '🥅' : '🧤';
+      events.push({
+        date: l.date,
+        createdAt: l.createdAt || '',
+        type: 'penalty',
+        alias: u.alias,
+        isMe,
+        text: `satte ${l.goals} av ${l.total} straffar och fick ${l.goals} poäng! ${icon}`,
+        icon,
+      });
+    });
+
     // Badge earned — check earned badges and approximate with join/log dates
     const stats = computeStats(u);
     const earned = BADGES.filter(b => b.condition(stats));

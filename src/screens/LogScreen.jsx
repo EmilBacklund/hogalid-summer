@@ -768,7 +768,18 @@ export function LogScreen() {
       </>
 
       {showPenalty && (
-        <PenaltyGame onClose={() => setShowPenalty(false)} />
+        <PenaltyGame
+          onClose={async (score) => {
+            setShowPenalty(false);
+            if (typeof score === 'number') {
+              await handleSaveLog(
+                { date: today, penaltyGame: true, goals: score, total: 10, points: score },
+                user.highscores || {},
+              );
+              setScreen('home');
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -454,7 +454,7 @@ export function PenaltyGame({ onClose }) {
             ))}
           </div>
           <button
-            onClick={onClose}
+            onClick={() => onClose(score)}
             style={{
               background: COLORS.lime,
               color: COLORS.dark,
