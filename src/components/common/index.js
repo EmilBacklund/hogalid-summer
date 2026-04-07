@@ -1,4 +1,5 @@
 export { ProgressBar } from './ProgressBar';
+export { PenaltyGame, hasPenaltyPlayedToday, resetPenaltyToday } from './PenaltyGame';
 export { Card } from './Card';
 export { Confetti } from './Confetti';
 export { BuddyCelebration } from './BuddyCelebration';

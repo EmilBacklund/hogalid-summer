@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { COLORS, EXERCISES, SUMMER_ACTIVITIES } from '../constants';
 import { localToday, getWeekStart } from '../utils';
-import { Card, ButtonLoader } from '../components/common';
+import { Card, ButtonLoader, PenaltyGame, hasPenaltyPlayedToday } from '../components/common';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -88,6 +88,7 @@ export function LogScreen() {
   const [tooLittle, setTooLittle] = useState(false);
   const [calWeekOffset, setCalWeekOffset] = useState(0);
   const [btnVisible, setBtnVisible] = useState(true);
+  const [showPenalty, setShowPenalty] = useState(false);
   const lastScrollY = useRef(0);
   const sentinelRef = useRef(null);
 
@@ -178,6 +179,15 @@ export function LogScreen() {
     if (filled.length > 0 && !summerFilled) {
       const meetsThreshold = totalMins >= 5 || totalTouch >= 30;
       if (!meetsThreshold) {
+        // Easter egg: only 37 skott → never show threshold error, show game if not played yet
+        const skottOnly =
+          filled.length === 1 &&
+          filled[0].id === 'skott' &&
+          Number(filled[0].value) === 37;
+        if (skottOnly) {
+          if (!hasPenaltyPlayedToday()) setTimeout(() => setShowPenalty(true), 200);
+          return; // always return — 37 skott alone is never a real log
+        }
         setTooLittle(true);
         setTimeout(() => setTooLittle(false), 3000);
         return;
@@ -195,9 +205,14 @@ export function LogScreen() {
       }
     });
 
+    // Never persist the magic 37 skott — they only unlock the Easter egg
+    const filledToSave = filled.filter(
+      e => !(e.id === 'skott' && Number(e.value) === 37),
+    );
+
     const log = {
       date,
-      exercises: filled.map((e) => ({ id: e.id, value: Number(e.value) })),
+      exercises: filledToSave.map((e) => ({ id: e.id, value: Number(e.value) })),
       points,
       minutes: totalMins,
       iceCream: Number(summer.iceCream) || 0,
@@ -214,6 +229,12 @@ export function LogScreen() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+
+    // Easter egg: 37 skott → penalty shootout (once per day)
+    const skottVal = filled.find(e => e.id === 'skott');
+    if (skottVal && Number(skottVal.value) === 37 && !hasPenaltyPlayedToday()) {
+      setTimeout(() => setShowPenalty(true), 800);
+    }
   }
 
   // ========================
@@ -745,6 +766,10 @@ export function LogScreen() {
         </div>
         <div ref={sentinelRef} />
       </>
+
+      {showPenalty && (
+        <PenaltyGame onClose={() => setShowPenalty(false)} />
+      )}
     </div>
   );
 }

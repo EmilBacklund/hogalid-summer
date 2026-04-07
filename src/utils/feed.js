@@ -1,5 +1,5 @@
 import { EXERCISES, DAILY_CHALLENGES, BADGES } from '../constants';
-import { getLevel } from './levels';
+import { getLevel, getTeamLevel } from './levels';
 import { computeStats } from './stats';
 import { localToday, getWeekStart } from './date';
 import { computeWeeklyHistory } from './weeklyHistory';
@@ -172,6 +172,37 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
           : `klarade inte veckoutmaningen den veckan ❌`,
         icon: li.level > 0 ? (li.isMaxLevel ? '🔥' : '🏆') : '❌',
       });
+    });
+  }
+
+  // Team level progression — based on cumulative season points from all players
+  {
+    const allLogsByDate = allUsers
+      .flatMap(u => (u.logs || []).map(l => ({ date: l.date, points: l.points || 0 })))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const allDates = [...new Set(allLogsByDate.map(l => l.date))].sort();
+    let cumTeamPoints = 0;
+    let prevTeamLevelName = null;
+
+    allDates.forEach(date => {
+      const pointsOnDate = allLogsByDate
+        .filter(l => l.date === date)
+        .reduce((s, l) => s + l.points, 0);
+      const before = getTeamLevel(cumTeamPoints);
+      cumTeamPoints += pointsOnDate;
+      const after = getTeamLevel(cumTeamPoints);
+      if (prevTeamLevelName !== null && after.name !== before.name) {
+        events.push({
+          date,
+          type: 'teamlevel',
+          alias: 'Laget',
+          isMe: false,
+          text: `nådde lagnivå ${after.icon} ${after.name}! 🎉`,
+          icon: after.icon,
+        });
+      }
+      prevTeamLevelName = after.name;
     });
   }
 

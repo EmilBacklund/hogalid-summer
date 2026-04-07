@@ -371,6 +371,8 @@ export function TeamScreen() {
 
         function renderEvent(e, idx) {
           const isMaxLevel = e.type === 'weeklylevel' && e.text.includes('Nivå 10');
+          const isTeamLevel = e.type === 'teamlevel';
+          const isTeamEvent = e.type === 'weeklylevel' || e.type === 'weeklyend' || isTeamLevel;
           const eventKey = `${e.type}|${e.alias}|${e.date}|${e.icon}`;
           const eventReactions = reactions[eventKey] || {};
           const reactionCounts = {};
@@ -378,10 +380,14 @@ export function TeamScreen() {
             reactionCounts[em] = (reactionCounts[em] || 0) + 1;
           });
           const myReaction = eventReactions[user.alias];
+          const bg = isMaxLevel ? 'rgba(255,100,0,0.1)' : isTeamLevel ? 'rgba(139,92,246,0.1)' : isTeamEvent ? 'rgba(255,255,255,0.06)' : e.isMe ? 'rgba(240,220,0,0.08)' : 'rgba(255,255,255,0.04)';
+          const border = isMaxLevel ? '2px solid #ff6a00' : isTeamLevel ? '1px solid rgba(139,92,246,0.5)' : isTeamEvent ? '1px solid rgba(255,255,255,0.12)' : e.isMe ? '1px solid rgba(240,220,0,0.25)' : '1px solid transparent';
+          const aliasColor = isMaxLevel ? '#ff6a00' : isTeamLevel ? '#a78bfa' : isTeamEvent ? COLORS.lime : e.isMe ? COLORS.yellow : COLORS.lime;
+          const textColor = isMaxLevel ? 'rgba(255,100,0,0.9)' : isTeamLevel ? 'rgba(167,139,250,0.9)' : e.isMe ? 'rgba(240,220,0,0.8)' : 'rgba(255,255,255,0.7)';
           return (
             <div key={idx} style={{
-              background: isMaxLevel ? 'rgba(255,100,0,0.1)' : e.isMe ? 'rgba(240,220,0,0.08)' : 'rgba(255,255,255,0.04)',
-              border: isMaxLevel ? '2px solid #ff6a00' : e.isMe ? '1px solid rgba(240,220,0,0.25)' : '1px solid transparent',
+              background: bg,
+              border,
               borderRadius: 12,
               padding: '8px 12px',
               animation: isMaxLevel ? 'fireGlow 1.5s ease-in-out infinite' : 'none',
@@ -389,10 +395,10 @@ export function TeamScreen() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ fontSize: 20, flexShrink: 0 }}>{e.icon}</div>
                 <div style={{ flex: 1 }}>
-                  <span style={{ color: isMaxLevel ? '#ff6a00' : e.isMe ? COLORS.yellow : COLORS.lime, fontWeight: 700, fontSize: 13 }}>
+                  <span style={{ color: aliasColor, fontWeight: 700, fontSize: 13 }}>
                     {e.alias}
                   </span>
-                  <span style={{ color: isMaxLevel ? 'rgba(255,100,0,0.9)' : e.isMe ? 'rgba(240,220,0,0.8)' : 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+                  <span style={{ color: textColor, fontSize: 13 }}>
                     {' '}{e.text}
                   </span>
                 </div>
