@@ -835,13 +835,13 @@ export function HomeScreen() {
           >
             {streakStatusText}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4 }}>
             {streakWeekDays.map((dayDate, idx) => {
               const isDone = qualifyingDaySet.has(dayDate);
               const isToday = dayDate === todayStr;
               const isFuture = dayDate > todayStr;
               return (
-                <div key={dayDate} style={{ textAlign: 'center' }}>
+                <div key={dayDate} style={{ textAlign: 'center', minWidth: 0 }}>
                   <div
                     style={{
                       color: isToday ? COLORS.yellow : 'rgba(255,255,255,0.45)',
@@ -854,8 +854,8 @@ export function HomeScreen() {
                   </div>
                   <div
                     style={{
-                      width: 24,
-                      height: 24,
+                      width: 22,
+                      height: 22,
                       borderRadius: '50%',
                       margin: '0 auto',
                       display: 'flex',
