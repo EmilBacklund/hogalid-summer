@@ -84,6 +84,39 @@ const INTRO_PAGES = [
   },
 ];
 
+const STREAK_DAY_LABELS = ['M', 'T', 'O', 'T', 'F', 'L', 'S'];
+
+function addDaysStr(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
+function getQualifyingFootballDays(logs) {
+  return [
+    ...new Set(
+      logs
+        .filter((l) => {
+          if (l.bingoFootball) return true;
+          if (l.bingo) return false;
+          const mins = (l.exercises || []).find((e) => e.id === 'fritraning')?.value || 0;
+          const touch = (l.exercises || []).reduce((sum, e) => {
+            const ex = EXERCISES.find((x) => x.id === e.id);
+            return sum + (ex && !ex.isTime && e.id !== 'skott' ? e.value || 0 : 0);
+          }, 0);
+          return mins >= 5 || touch >= 30;
+        })
+        .map((l) => l.date),
+    ),
+  ].sort();
+}
+
 function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
   const page = INTRO_PAGES[pageIndex];
   const isFirst = pageIndex === 0;
@@ -293,6 +326,15 @@ export function HomeScreen() {
   const level = getLevel(stats.totalPoints);
   const nextLevel = getNextLevel(stats.totalPoints);
   const progress = calcProgress(stats.totalPoints);
+  const todayStr = localToday();
+  const streakWeekStart = getWeekStart(todayStr);
+  const qualifyingDays = getQualifyingFootballDays(user.logs || []);
+  const qualifyingDaySet = new Set(qualifyingDays);
+  const hasStreakToday = qualifyingDaySet.has(todayStr);
+  const streakStatusText = hasStreakToday
+    ? '✅ Du har säkrat streaken idag!'
+    : '⏳ Logga en träning idag för att behålla streaken';
+  const streakWeekDays = Array.from({ length: 7 }, (_, i) => addDaysStr(streakWeekStart, i));
 
   function openIntro() {
     setIntroPage(0);
@@ -745,12 +787,99 @@ export function HomeScreen() {
           );
         })()}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <Card style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 32 }}>🔥</div>
-          <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 28, color: COLORS.yellow }}>
-            {stats.streak}
+        <Card style={{ padding: '16px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                background: 'rgba(240,220,0,0.14)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 24,
+                flexShrink: 0,
+              }}
+            >
+              🔥
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontFamily: "'Fredoka One', cursive",
+                  fontSize: 28,
+                  color: COLORS.yellow,
+                  lineHeight: 1,
+                }}
+              >
+                {stats.streak}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 700 }}>
+                dagars streak
+              </div>
+            </div>
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>dagars streak</div>
+          <div
+            style={{
+              background: hasStreakToday ? 'rgba(240,220,0,0.14)' : 'rgba(255,255,255,0.08)',
+              border: `1px solid ${hasStreakToday ? 'rgba(240,220,0,0.3)' : 'rgba(255,255,255,0.12)'}`,
+              borderRadius: 12,
+              padding: '8px 10px',
+              color: hasStreakToday ? COLORS.yellow : '#fff',
+              fontSize: 12,
+              fontWeight: 700,
+              lineHeight: 1.35,
+              marginBottom: 12,
+            }}
+          >
+            {streakStatusText}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+            {streakWeekDays.map((dayDate, idx) => {
+              const isDone = qualifyingDaySet.has(dayDate);
+              const isToday = dayDate === todayStr;
+              const isFuture = dayDate > todayStr;
+              return (
+                <div key={dayDate} style={{ textAlign: 'center' }}>
+                  <div
+                    style={{
+                      color: isToday ? COLORS.yellow : 'rgba(255,255,255,0.45)',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {STREAK_DAY_LABELS[idx]}
+                  </div>
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      margin: '0 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 13,
+                      fontWeight: 900,
+                      background: isDone
+                        ? COLORS.yellow
+                        : isToday
+                          ? 'rgba(240,220,0,0.18)'
+                          : 'rgba(255,255,255,0.12)',
+                      color: isDone ? COLORS.dark : isFuture ? 'rgba(255,255,255,0.28)' : '#fff',
+                      border: isToday && !isDone
+                        ? `1.5px solid ${COLORS.yellow}`
+                        : '1px solid transparent',
+                    }}
+                  >
+                    {isDone ? '✓' : ''}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
         <Card style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 32 }}>⭐</div>
