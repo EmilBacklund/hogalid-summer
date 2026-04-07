@@ -778,7 +778,7 @@ export function LogScreen() {
             if (typeof score === 'number') {
               try {
                 await handleSaveLog(
-                  { date: today, exercises: [], points: score, title: `🥅penalty:${score}:10` },
+                  { date: today, exercises: [], points: score, title: `penalty:${score}:10` },
                   user.highscores || {},
                 );
               } catch (e) {

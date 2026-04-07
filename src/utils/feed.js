@@ -71,9 +71,9 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
       prevLevelName = after.name;
     });
 
-    // Penalty game results — title format: '🥅penalty:GOALS:TOTAL'
-    (u.logs || []).filter(l => l.title?.startsWith('🥅penalty:')).forEach(l => {
-      const [goals, total] = l.title.slice('🥅penalty:'.length).split(':').map(Number);
+    // Penalty game results — title format: 'penalty:GOALS:TOTAL'
+    (u.logs || []).filter(l => l.title && l.title.startsWith('penalty:')).forEach(l => {
+      const [goals, total] = l.title.slice('penalty:'.length).split(':').map(Number);
       const icon = goals === total ? '🏆' : goals >= 7 ? '⚽' : goals >= 4 ? '🥅' : '🧤';
       events.push({
         date: l.date,
