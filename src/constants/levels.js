@@ -26,18 +26,18 @@ export const LEVELS = [
 ];
 
 // Team levels — based on combined (touch + min*5) from ALL players
-// 12 spelare × ~1000 p/v × 12 v = ~144 000 p totalt möjligt
+// 12 spelare × ~900-1100 p/v × 12 v = ~130 000-158 000 p totalt möjligt
 export const TEAM_LEVELS = [
   { name: "Nybörjarlaget",      min: 0,      icon: "🌱", color: "#94a3b8" },
-  { name: "Träningsgänget",     min: 500,    icon: "👟", color: "#dc2828" },
-  { name: "Bollkompisarna",     min: 1500,   icon: "🤝", color: "#003a8c" },
-  { name: "Sommarklubben",      min: 3000,   icon: "☀️", color: "#eab308" },
-  { name: "Fintgänget",         min: 5500,   icon: "🦊", color: "#f97316" },
-  { name: "Touchlaget",         min: 9000,   icon: "⚙️", color: "#06b6d4" },
-  { name: "Drömteamet",         min: 14000,  icon: "💫", color: "#8b5cf6" },
-  { name: "Legendlaget",        min: 21000,  icon: "🔥", color: "#ef4444" },
-  { name: "Mästarlaget",        min: 30000,  icon: "👑", color: "#fbbf24" },
-  { name: "Odödliga laget",     min: 42000,  icon: "🏆", color: "#f0dc00" },
-  { name: "Galaktiska laget",   min: 57000,  icon: "🌟", color: "#f0dc00" },
-  { name: "Sommarlegenderna",   min: 75000,  icon: "⚡", color: "#fff" },
+  { name: "Träningsgänget",     min: 800,    icon: "👟", color: "#dc2828" },
+  { name: "Bollkompisarna",     min: 2200,   icon: "🤝", color: "#003a8c" },
+  { name: "Sommarklubben",      min: 4500,   icon: "☀️", color: "#eab308" },
+  { name: "Fintgänget",         min: 8000,   icon: "🦊", color: "#f97316" },
+  { name: "Touchlaget",         min: 12500,  icon: "⚙️", color: "#06b6d4" },
+  { name: "Drömteamet",         min: 18500,  icon: "💫", color: "#8b5cf6" },
+  { name: "Legendlaget",        min: 26000,  icon: "🔥", color: "#ef4444" },
+  { name: "Mästarlaget",        min: 36000,  icon: "👑", color: "#fbbf24" },
+  { name: "Odödliga laget",     min: 50000,  icon: "🏆", color: "#f0dc00" },
+  { name: "Galaktiska laget",   min: 68000,  icon: "🌟", color: "#f0dc00" },
+  { name: "Sommarlegenderna",   min: 118000, icon: "⚡", color: "#fff" },
 ];
