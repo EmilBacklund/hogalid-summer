@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { COLORS, EXERCISES, SUMMER_ACTIVITIES } from '../constants';
 import { localToday, getWeekStart } from '../utils';
-import { Card, ButtonLoader, PenaltyGame, hasPenaltyPlayedToday } from '../components/common';
+import { Card, ButtonLoader, PenaltyGame } from '../components/common';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -185,7 +185,7 @@ export function LogScreen() {
           filled[0].id === 'skott' &&
           Number(filled[0].value) === 37;
         if (skottOnly) {
-          if (!hasPenaltyPlayedToday()) setTimeout(() => setShowPenalty(true), 200);
+          setTimeout(() => setShowPenalty(true), 200);
           return; // always return — 37 skott alone is never a real log
         }
         setTooLittle(true);
@@ -230,9 +230,9 @@ export function LogScreen() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
 
-    // Easter egg: 37 skott → penalty shootout (once per day)
+    // Easter egg: 37 skott → penalty shootout
     const skottVal = filled.find(e => e.id === 'skott');
-    if (skottVal && Number(skottVal.value) === 37 && !hasPenaltyPlayedToday()) {
+    if (skottVal && Number(skottVal.value) === 37) {
       setTimeout(() => setShowPenalty(true), 800);
     }
   }
