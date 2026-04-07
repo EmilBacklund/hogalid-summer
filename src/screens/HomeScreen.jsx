@@ -888,21 +888,24 @@ export function HomeScreen() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
+            padding: '18px 12px',
           }}
         >
-          <div style={{ fontSize: 32, lineHeight: 1, marginBottom: 6 }}>⭐</div>
+          <div style={{ fontSize: 42, lineHeight: 1, marginBottom: 8 }}>⭐</div>
           <div
             style={{
               fontFamily: "'Fredoka One', cursive",
-              fontSize: 28,
+              fontSize: 34,
               color: COLORS.accent,
               lineHeight: 1,
-              marginBottom: 6,
+              marginBottom: 8,
             }}
           >
             {stats.totalPoints}
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>totala poäng</div>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 700 }}>
+            totala poäng
+          </div>
         </Card>
       </div>
 
