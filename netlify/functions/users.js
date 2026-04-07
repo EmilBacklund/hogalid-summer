@@ -15,13 +15,18 @@ async function updateBuddyProgress(db, key) {
     const alreadyDone = isFrom ? c.from_completed_at : c.to_completed_at;
     if (alreadyDone) continue;
 
-    // Sum all qualifying logs for this exercise since challenge was accepted
+    // Sum all qualifying logs for this exercise where the training DATE
+    // is on or after the day the challenge was accepted.
+    // We use `date` (the actual training date, YYYY-MM-DD) rather than
+    // `created_at` so that retroactively entered logs for earlier dates
+    // are correctly excluded.
+    const acceptedDate = c.accepted_at.slice(0, 10);
     const logsResult = await db.execute({
       sql: `SELECT exercises FROM logs
-            WHERE alias = ? AND created_at >= ?
+            WHERE alias = ? AND date >= ?
               AND bingo = 0 AND daily_challenge = 0
               AND title NOT LIKE '🤝buddy:%'`,
-      args: [key, c.accepted_at],
+      args: [key, acceptedDate],
     });
 
     let progress = 0;
