@@ -6,16 +6,20 @@ import { localToday } from '../../utils/date';
 const LS_PREFIX = 'penalty_played_';
 const TOTAL = 10;
 
-export function hasPenaltyPlayedToday() {
-  return !!localStorage.getItem(LS_PREFIX + localToday());
+function lsKey(alias) {
+  return `${LS_PREFIX}${alias}_${localToday()}`;
 }
 
-export function resetPenaltyToday() {
-  localStorage.removeItem(LS_PREFIX + localToday());
+export function hasPenaltyPlayedToday(alias) {
+  return !!localStorage.getItem(lsKey(alias));
 }
 
-function markPlayed() {
-  localStorage.setItem(LS_PREFIX + localToday(), '1');
+export function resetPenaltyToday(alias) {
+  localStorage.removeItem(lsKey(alias));
+}
+
+function markPlayed(alias) {
+  localStorage.setItem(lsKey(alias), '1');
 }
 
 function getResultText(score) {
@@ -94,9 +98,9 @@ function GoalNet({ keeperSide, animate }) {
   );
 }
 
-export function PenaltyGame({ onClose }) {
+export function PenaltyGame({ onClose, alias }) {
   const [phase, setPhase] = useState('intro'); // intro | shooting | showing | done
-  const [alreadyPlayed, setAlreadyPlayed] = useState(hasPenaltyPlayedToday);
+  const [alreadyPlayed, setAlreadyPlayed] = useState(() => hasPenaltyPlayedToday(alias));
   const [penalties, setPenalties] = useState([]);
   const [score, setScore] = useState(0);
   const [keeperDir, setKeeperDir] = useState(null);
@@ -138,7 +142,7 @@ export function PenaltyGame({ onClose }) {
   }, [phase, shoot]);
 
   function start() {
-    markPlayed();
+    markPlayed(alias);
     setPenalties([]);
     setScore(0);
     setKeeperDir(null);
@@ -207,7 +211,7 @@ export function PenaltyGame({ onClose }) {
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                 <button
-                  onClick={() => { resetPenaltyToday(); setAlreadyPlayed(false); }}
+                  onClick={() => { resetPenaltyToday(alias); setAlreadyPlayed(false); }}
                   style={{
                     background: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.2)',

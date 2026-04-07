@@ -772,6 +772,7 @@ export function LogScreen() {
 
       {showPenalty && (
         <PenaltyGame
+          alias={user.alias}
           onClose={async (score) => {
             setShowPenalty(false);
             if (typeof score === 'number') {
