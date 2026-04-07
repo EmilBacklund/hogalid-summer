@@ -16,7 +16,242 @@ import {
 import { Card, ProgressBar, Countdown } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
-import { ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+
+const INTRO_PAGES = [
+  {
+    eyebrow: 'Välkommen',
+    icon: '⚽',
+    title: 'Din sommarutmaning börjar nu',
+    body:
+      'Här kan du träna, samla poäng och låsa upp nya grejer. Är du redo?',
+  },
+  {
+    eyebrow: 'Dagboken',
+    icon: '📕',
+    title: 'Logga det du tränar',
+    body:
+      'I Dagboken fyller du i touch, skott, jonglering eller fri träning. Allt du gör räknas.',
+  },
+  {
+    eyebrow: 'Poäng',
+    icon: '⭐',
+    title: 'Poäng visar hur mycket du kämpar',
+    body:
+      'När du tränar och loggar får du poäng. Ju fler poäng du samlar, desto längre kommer du.',
+  },
+  {
+    eyebrow: 'Streak',
+    icon: '🔥',
+    title: 'Träna flera dagar i rad',
+    body:
+      'När du tränar flera dagar i rad bygger du en streak. Ju längre streak, desto snyggare jobbat.',
+  },
+  {
+    eyebrow: 'Utmaningar',
+    icon: '⚡',
+    title: 'Det finns alltid något nytt att klara',
+    body:
+      'Testa dagsutmaningar, lagutmaningar och roliga extrauppdrag. Vissa är snabba, andra riktigt kluriga.',
+  },
+  {
+    eyebrow: 'Kompisutmaningar',
+    icon: '🤝',
+    title: 'Utmana en lagkompis',
+    body:
+      'Klara uppdraget tillsammans och visa vad ni kan. Två är starkare än en, och det ger dubbla poäng!',
+  },
+  {
+    eyebrow: 'Bingo',
+    icon: '🌞',
+    title: 'Kryssa rutor i bingot',
+    body:
+      'I Bingo väntar massor av roliga uppdrag. Försök fylla hela brickan och se hur många rutor du kan ta.',
+  },
+  {
+    eyebrow: 'Din profil',
+    icon: '👧',
+    title: 'Gör din figur unik',
+    body:
+      'I Din profil kan du bygga din egen avatar. När du spelar och tränar kan du låsa upp fler saker.',
+  },
+  {
+    eyebrow: 'Nu kör vi',
+    icon: '🚀',
+    title: 'Allt du gör räknas',
+    body:
+      'Börja i Dagboken, testa en Utmaning eller kolla Bingo. Let’s go! Ha en riktigt härlig fotbollssommar!',
+  },
+];
+
+function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
+  const page = INTRO_PAGES[pageIndex];
+  const isFirst = pageIndex === 0;
+  const isLast = pageIndex === INTRO_PAGES.length - 1;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1100,
+        background: 'rgba(0, 0, 0, 0.72)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 380,
+          borderRadius: 24,
+          border: `2px solid ${COLORS.lime}55`,
+          background: `linear-gradient(160deg, rgba(0,20,64,0.98) 0%, rgba(0,40,100,0.96) 58%, rgba(220,40,40,0.88) 100%)`,
+          boxShadow: `0 18px 70px rgba(0,0,0,0.45)`,
+          padding: '22px 20px 18px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+          <div>
+            <div
+              style={{
+                color: COLORS.lime,
+                fontSize: 11,
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: 1.1,
+                marginBottom: 6,
+              }}
+            >
+              {page.eyebrow}
+            </div>
+            <div
+              style={{
+                color: '#fff',
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: 28,
+                lineHeight: 1.1,
+                maxWidth: 240,
+              }}
+            >
+              {page.title}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255,255,255,0.1)',
+              border: 'none',
+              color: 'rgba(255,255,255,0.78)',
+              width: 34,
+              height: 34,
+              borderRadius: 999,
+              cursor: 'pointer',
+              fontSize: 20,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 88,
+            height: 88,
+            borderRadius: 24,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.16)',
+            fontSize: 42,
+            marginBottom: 18,
+          }}
+        >
+          {page.icon}
+        </div>
+
+        <div
+          style={{
+            color: 'rgba(255,255,255,0.92)',
+            fontSize: 16,
+            fontWeight: 700,
+            lineHeight: 1.5,
+            marginBottom: 20,
+          }}
+        >
+          {page.body}
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+          {INTRO_PAGES.map((_, idx) => (
+            <div
+              key={idx}
+              style={{
+                flex: 1,
+                height: 6,
+                borderRadius: 999,
+                background: idx === pageIndex ? COLORS.lime : 'rgba(255,255,255,0.16)',
+              }}
+            />
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <button
+            onClick={onPrev}
+            disabled={isFirst}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              minWidth: 92,
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: 'none',
+              background: isFirst ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.14)',
+              color: isFirst ? 'rgba(255,255,255,0.28)' : '#fff',
+              cursor: isFirst ? 'default' : 'pointer',
+              fontWeight: 700,
+              fontSize: 14,
+            }}
+          >
+            <ArrowLeft size={16} /> Tillbaka
+          </button>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>
+            {pageIndex + 1}/{INTRO_PAGES.length}
+          </div>
+          <button
+            onClick={isLast ? onClose : onNext}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              minWidth: 108,
+              padding: '12px 16px',
+              borderRadius: 14,
+              border: 'none',
+              background: COLORS.lime,
+              color: COLORS.dark,
+              cursor: 'pointer',
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: 16,
+            }}
+          >
+            {isLast ? 'Spela!' : <>Nästa <ArrowRight size={16} /></>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function HomeScreen() {
   const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget } = useUser();
@@ -27,6 +262,8 @@ export function HomeScreen() {
   }
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
+  const [showIntro, setShowIntro] = useState(false);
+  const [introPage, setIntroPage] = useState(0);
   const [fireSeenThisWeek, setFireSeenThisWeek] = useState(() => {
     const weekKey = `fire_seen_${getWeekStart(localToday())}`;
     return !!localStorage.getItem(weekKey);
@@ -43,9 +280,24 @@ export function HomeScreen() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!user?.alias) return;
+    const introKey = `hogalid_intro_seen_${user.alias}`;
+    if (!localStorage.getItem(introKey)) {
+      setIntroPage(0);
+      setShowIntro(true);
+      localStorage.setItem(introKey, '1');
+    }
+  }, [user?.alias]);
+
   const level = getLevel(stats.totalPoints);
   const nextLevel = getNextLevel(stats.totalPoints);
   const progress = calcProgress(stats.totalPoints);
+
+  function openIntro() {
+    setIntroPage(0);
+    setShowIntro(true);
+  }
 
   const feedItems = useMemo(() => {
     if (!allUsers.length) return [];
@@ -54,6 +306,14 @@ export function HomeScreen() {
 
   return (
     <div style={{ padding: '20px 16px', fontFamily: "'Nunito', sans-serif" }}>
+      {showIntro && (
+        <IntroModal
+          pageIndex={introPage}
+          onPrev={() => setIntroPage((p) => Math.max(0, p - 1))}
+          onNext={() => setIntroPage((p) => Math.min(INTRO_PAGES.length - 1, p + 1))}
+          onClose={() => setShowIntro(false)}
+        />
+      )}
       <style>{`
         @keyframes fireGlow {
           0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
@@ -592,6 +852,25 @@ export function HomeScreen() {
           🤝 Högalid F15
         </button>
       </div>
+
+      <button
+        onClick={openIntro}
+        style={{
+          width: '100%',
+          padding: '13px 0',
+          borderRadius: 14,
+          border: '1px solid rgba(255,255,255,0.16)',
+          background: 'rgba(255,255,255,0.08)',
+          color: 'rgba(255,255,255,0.88)',
+          fontWeight: 800,
+          fontSize: 14,
+          cursor: 'pointer',
+          marginBottom: 8,
+          letterSpacing: 0.3,
+        }}
+      >
+        ❓ Hur funkar appen?
+      </button>
     </div>
   );
 }
