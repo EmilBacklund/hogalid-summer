@@ -65,6 +65,21 @@ export async function initDb(db) {
       level INTEGER NOT NULL,
       level_name TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS buddy_challenges (
+      id TEXT PRIMARY KEY,
+      from_alias TEXT NOT NULL,
+      to_alias TEXT NOT NULL,
+      exercise_id TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT NOT NULL,
+      accepted_at TEXT,
+      from_completed_at TEXT,
+      to_completed_at TEXT,
+      from_progress INTEGER DEFAULT 0,
+      to_progress INTEGER DEFAULT 0
+    );
   `);
 
   // Migrations

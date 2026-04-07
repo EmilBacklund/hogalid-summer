@@ -24,6 +24,7 @@ export function UserProvider({ children }) {
   const [autoLoading, setAutoLoading] = useState(true);
   const [seasonStart, setSeasonStart] = useState(null);
   const [teamFeedOpen, setTeamFeedOpen] = useState(false);
+  const [buddyChallenges, setBuddyChallenges] = useState([]);
 
   /* ── Auto-login from localStorage ── */
   useEffect(() => {
@@ -32,7 +33,7 @@ export function UserProvider({ children }) {
       try {
         const { alias, password } = JSON.parse(saved);
         apiPost("/users?action=login", { alias, password })
-          .then(u => setUser(u))
+          .then(u => { setUser(u); fetchBuddyChallenges(u.alias); })
           .catch(() => localStorage.removeItem("hogalid_session"))
           .finally(() => setAutoLoading(false));
       } catch {
@@ -71,11 +72,21 @@ export function UserProvider({ children }) {
     return computeStats(user);
   }, [user]);
 
+  async function fetchBuddyChallenges(alias) {
+    try {
+      const data = await apiGet(`/buddy-challenges?alias=${encodeURIComponent(alias)}`);
+      setBuddyChallenges(data);
+    } catch (e) {
+      // ignore — non-critical
+    }
+  }
+
   function handleLogin(u, credentials) {
     if (credentials) {
       localStorage.setItem("hogalid_session", JSON.stringify(credentials));
     }
     setUser(u);
+    fetchBuddyChallenges(u.alias);
     setScreen("home");
   }
 
@@ -93,12 +104,43 @@ export function UserProvider({ children }) {
       invalidateUsersCache();
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
+      fetchBuddyChallenges(user.alias);
       setLoading(false);
       return true;
     } catch (e) {
       alert("Kunde inte spara: " + e.message);
       setLoading(false);
       return false;
+    }
+  }
+
+  async function handleCreateBuddyChallenge(toAlias, exerciseId, amount) {
+    try {
+      await apiPost('/buddy-challenges?action=create', {
+        fromAlias: user.alias, toAlias, exerciseId, amount,
+      });
+      await fetchBuddyChallenges(user.alias);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function handleRespondBuddyChallenge(challengeId, response) {
+    try {
+      await apiPost('/buddy-challenges?action=respond', { challengeId, response });
+      await fetchBuddyChallenges(user.alias);
+    } catch (e) {
+      alert('Kunde inte svara på utmaning: ' + e.message);
+    }
+  }
+
+  async function handleCancelBuddyChallenge(challengeId) {
+    try {
+      await apiPost('/buddy-challenges?action=cancel', { challengeId });
+      await fetchBuddyChallenges(user.alias);
+    } catch (e) {
+      alert('Kunde inte avbryta utmaning: ' + e.message);
     }
   }
 
@@ -208,6 +250,11 @@ export function UserProvider({ children }) {
     handleUpdateDisplayName,
     teamFeedOpen,
     setTeamFeedOpen,
+    buddyChallenges,
+    fetchBuddyChallenges,
+    handleCreateBuddyChallenge,
+    handleRespondBuddyChallenge,
+    handleCancelBuddyChallenge,
   };
 
   return (
