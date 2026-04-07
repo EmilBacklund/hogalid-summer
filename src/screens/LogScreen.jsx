@@ -214,7 +214,12 @@ export function LogScreen() {
   // RENDER — Main
   // ========================
   return (
-    <div style={{ padding: '20px 16px 0px 16px', fontFamily: "'Nunito', sans-serif" }}>
+    <div
+      style={{
+        padding: '20px 16px calc(116px + env(safe-area-inset-bottom, 0px)) 16px',
+        fontFamily: "'Nunito', sans-serif",
+      }}
+    >
       <button
         onClick={() => setScreen('home')}
         style={{
@@ -495,15 +500,20 @@ export function LogScreen() {
         {/* Sticky save button */}
         <div
           style={{
-            position: 'sticky',
+            position: 'fixed',
+            left: '50%',
             bottom: 0,
             zIndex: 100,
-            margin: '0 -16px',
-            padding: '20px 16px',
+            width: '100%',
+            maxWidth: 480,
+            boxSizing: 'border-box',
+            padding: '20px 16px calc(20px + env(safe-area-inset-bottom, 0px))',
             background: `linear-gradient(to bottom, transparent 0%, ${COLORS.dark}dd 30%)`,
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            transform: btnVisible ? 'translateY(0)' : 'translateY(100%)',
+            transform: btnVisible
+              ? 'translateX(-50%) translateY(0)'
+              : 'translateX(-50%) translateY(100%)',
             opacity: btnVisible ? 1 : 0,
             transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
           }}
