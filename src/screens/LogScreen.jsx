@@ -75,7 +75,6 @@ export function LogScreen() {
 
   // === Write state ===
   const [date, setDate] = useState(localToday());
-  const [title, setTitle] = useState('');
   const [exercises, setExercises] = useState(
     EXERCISES.map((e) => ({ id: e.id, value: '', highscore: '' })),
   );
@@ -103,7 +102,6 @@ export function LogScreen() {
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     const log = logs[0];
     if (log) {
-      setTitle(log.title || '');
       setExercises(
         EXERCISES.map((ex) => {
           const found = (log.exercises || []).find((e) => e.id === ex.id);
@@ -116,7 +114,6 @@ export function LogScreen() {
         pages: log.pages ? String(log.pages) : '',
       });
     } else {
-      setTitle('');
       setExercises(EXERCISES.map((e) => ({ id: e.id, value: '', highscore: '' })));
       setSummer({ iceCream: '', swim: '', pages: '' });
     }
@@ -190,7 +187,6 @@ export function LogScreen() {
 
     const log = {
       date,
-      title: title.trim(),
       exercises: filled.map((e) => ({ id: e.id, value: Number(e.value) })),
       points,
       minutes: totalMins,
@@ -379,27 +375,6 @@ export function LogScreen() {
             </Card>
           );
         })()}
-
-        {/* Title (optional) */}
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600 }}>
-            Namn på passet <span style={{ color: 'rgba(255,255,255,0.35)' }}>(valfritt)</span>
-          </label>
-          <input
-            type="text"
-            maxLength={40}
-            placeholder="T.ex. Morgonträning"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            style={{
-              ...INPUT_STYLE,
-              display: 'block',
-              width: '100%',
-              marginTop: 5,
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
 
         {/* Training section */}
         <div style={SECTION_LABEL}>⚽ Träning</div>
