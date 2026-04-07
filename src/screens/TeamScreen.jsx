@@ -364,8 +364,6 @@ export function TeamScreen() {
       {/* Activity feed */}
       {(() => {
         const feed = generateFeed(allUsers, user.alias, seasonStart);
-        console.log('[feed] penalty logs:', allUsers.flatMap(u => (u.logs||[]).filter(l => l.title && l.title.includes('penalty'))).map(l => ({alias: l.alias, title: l.title, date: l.date})));
-        console.log('[feed] penalty events:', feed.filter(e => e.type === 'penalty'));
         if (feed.length === 0) return null;
         const totalPages = Math.ceil(feed.length / FEED_PAGE_SIZE);
         const pageStart = feedPage * FEED_PAGE_SIZE;
