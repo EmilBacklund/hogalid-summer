@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { COLORS, EXERCISES, DAILY_CHALLENGES } from '../constants';
 import {
-  fetchAllUsers,
+  fetchAllUsersStale,
   localToday,
   getWeekStart,
   getDailyChallenge,
@@ -492,10 +492,16 @@ export function ChallengesScreen() {
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [showAllLevels, setShowAllLevels] = useState(false);
   useEffect(() => {
-    fetchAllUsers()
-      .then(setAllUsers)
-      .catch(() => setAllUsers([]))
-      .finally(() => setLoadingTeam(false));
+    const stale = fetchAllUsersStale(fresh => setAllUsers(fresh));
+    if (stale && stale.length > 0) {
+      setAllUsers(stale);
+      setLoadingTeam(false);
+    } else {
+      fetchAllUsersStale(fresh => {
+        setAllUsers(fresh);
+        setLoadingTeam(false);
+      });
+    }
   }, []);
 
   let weekTouch = 0,

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { COLORS, EXERCISES, TEAM_LEVELS } from '../constants';
 import { apiGet, apiPost } from '../utils/api';
 import {
-  fetchAllUsers,
+  fetchAllUsersStale,
   localToday,
   getWeekStart,
   computeStats,
@@ -44,10 +44,16 @@ export function TeamScreen() {
   const FEED_PAGE_SIZE = 20;
 
   useEffect(() => {
-    fetchAllUsers()
-      .then(setAllUsers)
-      .catch(() => setAllUsers([]))
-      .finally(() => setLoadingTeam(false));
+    const stale = fetchAllUsersStale(fresh => setAllUsers(fresh));
+    if (stale && stale.length > 0) {
+      setAllUsers(stale);
+      setLoadingTeam(false);
+    } else {
+      fetchAllUsersStale(fresh => {
+        setAllUsers(fresh);
+        setLoadingTeam(false);
+      });
+    }
     apiGet('/users?action=reactions')
       .then(data => setReactions(data))
       .catch(() => {});

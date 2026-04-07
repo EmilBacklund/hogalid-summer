@@ -9,7 +9,7 @@ import {
   getDailyChallenge,
   getWeeklyChallenge,
   getWeeklyLevelInfo,
-  fetchAllUsers,
+  fetchAllUsersStale,
   computeWeeklyHistory,
   generateFeed,
 } from '../utils';
@@ -29,10 +29,20 @@ export function HomeScreen() {
   const [loadingTeam, setLoadingTeam] = useState(true);
 
   useEffect(() => {
-    fetchAllUsers()
-      .then(setAllUsers)
-      .catch(() => setAllUsers([]))
-      .finally(() => setLoadingTeam(false));
+    // Show stale data immediately (no spinner), revalidate in background
+    const stale = fetchAllUsersStale(fresh => setAllUsers(fresh));
+    if (stale && stale.length > 0) {
+      setAllUsers(stale);
+      setLoadingTeam(false);
+    }
+    // If no cache yet, wait for the background fetch to call onChange
+    // which sets allUsers — then clear the loading state
+    if (!stale || stale.length === 0) {
+      fetchAllUsersStale(fresh => {
+        setAllUsers(fresh);
+        setLoadingTeam(false);
+      });
+    }
   }, []);
 
   const level = getLevel(stats.totalPoints);
@@ -40,9 +50,9 @@ export function HomeScreen() {
   const progress = calcProgress(stats.totalPoints);
 
   const feedItems = useMemo(() => {
-    if (loadingTeam || !allUsers.length) return [];
+    if (!allUsers.length) return [];
     return generateFeed(allUsers, user.alias, seasonStart).slice(0, 5);
-  }, [allUsers, loadingTeam, user.alias, seasonStart]);
+  }, [allUsers, user.alias, seasonStart]);
 
   return (
     <div style={{ padding: '20px 16px', fontFamily: "'Nunito', sans-serif" }}>
