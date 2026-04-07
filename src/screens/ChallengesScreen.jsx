@@ -9,7 +9,7 @@ import {
   getWeeklyLevelInfo,
   WEEKLY_LEVEL_NAMES,
 } from '../utils';
-import { Card, ProgressBar, SkeletonBar, ButtonLoader, Confetti } from '../components/common';
+import { Card, ProgressBar, SkeletonBar, ButtonLoader, Confetti, BuddyCelebration } from '../components/common';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft } from 'lucide-react';
 
@@ -36,6 +36,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
   const { handleCreateBuddyChallenge, handleRespondBuddyChallenge, handleCancelBuddyChallenge } = handlers;
 
   const [showForm, setShowForm] = useState(false);
+  const [celebrateChallenge, setCelebrateChallenge] = useState(null);
   const [formTo, setFormTo] = useState('');
   const [formExercise, setFormExercise] = useState(EXERCISES[0].id);
   const [formAmount, setFormAmount] = useState('');
@@ -101,6 +102,13 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
   return (
     <div>
       <Confetti active={showConfetti} />
+      {celebrateChallenge && (
+        <BuddyCelebration
+          challenge={celebrateChallenge}
+          user={user}
+          onClose={() => setCelebrateChallenge(null)}
+        />
+      )}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -391,13 +399,21 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
             const partner = c.fromAlias === user.alias ? c.toAlias : c.fromAlias;
             const icon = c.status === 'completed' ? '🎉' : c.status === 'failed' ? '❌' : c.status === 'declined' ? '🚫' : '↩️';
             const label = c.status === 'completed' ? 'Klarad!' : c.status === 'failed' ? 'Missad' : c.status === 'declined' ? 'Nekad' : 'Avbruten';
+            const isCompleted = c.status === 'completed';
             return (
-              <div key={c.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                background: 'rgba(255,255,255,0.04)', borderRadius: 12,
-                padding: '10px 14px', marginBottom: 8,
-                opacity: c.status === 'completed' ? 1 : 0.55,
-              }}>
+              <div
+                key={c.id}
+                onClick={isCompleted ? () => setCelebrateChallenge(c) : undefined}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: isCompleted ? 'rgba(168,230,61,0.07)' : 'rgba(255,255,255,0.04)',
+                  border: isCompleted ? `1px solid ${COLORS.lime}33` : '1px solid transparent',
+                  borderRadius: 12,
+                  padding: '10px 14px', marginBottom: 8,
+                  opacity: isCompleted ? 1 : 0.55,
+                  cursor: isCompleted ? 'pointer' : 'default',
+                }}
+              >
                 <span style={{ fontSize: 18 }}>{icon}</span>
                 <div style={{ flex: 1 }}>
                   <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>
@@ -405,7 +421,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
                   </span>
                   <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}> med {partner}</span>
                 </div>
-                <span style={{ color: c.status === 'completed' ? COLORS.lime : 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 700 }}>
+                <span style={{ color: isCompleted ? COLORS.lime : 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 700 }}>
                   {label}
                 </span>
               </div>
