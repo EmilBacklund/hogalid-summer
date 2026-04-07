@@ -1,6 +1,96 @@
 import { getDb, initDb } from './db.js';
 import { hashPassword, verifyPassword } from './auth.js';
 
+// ── Shared helper: recalculate buddy challenge progress for a user ──
+// Call this after any real training log is added or edited.
+async function updateBuddyProgress(db, key) {
+  const activeChallenges = await db.execute({
+    sql: `SELECT * FROM buddy_challenges
+          WHERE (from_alias = ? OR to_alias = ?) AND status = 'active'`,
+    args: [key, key],
+  });
+
+  for (const c of activeChallenges.rows) {
+    const isFrom = c.from_alias === key;
+    const alreadyDone = isFrom ? c.from_completed_at : c.to_completed_at;
+    if (alreadyDone) continue;
+
+    // Sum all qualifying logs for this exercise since challenge was accepted
+    const logsResult = await db.execute({
+      sql: `SELECT exercises FROM logs
+            WHERE alias = ? AND created_at >= ?
+              AND bingo = 0 AND daily_challenge = 0
+              AND title NOT LIKE '🤝buddy:%'`,
+      args: [key, c.accepted_at],
+    });
+
+    let progress = 0;
+    for (const lr of logsResult.rows) {
+      const exArr = JSON.parse(lr.exercises || '[]');
+      const found = exArr.find(e => e.id === c.exercise_id);
+      if (found) progress += found.value || 0;
+    }
+
+    const progressField = isFrom ? 'from_progress' : 'to_progress';
+    const completedField = isFrom ? 'from_completed_at' : 'to_completed_at';
+    const now = new Date().toISOString();
+
+    await db.execute({
+      sql: `UPDATE buddy_challenges SET ${progressField} = ? WHERE id = ?`,
+      args: [progress, c.id],
+    });
+
+    if (progress >= c.amount) {
+      await db.execute({
+        sql: `UPDATE buddy_challenges SET ${completedField} = ? WHERE id = ?`,
+        args: [now, c.id],
+      });
+
+      const updated = await db.execute({
+        sql: 'SELECT * FROM buddy_challenges WHERE id = ?',
+        args: [c.id],
+      });
+      const uc = updated.rows[0];
+      if (uc && uc.from_completed_at && uc.to_completed_at && uc.status !== 'completed') {
+        await db.execute({
+          sql: `UPDATE buddy_challenges SET status = 'completed' WHERE id = ?`,
+          args: [c.id],
+        });
+
+        const bonusPoints =
+          c.exercise_id === 'skott' ? 0
+          : c.exercise_id === 'fritraning' ? c.amount * 5
+          : c.amount;
+
+        const bonusDate = now.slice(0, 10);
+        const bonusTitle = `🤝buddy:${c.to_alias}:${c.amount}:${c.exercise_id}`;
+        const partnerBonusTitle = `🤝buddy:${c.from_alias}:${c.amount}:${c.exercise_id}`;
+
+        for (const [bonusAlias, titleForLog] of [
+          [c.from_alias, bonusTitle],
+          [c.to_alias, partnerBonusTitle],
+        ]) {
+          await db.execute({
+            sql: `INSERT INTO logs
+                  (alias, date, exercises, points, minutes, bingo, bingo_football,
+                   daily_challenge, ice_cream, swim, pages, title, created_at)
+                  VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, ?, ?)`,
+            args: [
+              bonusAlias,
+              bonusDate,
+              JSON.stringify([{ id: c.exercise_id, value: c.amount }]),
+              bonusPoints,
+              c.exercise_id === 'fritraning' ? c.amount : 0,
+              titleForLog,
+              now,
+            ],
+          });
+        }
+      }
+    }
+  }
+}
+
 export default async (req, context) => {
   const db = getDb();
   await initDb(db);
@@ -197,96 +287,8 @@ export default async (req, context) => {
       });
 
       // ── Buddy challenge progress check ──
-      // Only run for real training logs (not bingo/daily/bonus logs)
       if (!log.bingo && !log.dailyChallenge && !(log.title || '').startsWith('🤝buddy:')) {
-        const activeChallenges = await db.execute({
-          sql: `SELECT * FROM buddy_challenges
-                WHERE (from_alias = ? OR to_alias = ?) AND status = 'active'`,
-          args: [key, key],
-        });
-
-        for (const c of activeChallenges.rows) {
-          const isFrom = c.from_alias === key;
-          const alreadyDone = isFrom ? c.from_completed_at : c.to_completed_at;
-          if (alreadyDone) continue; // This user already completed their part
-
-          // Sum all exercise values for this exercise since accepted_at
-          const logsResult = await db.execute({
-            sql: `SELECT exercises FROM logs
-                  WHERE alias = ? AND created_at >= ?
-                    AND bingo = 0 AND daily_challenge = 0
-                    AND title NOT LIKE '🤝buddy:%'`,
-            args: [key, c.accepted_at],
-          });
-
-          let progress = 0;
-          for (const lr of logsResult.rows) {
-            const exArr = JSON.parse(lr.exercises || '[]');
-            const found = exArr.find(e => e.id === c.exercise_id);
-            if (found) progress += found.value || 0;
-          }
-
-          const progressField = isFrom ? 'from_progress' : 'to_progress';
-          const completedField = isFrom ? 'from_completed_at' : 'to_completed_at';
-          const now = new Date().toISOString();
-
-          await db.execute({
-            sql: `UPDATE buddy_challenges SET ${progressField} = ? WHERE id = ?`,
-            args: [progress, c.id],
-          });
-
-          if (progress >= c.amount) {
-            await db.execute({
-              sql: `UPDATE buddy_challenges SET ${completedField} = ? WHERE id = ?`,
-              args: [now, c.id],
-            });
-
-            // Re-fetch to check if both are now done
-            const updated = await db.execute({
-              sql: 'SELECT * FROM buddy_challenges WHERE id = ?',
-              args: [c.id],
-            });
-            const uc = updated.rows[0];
-            if (uc && uc.from_completed_at && uc.to_completed_at) {
-              // Mark completed
-              await db.execute({
-                sql: `UPDATE buddy_challenges SET status = 'completed' WHERE id = ?`,
-                args: [c.id],
-              });
-
-              // Bonus points: amount × rate (skott=0, fritraning=5/min, others=1/touch)
-              const bonusPoints =
-                c.exercise_id === 'skott' ? 0
-                : c.exercise_id === 'fritraning' ? c.amount * 5
-                : c.amount;
-
-              const bonusDate = now.slice(0, 10);
-              const bonusTitle = `🤝buddy:${c.to_alias}:${c.amount}:${c.exercise_id}`;
-              const partnerBonusTitle = `🤝buddy:${c.from_alias}:${c.amount}:${c.exercise_id}`;
-
-              for (const [bonusAlias, titleForLog] of [
-                [c.from_alias, bonusTitle],
-                [c.to_alias, partnerBonusTitle],
-              ]) {
-                await db.execute({
-                  sql: `INSERT INTO logs
-                        (alias, date, exercises, points, minutes, bingo, bingo_football,
-                         daily_challenge, ice_cream, swim, pages, title, created_at)
-                        VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, ?, ?)`,
-                  args: [
-                    bonusAlias,
-                    bonusDate,
-                    JSON.stringify([{ id: c.exercise_id, value: c.amount }]),
-                    bonusPoints,
-                    c.exercise_id === 'fritraning' ? c.amount : 0,
-                    titleForLog,
-                    now,
-                  ],
-                });
-              }
-            }
-          }
-        }
+        await updateBuddyProgress(db, key);
       }
 
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
@@ -296,6 +298,12 @@ export default async (req, context) => {
     if (method === 'PUT' && action === 'editlog') {
       const body = await req.json();
       const { logId, log } = body;
+
+      // Fetch alias from the existing log row before updating
+      const existingLog = await db.execute({
+        sql: 'SELECT alias FROM logs WHERE id = ?',
+        args: [logId],
+      });
 
       await db.execute({
         sql: 'UPDATE logs SET date = ?, exercises = ?, points = ?, minutes = ?, ice_cream = ?, swim = ?, pages = ?, title = ? WHERE id = ?',
@@ -311,6 +319,13 @@ export default async (req, context) => {
           logId,
         ],
       });
+
+      // Recalculate buddy challenge progress after edit
+      const editedAlias = existingLog.rows[0]?.alias;
+      if (editedAlias && !(log.title || '').startsWith('🤝buddy:')) {
+        await updateBuddyProgress(db, editedAlias);
+      }
+
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
