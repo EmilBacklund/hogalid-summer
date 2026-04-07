@@ -492,15 +492,13 @@ export function ChallengesScreen() {
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [showAllLevels, setShowAllLevels] = useState(false);
   useEffect(() => {
-    const stale = fetchAllUsersStale(fresh => setAllUsers(fresh));
+    const stale = fetchAllUsersStale(fresh => {
+      setAllUsers(fresh);
+      setLoadingTeam(false);
+    });
     if (stale && stale.length > 0) {
       setAllUsers(stale);
       setLoadingTeam(false);
-    } else {
-      fetchAllUsersStale(fresh => {
-        setAllUsers(fresh);
-        setLoadingTeam(false);
-      });
     }
   }, []);
 

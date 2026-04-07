@@ -44,15 +44,13 @@ export function TeamScreen() {
   const FEED_PAGE_SIZE = 20;
 
   useEffect(() => {
-    const stale = fetchAllUsersStale(fresh => setAllUsers(fresh));
+    const stale = fetchAllUsersStale(fresh => {
+      setAllUsers(fresh);
+      setLoadingTeam(false);
+    });
     if (stale && stale.length > 0) {
       setAllUsers(stale);
       setLoadingTeam(false);
-    } else {
-      fetchAllUsersStale(fresh => {
-        setAllUsers(fresh);
-        setLoadingTeam(false);
-      });
     }
     apiGet('/users?action=reactions')
       .then(data => setReactions(data))

@@ -29,19 +29,13 @@ export function HomeScreen() {
   const [loadingTeam, setLoadingTeam] = useState(true);
 
   useEffect(() => {
-    // Show stale data immediately (no spinner), revalidate in background
-    const stale = fetchAllUsersStale(fresh => setAllUsers(fresh));
+    const stale = fetchAllUsersStale(fresh => {
+      setAllUsers(fresh);
+      setLoadingTeam(false);
+    });
     if (stale && stale.length > 0) {
       setAllUsers(stale);
       setLoadingTeam(false);
-    }
-    // If no cache yet, wait for the background fetch to call onChange
-    // which sets allUsers — then clear the loading state
-    if (!stale || stale.length === 0) {
-      fetchAllUsersStale(fresh => {
-        setAllUsers(fresh);
-        setLoadingTeam(false);
-      });
     }
   }, []);
 
