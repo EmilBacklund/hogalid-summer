@@ -173,6 +173,33 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
     });
   }
 
+  // Buddy challenge completions — parse '🤝buddy:PARTNER:AMOUNT:EXERCISEID' logs
+  // Only emit one event per challenge pair (the pair who completes last triggers it)
+  const buddyEventKeys = new Set();
+  allUsers.forEach(u => {
+    (u.logs || []).forEach(l => {
+      if (!l.title || !l.title.startsWith('🤝buddy:')) return;
+      // title = '🤝buddy:PARTNER:AMOUNT:EXERCISEID'
+      const parts = l.title.slice('🤝buddy:'.length).split(':');
+      if (parts.length < 3) return;
+      const [partner, amount, exerciseId] = parts;
+      const ex = EXERCISES.find(e => e.id === exerciseId);
+      // Deduplicate: canonical key = sorted aliases + exercise + amount
+      const pairKey = [u.alias, partner].sort().join('|') + `|${exerciseId}|${amount}`;
+      if (buddyEventKeys.has(pairKey)) return;
+      buddyEventKeys.add(pairKey);
+      const isMe = u.alias === myAlias || partner === myAlias;
+      events.push({
+        date: l.date,
+        type: 'buddy',
+        alias: u.alias,
+        isMe,
+        text: `& ${partner} klarade kompisutmaningen: ${amount} ${ex?.label || exerciseId}! 🤝`,
+        icon: '🤝',
+      });
+    });
+  });
+
   // Deduplicate badge events (keep only one per alias+badge)
   const seen = new Set();
   const deduped = events.filter(e => {

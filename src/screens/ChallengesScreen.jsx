@@ -9,12 +9,424 @@ import {
   getWeeklyLevelInfo,
   WEEKLY_LEVEL_NAMES,
 } from '../utils';
-import { Card, ProgressBar, SkeletonBar, ButtonLoader } from '../components/common';
+import { Card, ProgressBar, SkeletonBar, ButtonLoader, Confetti } from '../components/common';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft } from 'lucide-react';
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function hoursAgo(isoStr) {
+  if (!isoStr) return 0;
+  return (Date.now() - new Date(isoStr).getTime()) / 3_600_000;
+}
+
+function formatCountdown(acceptedAt) {
+  if (!acceptedAt) return '';
+  const deadline = new Date(acceptedAt).getTime() + 48 * 3_600_000;
+  const ms = deadline - Date.now();
+  if (ms <= 0) return 'Utgått';
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return `${h}h ${m}m kvar`;
+}
+
+// ── BuddySection component ─────────────────────────────────────────────────
+
+function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
+  const { handleCreateBuddyChallenge, handleRespondBuddyChallenge, handleCancelBuddyChallenge } = handlers;
+
+  const [showForm, setShowForm] = useState(false);
+  const [formTo, setFormTo] = useState('');
+  const [formExercise, setFormExercise] = useState(EXERCISES[0].id);
+  const [formAmount, setFormAmount] = useState('');
+  const [formBusy, setFormBusy] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [respondBusy, setRespondBusy] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // Split challenges by role + status
+  const incoming = buddyChallenges.filter(c => c.toAlias === user.alias && c.status === 'pending');
+  const outgoing = buddyChallenges.filter(c => c.fromAlias === user.alias && c.status === 'pending');
+  const active   = buddyChallenges.filter(c =>
+    (c.fromAlias === user.alias || c.toAlias === user.alias) && c.status === 'active');
+  const finished = buddyChallenges.filter(c =>
+    (c.fromAlias === user.alias || c.toAlias === user.alias) &&
+    ['completed','failed','declined','cancelled'].includes(c.status)
+  ).slice(0, 5);
+
+  // Count active per potential recipient (for "full" indicator)
+  const activeCountByAlias = {};
+  buddyChallenges.forEach(c => {
+    if (['pending','active'].includes(c.status)) {
+      activeCountByAlias[c.fromAlias] = (activeCountByAlias[c.fromAlias] || 0) + 1;
+      activeCountByAlias[c.toAlias]   = (activeCountByAlias[c.toAlias]   || 0) + 1;
+    }
+  });
+
+  const teammates = allUsers.filter(u => u.alias !== user.alias);
+
+  async function submitChallenge() {
+    if (!formTo || !formAmount || Number(formAmount) <= 0) return;
+    setFormBusy(true);
+    setFormError('');
+    const result = await handleCreateBuddyChallenge(formTo, formExercise, Number(formAmount));
+    setFormBusy(false);
+    if (result.ok) {
+      setShowForm(false);
+      setFormTo('');
+      setFormAmount('');
+    } else {
+      setFormError(result.error || 'Något gick fel');
+    }
+  }
+
+  async function respond(challengeId, response) {
+    setRespondBusy(challengeId + response);
+    await handleRespondBuddyChallenge(challengeId, response);
+    setRespondBusy('');
+  }
+
+  const selectedEx = EXERCISES.find(e => e.id === formExercise);
+
+  const sectionLabel = {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+    marginTop: 16,
+  };
+
+  return (
+    <div>
+      <Confetti active={showConfetti} />
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>
+            🤝 Kompisutmaningar
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+            Klara tillsammans — dubbla poäng!
+          </div>
+        </div>
+        <button
+          onClick={() => { setShowForm(v => !v); setFormError(''); }}
+          style={{
+            padding: '8px 14px', borderRadius: 10, border: 'none',
+            background: showForm ? 'rgba(255,255,255,0.12)' : COLORS.lime,
+            color: showForm ? 'rgba(255,255,255,0.7)' : COLORS.dark,
+            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          {showForm ? '✕ Stäng' : '+ Ny utmaning'}
+        </button>
+      </div>
+
+      {/* Create form */}
+      {showForm && (
+        <Card style={{ marginBottom: 14, border: `1.5px solid ${COLORS.lime}44` }}>
+          <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Skicka utmaning</div>
+
+          {/* Teammate picker */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 6 }}>Utmana vem?</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {teammates.map(tm => {
+                const count = activeCountByAlias[tm.alias] || 0;
+                const full = count >= 3;
+                const hasPair = buddyChallenges.some(c =>
+                  ((c.fromAlias === user.alias && c.toAlias === tm.alias) ||
+                   (c.fromAlias === tm.alias && c.toAlias === user.alias)) &&
+                  ['pending','active'].includes(c.status)
+                );
+                const disabled = full || hasPair;
+                return (
+                  <button
+                    key={tm.alias}
+                    onClick={() => !disabled && setFormTo(tm.alias)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 20, border: 'none', cursor: disabled ? 'default' : 'pointer',
+                      background: formTo === tm.alias ? COLORS.lime : disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+                      color: formTo === tm.alias ? COLORS.dark : disabled ? 'rgba(255,255,255,0.25)' : '#fff',
+                      fontSize: 13, fontWeight: 600,
+                      position: 'relative',
+                    }}
+                  >
+                    {tm.alias}
+                    {full && <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.6 }}>full</span>}
+                    {hasPair && <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.6 }}>aktiv</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Exercise picker */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 6 }}>Övning</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {EXERCISES.map(ex => (
+                <button
+                  key={ex.id}
+                  onClick={() => setFormExercise(ex.id)}
+                  style={{
+                    padding: '6px 11px', borderRadius: 10, border: `1.5px solid ${formExercise === ex.id ? ex.color : 'transparent'}`,
+                    background: formExercise === ex.id ? `${ex.color}22` : 'rgba(255,255,255,0.07)',
+                    color: formExercise === ex.id ? ex.color : 'rgba(255,255,255,0.6)',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {ex.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Amount input */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 6 }}>
+              Antal {selectedEx?.unit} (max {selectedEx?.max})
+            </div>
+            <input
+              type="number"
+              min="1"
+              max={selectedEx?.max}
+              value={formAmount}
+              onChange={e => setFormAmount(e.target.value)}
+              placeholder={`0–${selectedEx?.max}`}
+              style={{
+                padding: '9px 12px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.2)',
+                background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 14,
+                fontFamily: "'Nunito', sans-serif", width: 120, boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {formError && (
+            <div style={{ color: COLORS.red, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+              ⚠️ {formError}
+            </div>
+          )}
+
+          <button
+            onClick={submitChallenge}
+            disabled={formBusy || !formTo || !formAmount}
+            style={{
+              width: '100%', padding: '12px 0', borderRadius: 12, border: 'none',
+              background: (!formTo || !formAmount) ? 'rgba(255,255,255,0.1)' : COLORS.lime,
+              color: (!formTo || !formAmount) ? 'rgba(255,255,255,0.3)' : COLORS.dark,
+              fontFamily: "'Fredoka One', cursive", fontSize: 17,
+              cursor: formBusy || !formTo || !formAmount ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {formBusy ? <><ButtonLoader color={COLORS.dark} /> Skickar...</> : '📤 Skicka utmaning'}
+          </button>
+        </Card>
+      )}
+
+      {/* Incoming pending */}
+      {incoming.length > 0 && (
+        <>
+          <div style={sectionLabel}>📥 Inkommande ({incoming.length})</div>
+          {incoming.map(c => {
+            const ex = EXERCISES.find(e => e.id === c.exerciseId);
+            const waitH = Math.floor(hoursAgo(c.createdAt));
+            return (
+              <Card key={c.id} style={{ marginBottom: 10, border: `1.5px solid ${COLORS.yellow}55` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div>
+                    <div style={{ color: COLORS.yellow, fontWeight: 700, fontSize: 14 }}>
+                      {c.fromAlias} utmanar dig!
+                    </div>
+                    <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, marginTop: 3 }}>
+                      {c.amount} {ex?.label} ({ex?.unit})
+                    </div>
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+                    {waitH < 1 ? 'Alldeles nyss' : `${waitH}h sedan`}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => respond(c.id, 'accept')}
+                    disabled={!!respondBusy}
+                    style={{
+                      flex: 1, padding: '11px 0', borderRadius: 10, border: 'none',
+                      background: COLORS.lime, color: COLORS.dark,
+                      fontFamily: "'Fredoka One', cursive", fontSize: 15, cursor: 'pointer',
+                    }}
+                  >
+                    {respondBusy === c.id + 'accept' ? <ButtonLoader color={COLORS.dark} /> : '✅ Acceptera'}
+                  </button>
+                  <button
+                    onClick={() => respond(c.id, 'decline')}
+                    disabled={!!respondBusy}
+                    style={{
+                      padding: '11px 14px', borderRadius: 10,
+                      border: '1px solid rgba(220,40,40,0.4)', background: 'transparent',
+                      color: COLORS.red, fontSize: 14, cursor: 'pointer',
+                    }}
+                  >
+                    {respondBusy === c.id + 'decline' ? <ButtonLoader /> : 'Neka'}
+                  </button>
+                </div>
+              </Card>
+            );
+          })}
+        </>
+      )}
+
+      {/* Outgoing pending */}
+      {outgoing.length > 0 && (
+        <>
+          <div style={sectionLabel}>📤 Skickade</div>
+          {outgoing.map(c => {
+            const ex = EXERCISES.find(e => e.id === c.exerciseId);
+            const waitH = Math.floor(hoursAgo(c.createdAt));
+            return (
+              <Card key={c.id} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Till {c.toAlias}</div>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, marginTop: 2 }}>
+                      {c.amount} {ex?.label}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+                      Väntar sedan {waitH < 1 ? '<1h' : `${waitH}h`}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleCancelBuddyChallenge(c.id)}
+                  style={{
+                    width: '100%', padding: '9px 0', borderRadius: 10,
+                    border: '1px solid rgba(255,255,255,0.15)', background: 'transparent',
+                    color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer',
+                  }}
+                >
+                  Avbryt
+                </button>
+              </Card>
+            );
+          })}
+        </>
+      )}
+
+      {/* Active */}
+      {active.length > 0 && (
+        <>
+          <div style={sectionLabel}>⚡ Pågående</div>
+          {active.map(c => {
+            const ex = EXERCISES.find(e => e.id === c.exerciseId);
+            const isFrom = c.fromAlias === user.alias;
+            const myProgress   = isFrom ? c.fromProgress : c.toProgress;
+            const theirProgress = isFrom ? c.toProgress : c.fromProgress;
+            const myDone    = isFrom ? !!c.fromCompletedAt : !!c.toCompletedAt;
+            const theirDone = isFrom ? !!c.toCompletedAt   : !!c.fromCompletedAt;
+            const partner   = isFrom ? c.toAlias : c.fromAlias;
+            const pct = Math.min(100, Math.round((myProgress / c.amount) * 100));
+            const theirPct = Math.min(100, Math.round((theirProgress / c.amount) * 100));
+            const countdown = formatCountdown(c.acceptedAt);
+
+            return (
+              <Card key={c.id} style={{ marginBottom: 10, border: `1.5px solid ${COLORS.lime}44` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div>
+                    <div style={{ color: COLORS.lime, fontWeight: 700, fontSize: 13 }}>
+                      Du & {partner}
+                    </div>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginTop: 2 }}>
+                      {c.amount} {ex?.label}
+                    </div>
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 600, textAlign: 'right' }}>
+                    ⏰ {countdown}
+                  </div>
+                </div>
+
+                {/* My progress */}
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 700 }}>
+                      {myDone ? '✅ Du — klar!' : `Du — ${myProgress}/${c.amount} ${ex?.unit}`}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>{pct}%</span>
+                  </div>
+                  <ProgressBar value={pct} color={myDone ? COLORS.lime : COLORS.yellow} height={7} />
+                </div>
+
+                {/* Partner progress */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 700 }}>
+                      {theirDone ? `✅ ${partner} — klar!` : `${partner} — ${theirProgress}/${c.amount} ${ex?.unit}`}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>{theirPct}%</span>
+                  </div>
+                  <ProgressBar value={theirPct} color={theirDone ? COLORS.lime : 'rgba(255,255,255,0.3)'} height={7} />
+                </div>
+
+                {theirDone && !myDone && (
+                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, background: `${COLORS.yellow}22`, color: COLORS.yellow, fontSize: 13, fontWeight: 700 }}>
+                    🔥 {partner} är klar — nu är det din tur!
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </>
+      )}
+
+      {/* Finished */}
+      {finished.length > 0 && (
+        <>
+          <div style={sectionLabel}>📋 Avslutade</div>
+          {finished.map(c => {
+            const ex = EXERCISES.find(e => e.id === c.exerciseId);
+            const partner = c.fromAlias === user.alias ? c.toAlias : c.fromAlias;
+            const icon = c.status === 'completed' ? '🎉' : c.status === 'failed' ? '❌' : c.status === 'declined' ? '🚫' : '↩️';
+            const label = c.status === 'completed' ? 'Klarad!' : c.status === 'failed' ? 'Missad' : c.status === 'declined' ? 'Nekad' : 'Avbruten';
+            return (
+              <div key={c.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: 'rgba(255,255,255,0.04)', borderRadius: 12,
+                padding: '10px 14px', marginBottom: 8,
+                opacity: c.status === 'completed' ? 1 : 0.55,
+              }}>
+                <span style={{ fontSize: 18 }}>{icon}</span>
+                <div style={{ flex: 1 }}>
+                  <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>
+                    {c.amount} {ex?.label}
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}> med {partner}</span>
+                </div>
+                <span style={{ color: c.status === 'completed' ? COLORS.lime : 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 700 }}>
+                  {label}
+                </span>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {/* Empty state */}
+      {incoming.length === 0 && outgoing.length === 0 && active.length === 0 && finished.length === 0 && (
+        <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
+          Inga utmaningar ännu — skicka en till en lagkompis!
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ChallengesScreen() {
-  const { user, setScreen, handleCompleteDaily, loading, seasonStart } = useUser();
+  const { user, setScreen, handleCompleteDaily, loading, seasonStart,
+          buddyChallenges, handleCreateBuddyChallenge, handleRespondBuddyChallenge, handleCancelBuddyChallenge } = useUser();
 
   const today = localToday();
   const weekStart = getWeekStart(today);
@@ -90,7 +502,7 @@ export function ChallengesScreen() {
         Utmaningar ⚡
       </div>
       <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 20 }}>
-        Dagens uppdrag + veckans lagutmaning
+        Dagens uppdrag · lagutmaning · kompisutmaningar
       </div>
 
       {/* Daily challenge */}
@@ -496,6 +908,16 @@ export function ChallengesScreen() {
         >
           Träna och logga — det räknas automatiskt!
         </div>
+      </Card>
+
+      {/* Buddy challenges */}
+      <Card style={{ marginBottom: 20 }}>
+        <BuddySection
+          user={user}
+          allUsers={allUsers}
+          buddyChallenges={buddyChallenges}
+          handlers={{ handleCreateBuddyChallenge, handleRespondBuddyChallenge, handleCancelBuddyChallenge }}
+        />
       </Card>
     </div>
   );

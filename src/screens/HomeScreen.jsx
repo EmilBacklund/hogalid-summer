@@ -19,7 +19,7 @@ import { useUser } from '../context/UserContext';
 import { ArrowRight } from 'lucide-react';
 
 export function HomeScreen() {
-  const { user, stats, setScreen, seasonStart, setTeamFeedOpen } = useUser();
+  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
 
@@ -336,6 +336,67 @@ export function HomeScreen() {
           </Card>
         );
       })()}
+      {/* Buddy challenges widget */}
+      {(() => {
+        const incoming = buddyChallenges.filter(c => c.toAlias === user.alias && c.status === 'pending');
+        const active = buddyChallenges.filter(c =>
+          (c.fromAlias === user.alias || c.toAlias === user.alias) && c.status === 'active');
+        const urgent = active.filter(c => {
+          if (!c.acceptedAt) return false;
+          const ms = new Date(c.acceptedAt).getTime() + 48 * 3_600_000 - Date.now();
+          return ms > 0 && ms < 8 * 3_600_000;
+        });
+        if (incoming.length === 0 && active.length === 0) return null;
+        return (
+          <button
+            onClick={() => setScreen('challenges')}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              background: 'rgba(255,255,255,0.06)',
+              border: incoming.length > 0 ? `1.5px solid ${COLORS.yellow}88` : '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 14, padding: '12px 14px', cursor: 'pointer', marginBottom: 12,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: incoming.length > 0 || urgent.length > 0 ? 8 : 0 }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>🤝 Kompisutmaningar</span>
+              <span style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                Se alla <ArrowRight size={13} />
+              </span>
+            </div>
+            {incoming.length > 0 && (
+              <div style={{
+                background: `${COLORS.yellow}20`, borderRadius: 10, padding: '8px 11px',
+                marginBottom: urgent.length > 0 ? 6 : 0,
+              }}>
+                <span style={{ color: COLORS.yellow, fontWeight: 700, fontSize: 13 }}>
+                  📥 {incoming.length} inkommande utmaning{incoming.length > 1 ? 'ar' : ''} väntar på svar!
+                </span>
+              </div>
+            )}
+            {urgent.map(c => {
+              const ms = new Date(c.acceptedAt).getTime() + 48 * 3_600_000 - Date.now();
+              const h = Math.floor(ms / 3_600_000);
+              const m = Math.floor((ms % 3_600_000) / 60_000);
+              const partner = c.fromAlias === user.alias ? c.toAlias : c.fromAlias;
+              return (
+                <div key={c.id} style={{
+                  background: 'rgba(220,40,40,0.15)', borderRadius: 10, padding: '8px 11px', marginBottom: 4,
+                }}>
+                  <span style={{ color: COLORS.red, fontWeight: 700, fontSize: 13 }}>
+                    ⏰ Du & {partner} — {h}h {m}m kvar!
+                  </span>
+                </div>
+              );
+            })}
+            {active.length > 0 && urgent.length === 0 && incoming.length === 0 && (
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
+                {active.length} aktiv{active.length > 1 ? 'a' : ''} utmaning{active.length > 1 ? 'ar' : ''} pågår
+              </div>
+            )}
+          </button>
+        );
+      })()}
+
       {/* Last week's result */}
       {!loadingTeam &&
         (() => {
