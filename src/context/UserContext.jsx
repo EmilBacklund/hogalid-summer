@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { apiGet, apiPost, apiPut, localToday, computeStats, invalidateUsersCache } from '../utils';
 import { BINGO } from '../constants';
 
@@ -26,6 +26,26 @@ export function UserProvider({ children }) {
   const [teamFeedOpen, setTeamFeedOpen] = useState(false);
   const [buddyChallenges, setBuddyChallenges] = useState([]);
   const [challengeScrollTarget, setChallengeScrollTarget] = useState(null);
+  const [newlyCompletedChallenge, setNewlyCompletedChallenge] = useState(null);
+  const seenCompletedIds = useRef(null);
+
+  // Detect newly completed buddy challenges (don't fire on first load)
+  useEffect(() => {
+    if (!buddyChallenges.length) return;
+    if (seenCompletedIds.current === null) {
+      seenCompletedIds.current = new Set(
+        buddyChallenges.filter(c => c.status === 'completed').map(c => c.id)
+      );
+      return;
+    }
+    for (const c of buddyChallenges) {
+      if (c.status === 'completed' && !seenCompletedIds.current.has(c.id)) {
+        seenCompletedIds.current.add(c.id);
+        setNewlyCompletedChallenge(c);
+        break;
+      }
+    }
+  }, [buddyChallenges]);
 
   /* ── Auto-login from localStorage ── */
   useEffect(() => {
@@ -259,6 +279,8 @@ export function UserProvider({ children }) {
     handleCancelBuddyChallenge,
     challengeScrollTarget,
     setChallengeScrollTarget,
+    newlyCompletedChallenge,
+    clearNewlyCompletedChallenge: () => setNewlyCompletedChallenge(null),
   };
 
   return (
