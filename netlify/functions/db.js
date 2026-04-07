@@ -91,6 +91,8 @@ export async function initDb(db) {
     "ALTER TABLE logs ADD COLUMN pages INTEGER DEFAULT 0",
     "ALTER TABLE logs ADD COLUMN title TEXT DEFAULT ''",
     "ALTER TABLE logs ADD COLUMN created_at TEXT DEFAULT ''",
+    "ALTER TABLE buddy_challenges ADD COLUMN from_baseline INTEGER DEFAULT 0",
+    "ALTER TABLE buddy_challenges ADD COLUMN to_baseline INTEGER DEFAULT 0",
   ];
   for (const sql of migrations) {
     try { await db.execute(sql); } catch (e) { /* column already exists */ }

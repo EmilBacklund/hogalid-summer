@@ -21,12 +21,17 @@ export async function updateBuddyProgress(db, key) {
       args: [key, acceptedDate],
     });
 
-    let progress = 0;
+    let rawTotal = 0;
     for (const lr of logsResult.rows) {
       const exArr = JSON.parse(lr.exercises || '[]');
       const found = exArr.find(e => e.id === c.exercise_id);
-      if (found) progress += found.value || 0;
+      if (found) rawTotal += found.value || 0;
     }
+
+    // Subtract the baseline that was snapshotted at accept time so that only
+    // reps logged after the challenge was accepted count toward progress.
+    const baseline = isFrom ? (c.from_baseline || 0) : (c.to_baseline || 0);
+    const progress = Math.max(0, rawTotal - baseline);
 
     const progressField = isFrom ? 'from_progress' : 'to_progress';
     const completedField = isFrom ? 'from_completed_at' : 'to_completed_at';

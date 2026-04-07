@@ -1,5 +1,4 @@
 import { getDb, initDb } from './db.js';
-import { updateBuddyProgress } from './buddyProgress.js';
 
 const headers = {
   'Content-Type': 'application/json',
@@ -126,22 +125,47 @@ export default async (req) => {
       const now = new Date().toISOString();
 
       if (response === 'accept') {
-        await db.execute({
-          sql: `UPDATE buddy_challenges SET status = 'active', accepted_at = ?
-                WHERE id = ? AND status = 'pending'`,
-          args: [now, challengeId],
-        });
-
-        // Recalculate progress for both users immediately — they may already have
-        // qualifying logs from today that should count toward the challenge.
+        // Fetch challenge to know exercise_id and both aliases
         const row = await db.execute({
-          sql: 'SELECT from_alias, to_alias FROM buddy_challenges WHERE id = ?',
-          args: [challengeId],
+          sql: 'SELECT from_alias, to_alias, exercise_id FROM buddy_challenges WHERE id = ? AND status = ?',
+          args: [challengeId, 'pending'],
         });
-        if (row.rows[0]) {
-          await updateBuddyProgress(db, row.rows[0].from_alias);
-          await updateBuddyProgress(db, row.rows[0].to_alias);
+        if (!row.rows[0]) {
+          return new Response(JSON.stringify({ error: 'not_found' }), { status: 404, headers });
         }
+        const { from_alias, to_alias, exercise_id } = row.rows[0];
+        const today = now.slice(0, 10);
+
+        // Snapshot current totals for this exercise on today's date for both users.
+        // This baseline is subtracted from progress so that only reps logged
+        // *after* acceptance count toward the challenge.
+        async function snapshotBaseline(alias) {
+          const logs = await db.execute({
+            sql: `SELECT exercises FROM logs
+                  WHERE alias = ? AND date = ?
+                    AND bingo = 0 AND daily_challenge = 0
+                    AND title NOT LIKE '🤝buddy:%'`,
+            args: [alias, today],
+          });
+          let total = 0;
+          for (const lr of logs.rows) {
+            const exArr = JSON.parse(lr.exercises || '[]');
+            const found = exArr.find(e => e.id === exercise_id);
+            if (found) total += found.value || 0;
+          }
+          return total;
+        }
+
+        const fromBaseline = await snapshotBaseline(from_alias);
+        const toBaseline   = await snapshotBaseline(to_alias);
+
+        await db.execute({
+          sql: `UPDATE buddy_challenges
+                SET status = 'active', accepted_at = ?,
+                    from_baseline = ?, to_baseline = ?
+                WHERE id = ?`,
+          args: [now, fromBaseline, toBaseline, challengeId],
+        });
       } else {
         await db.execute({
           sql: `UPDATE buddy_challenges SET status = 'declined'
