@@ -1,4 +1,5 @@
 import { getDb, initDb } from './db.js';
+import { updateBuddyProgress } from './buddyProgress.js';
 
 const headers = {
   'Content-Type': 'application/json',
@@ -130,6 +131,17 @@ export default async (req) => {
                 WHERE id = ? AND status = 'pending'`,
           args: [now, challengeId],
         });
+
+        // Recalculate progress for both users immediately — they may already have
+        // qualifying logs from today that should count toward the challenge.
+        const row = await db.execute({
+          sql: 'SELECT from_alias, to_alias FROM buddy_challenges WHERE id = ?',
+          args: [challengeId],
+        });
+        if (row.rows[0]) {
+          await updateBuddyProgress(db, row.rows[0].from_alias);
+          await updateBuddyProgress(db, row.rows[0].to_alias);
+        }
       } else {
         await db.execute({
           sql: `UPDATE buddy_challenges SET status = 'declined'
