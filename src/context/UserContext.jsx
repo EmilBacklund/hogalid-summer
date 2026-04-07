@@ -25,6 +25,7 @@ export function UserProvider({ children }) {
   const [seasonStart, setSeasonStart] = useState(null);
   const [teamFeedOpen, setTeamFeedOpen] = useState(false);
   const [buddyChallenges, setBuddyChallenges] = useState([]);
+  const [challengeScrollTarget, setChallengeScrollTarget] = useState(null);
 
   /* ── Auto-login from localStorage ── */
   useEffect(() => {
@@ -255,6 +256,8 @@ export function UserProvider({ children }) {
     handleCreateBuddyChallenge,
     handleRespondBuddyChallenge,
     handleCancelBuddyChallenge,
+    challengeScrollTarget,
+    setChallengeScrollTarget,
   };
 
   return (

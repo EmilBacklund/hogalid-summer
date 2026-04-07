@@ -19,7 +19,12 @@ import { useUser } from '../context/UserContext';
 import { ArrowRight } from 'lucide-react';
 
 export function HomeScreen() {
-  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges } = useUser();
+  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget } = useUser();
+
+  function goTo(target) {
+    setChallengeScrollTarget(target);
+    setScreen('challenges');
+  }
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
 
@@ -172,7 +177,6 @@ export function HomeScreen() {
             style={{
               marginBottom: 12,
               padding: '16px 16px 14px',
-              cursor: 'pointer',
               border: !loadingTeam && levelInfo.isMaxLevel ? '2px solid #ff6a00' : undefined,
               background: !loadingTeam && levelInfo.isMaxLevel ? 'rgba(255,100,0,0.08)' : undefined,
               animation:
@@ -180,15 +184,16 @@ export function HomeScreen() {
                   ? 'fireGlow 1.5s ease-in-out infinite'
                   : undefined,
             }}
-            onClick={() => setScreen('challenges')}
           >
             {/* Header */}
             <div
+              onClick={() => goTo(null)}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: 14,
+                cursor: 'pointer',
               }}
             >
               <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>⚡ Utmaningar</div>
@@ -196,7 +201,7 @@ export function HomeScreen() {
             </div>
 
             {/* Daily section */}
-            <div style={{ marginBottom: 12 }}>
+            <div onClick={() => goTo('daily')} style={{ marginBottom: 12, cursor: 'pointer' }}>
               <div
                 style={{
                   color: COLORS.yellow,
@@ -240,7 +245,7 @@ export function HomeScreen() {
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginBottom: 12 }} />
 
             {/* Weekly section */}
-            <div>
+            <div onClick={() => goTo('weekly')} style={{ cursor: 'pointer' }}>
               <div
                 style={{
                   display: 'flex',
@@ -349,7 +354,7 @@ export function HomeScreen() {
         if (incoming.length === 0 && active.length === 0) return null;
         return (
           <button
-            onClick={() => setScreen('challenges')}
+            onClick={() => goTo('buddy')}
             style={{
               display: 'block', width: '100%', textAlign: 'left',
               background: 'rgba(255,255,255,0.06)',

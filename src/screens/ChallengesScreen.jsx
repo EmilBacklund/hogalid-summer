@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { COLORS, EXERCISES, DAILY_CHALLENGES } from '../constants';
 import {
   fetchAllUsers,
@@ -426,7 +426,24 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
 
 export function ChallengesScreen() {
   const { user, setScreen, handleCompleteDaily, loading, seasonStart,
-          buddyChallenges, handleCreateBuddyChallenge, handleRespondBuddyChallenge, handleCancelBuddyChallenge } = useUser();
+          buddyChallenges, handleCreateBuddyChallenge, handleRespondBuddyChallenge, handleCancelBuddyChallenge,
+          challengeScrollTarget, setChallengeScrollTarget } = useUser();
+
+  const dailyRef  = useRef(null);
+  const weeklyRef = useRef(null);
+  const buddyRef  = useRef(null);
+
+  useEffect(() => {
+    if (!challengeScrollTarget) return;
+    const refMap = { daily: dailyRef, weekly: weeklyRef, buddy: buddyRef };
+    const ref = refMap[challengeScrollTarget];
+    if (!ref) return;
+    const timer = setTimeout(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setChallengeScrollTarget(null);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [challengeScrollTarget, setChallengeScrollTarget]);
 
   const today = localToday();
   const weekStart = getWeekStart(today);
@@ -507,6 +524,7 @@ export function ChallengesScreen() {
 
       {/* Daily challenge */}
       <div
+        ref={dailyRef}
         style={{
           color: 'rgba(255,255,255,0.5)',
           fontSize: 12,
@@ -635,6 +653,7 @@ export function ChallengesScreen() {
       )}
 
       {/* Weekly team challenge */}
+      <div ref={weeklyRef} style={{ scrollMarginTop: 8 }} />
       <style>{`
         @keyframes fireGlow {
           0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
@@ -911,6 +930,7 @@ export function ChallengesScreen() {
       </Card>
 
       {/* Buddy challenges */}
+      <div ref={buddyRef} style={{ scrollMarginTop: 8 }} />
       <Card style={{ marginBottom: 20 }}>
         <BuddySection
           user={user}
