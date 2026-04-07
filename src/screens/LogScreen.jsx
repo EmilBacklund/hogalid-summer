@@ -34,6 +34,10 @@ function clamp(val, min, max) {
   return String(Math.min(Math.max(Math.round(n), min), max));
 }
 
+function digitsOnly(val) {
+  return val.replace(/\D/g, '');
+}
+
 function formatTime(isoString) {
   if (!isoString) return '';
   try {
@@ -88,12 +92,12 @@ export function LogScreen() {
   const sentinelRef = useRef(null);
 
   const today = localToday();
-  const jongleraIndex = EXERCISES.findIndex((ex) => ex.id === 'jonglera');
-  const freeTrainingIndex = EXERCISES.findIndex((ex) => ex.id === 'fritraning');
-  const jongleraExercise = EXERCISES[jongleraIndex];
-  const freeTrainingExercise = EXERCISES[freeTrainingIndex];
-  const pairedBeforeJonglera = EXERCISES.slice(0, jongleraIndex);
-  const pairedAfterJonglera = EXERCISES.slice(jongleraIndex + 1, freeTrainingIndex);
+  const pairedBeforeFeatured = EXERCISES.filter((ex) =>
+    ['toetaps', 'tvafotare', 'suldrag', 'cruyff'].includes(ex.id),
+  );
+  const freeTrainingExercise = EXERCISES.find((ex) => ex.id === 'fritraning');
+  const jongleraExercise = EXERCISES.find((ex) => ex.id === 'jonglera');
+  const pairedAfterFeatured = EXERCISES.filter((ex) => ['passningar', 'skott'].includes(ex.id));
 
   // Derive current log for selected date (most recent if multiple)
   const selectedDateLog =
@@ -147,13 +151,13 @@ export function LogScreen() {
   // === Write tab helpers ===
   function setVal(id, field, val) {
     const ex = EXERCISES.find((e) => e.id === id);
-    const clamped = ex ? clamp(val, 0, ex.max) : val;
+    const clamped = ex ? clamp(digitsOnly(val), 0, ex.max) : digitsOnly(val);
     setExercises((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: clamped } : e)));
   }
 
   function setSummerVal(id, val) {
     const act = SUMMER_ACTIVITIES.find((a) => a.id === id);
-    const clamped = act ? clamp(val, 0, act.max) : val;
+    const clamped = act ? clamp(digitsOnly(val), 0, act.max) : digitsOnly(val);
     setSummer((prev) => ({ ...prev, [id]: clamped }));
   }
 
@@ -392,7 +396,7 @@ export function LogScreen() {
             marginBottom: 12,
           }}
         >
-          {pairedBeforeJonglera.map((ex) => {
+          {pairedBeforeFeatured.map((ex) => {
             const val = exercises.find((e) => e.id === ex.id);
             return (
               <Card
@@ -422,9 +426,10 @@ export function LogScreen() {
                   </div>
                 </div>
                 <input
-                  type="number"
-                  min="0"
-                  max={ex.max}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
                   placeholder={`Antal ${ex.unit}`}
                   value={val?.value || ''}
                   onChange={(e) => setVal(ex.id, 'value', e.target.value)}
@@ -435,6 +440,45 @@ export function LogScreen() {
           })}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
+          {[freeTrainingExercise].filter(Boolean).map((ex) => {
+            const val = exercises.find((e) => e.id === ex.id);
+            return (
+              <Card key={ex.id} style={{ borderLeft: `4px solid ${ex.color}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div
+                    style={{ width: 10, height: 10, borderRadius: '50%', background: ex.color }}
+                  />
+                  <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{ex.label}</div>
+                  <div style={RANGE_STYLE}>
+                    0–{ex.max} {ex.unit}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr',
+                    gap: 10,
+                    alignItems: 'start',
+                  }}
+                >
+                  <div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="off"
+                      placeholder={`Antal ${ex.unit}`}
+                      value={val?.value || ''}
+                      onChange={(e) => setVal(ex.id, 'value', e.target.value)}
+                      style={{ ...INPUT_STYLE, width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
           {[jongleraExercise].filter(Boolean).map((ex) => {
             const val = exercises.find((e) => e.id === ex.id);
             return (
@@ -472,9 +516,10 @@ export function LogScreen() {
                       </div>
                     )}
                     <input
-                      type="number"
-                      min="0"
-                      max={ex.max}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="off"
                       placeholder={`Antal ${ex.unit}`}
                       value={val?.value || ''}
                       onChange={(e) => setVal(ex.id, 'value', e.target.value)}
@@ -496,9 +541,10 @@ export function LogScreen() {
                         Rekord
                       </div>
                       <input
-                        type="number"
-                        min="0"
-                        max={ex.max}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="off"
                         placeholder="🏆 Rekord"
                         value={val?.highscore || ''}
                         onChange={(e) => setVal(ex.id, 'highscore', e.target.value)}
@@ -530,7 +576,7 @@ export function LogScreen() {
             marginBottom: 24,
           }}
         >
-          {pairedAfterJonglera.map((ex) => {
+          {pairedAfterFeatured.map((ex) => {
             const val = exercises.find((e) => e.id === ex.id);
             return (
               <Card
@@ -560,52 +606,15 @@ export function LogScreen() {
                   </div>
                 </div>
                 <input
-                  type="number"
-                  min="0"
-                  max={ex.max}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
                   placeholder={`Antal ${ex.unit}`}
                   value={val?.value || ''}
                   onChange={(e) => setVal(ex.id, 'value', e.target.value)}
                   style={{ ...INPUT_STYLE, width: '100%', boxSizing: 'border-box' }}
                 />
-              </Card>
-            );
-          })}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-          {[freeTrainingExercise].filter(Boolean).map((ex) => {
-            const val = exercises.find((e) => e.id === ex.id);
-            return (
-              <Card key={ex.id} style={{ borderLeft: `4px solid ${ex.color}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div
-                    style={{ width: 10, height: 10, borderRadius: '50%', background: ex.color }}
-                  />
-                  <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{ex.label}</div>
-                  <div style={RANGE_STYLE}>
-                    0–{ex.max} {ex.unit}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr',
-                    gap: 10,
-                    alignItems: 'start',
-                  }}
-                >
-                  <div>
-                    <input
-                      type="number"
-                      min="0"
-                      max={ex.max}
-                      placeholder={`Antal ${ex.unit}`}
-                      value={val?.value || ''}
-                      onChange={(e) => setVal(ex.id, 'value', e.target.value)}
-                      style={{ ...INPUT_STYLE, width: '100%', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
               </Card>
             );
           })}
@@ -638,9 +647,10 @@ export function LogScreen() {
                 </div>
               </div>
               <input
-                type="number"
-                min="0"
-                max={act.max}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
                 placeholder={`Antal ${act.unit}`}
                 value={summer[act.id] || ''}
                 onChange={(e) => setSummerVal(act.id, e.target.value)}
