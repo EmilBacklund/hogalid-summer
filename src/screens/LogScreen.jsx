@@ -185,7 +185,7 @@ export function LogScreen() {
           filled[0].id === 'skott' &&
           Number(filled[0].value) === 37;
         if (skottOnly) {
-          setTimeout(() => setShowPenalty(true), 200);
+          setShowPenalty(true);
           return; // always return — 37 skott alone is never a real log
         }
         setTooLittle(true);
@@ -221,19 +221,22 @@ export function LogScreen() {
     };
 
     setSaving(true);
-    if (selectedDateLog) {
-      await handleUpdateLog('edit', selectedDateLog.id, log);
-    } else {
-      await handleSaveLog(log, newHighscores);
+    try {
+      if (selectedDateLog) {
+        await handleUpdateLog('edit', selectedDateLog.id, log);
+      } else {
+        await handleSaveLog(log, newHighscores);
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
 
     // Easter egg: 37 skott → penalty shootout
     const skottVal = filled.find(e => e.id === 'skott');
     if (skottVal && Number(skottVal.value) === 37) {
-      setTimeout(() => setShowPenalty(true), 800);
+      setShowPenalty(true);
     }
   }
 
@@ -772,10 +775,14 @@ export function LogScreen() {
           onClose={async (score) => {
             setShowPenalty(false);
             if (typeof score === 'number') {
-              await handleSaveLog(
-                { date: today, penaltyGame: true, goals: score, total: 10, points: score },
-                user.highscores || {},
-              );
+              try {
+                await handleSaveLog(
+                  { date: today, exercises: [], penaltyGame: true, goals: score, total: 10, points: score },
+                  user.highscores || {},
+                );
+              } catch (e) {
+                // ignore save errors — navigate home regardless
+              }
               setScreen('home');
             }
           }}
