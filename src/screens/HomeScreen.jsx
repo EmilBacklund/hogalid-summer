@@ -787,7 +787,7 @@ export function HomeScreen() {
           );
         })()}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <Card style={{ padding: '16px 14px' }}>
+        <Card onClick={() => setScreen('log')} style={{ padding: '16px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <div
               style={{
@@ -881,9 +881,25 @@ export function HomeScreen() {
             })}
           </div>
         </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 32 }}>⭐</div>
-          <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 28, color: COLORS.accent }}>
+        <Card
+          style={{
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div style={{ fontSize: 32, lineHeight: 1, marginBottom: 6 }}>⭐</div>
+          <div
+            style={{
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: 28,
+              color: COLORS.accent,
+              lineHeight: 1,
+              marginBottom: 6,
+            }}
+          >
             {stats.totalPoints}
           </div>
           <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>totala poäng</div>
