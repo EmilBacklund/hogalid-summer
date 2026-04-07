@@ -1,10 +1,11 @@
+import { createPortal } from 'react-dom';
 import { COLORS, EXERCISES } from '../../constants';
 import { Confetti } from './Confetti';
 
 export function BuddyCelebration({ challenge, user, onClose }) {
   const partner = challenge.fromAlias === user.alias ? challenge.toAlias : challenge.fromAlias;
   const ex = EXERCISES.find(e => e.id === challenge.exerciseId);
-  return (
+  return createPortal(
     <>
       <Confetti active />
       <div
@@ -77,6 +78,7 @@ export function BuddyCelebration({ challenge, user, onClose }) {
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
