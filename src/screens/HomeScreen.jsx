@@ -194,9 +194,6 @@ export function HomeScreen() {
             style={{
               marginBottom: 12,
               padding: '16px 16px 14px',
-              border: !loadingTeam && levelInfo.isMaxLevel ? '2px solid #ff6a00' : undefined,
-              background: !loadingTeam && levelInfo.isMaxLevel ? 'rgba(255,100,0,0.08)' : undefined,
-              animation: showFire ? 'fireGlow 1.5s ease-in-out infinite' : undefined,
             }}
           >
             {/* Header */}
@@ -259,7 +256,18 @@ export function HomeScreen() {
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginBottom: 12 }} />
 
             {/* Weekly section */}
-            <div onClick={() => goTo('weekly')} style={{ cursor: 'pointer' }}>
+            <div
+              onClick={() => goTo('weekly')}
+              style={{
+                cursor: 'pointer',
+                borderRadius: 12,
+                border: !loadingTeam && levelInfo.isMaxLevel ? '2px solid #ff6a00' : undefined,
+                background: !loadingTeam && levelInfo.isMaxLevel ? 'rgba(255,100,0,0.08)' : undefined,
+                animation: showFire ? 'fireGlow 1.5s ease-in-out infinite' : undefined,
+                padding: !loadingTeam && levelInfo.isMaxLevel ? '10px 10px 6px' : undefined,
+                margin: !loadingTeam && levelInfo.isMaxLevel ? '0 -2px' : undefined,
+              }}
+            >
               <div
                 style={{
                   display: 'flex',
