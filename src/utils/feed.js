@@ -60,6 +60,7 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
       if (prevLevelName !== null && after.name !== before.name) {
         events.push({
           date: l.date,
+          createdAt: l.createdAt || '',
           type: 'levelup',
           alias: u.alias,
           isMe,
@@ -103,6 +104,7 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
       if (daysSince <= 1 && STREAK_MILESTONES.includes(stats.streak)) {
         events.push({
           date: lastQualifyingLog.date,
+          createdAt: lastQualifyingLog.createdAt || '',
           type: 'streak',
           alias: u.alias,
           isMe,
@@ -191,6 +193,7 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
       const isMe = u.alias === myAlias || partner === myAlias;
       events.push({
         date: l.date,
+        createdAt: l.createdAt || '',
         type: 'buddy',
         alias: u.alias,
         isMe,
@@ -209,5 +212,15 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
     return true;
   });
 
-  return deduped.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40);
+  return deduped.sort((a, b) => {
+    // Primary: date descending
+    const dateCmp = b.date.localeCompare(a.date);
+    if (dateCmp !== 0) return dateCmp;
+    // Secondary: createdAt descending — events with a timestamp beat those without
+    const aTime = a.createdAt || '';
+    const bTime = b.createdAt || '';
+    if (bTime && !aTime) return 1;   // b has time, a doesn't → b wins
+    if (aTime && !bTime) return -1;  // a has time, b doesn't → a wins
+    return bTime.localeCompare(aTime);
+  }).slice(0, 40);
 }
