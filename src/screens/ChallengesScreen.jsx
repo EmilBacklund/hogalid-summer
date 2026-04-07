@@ -931,7 +931,13 @@ export function ChallengesScreen() {
 
       {/* Buddy challenges */}
       <div ref={buddyRef} style={{ scrollMarginTop: 8 }} />
-      <Card style={{ marginBottom: 20 }}>
+      <Card
+        style={{
+          marginBottom: 20,
+          background: 'linear-gradient(180deg, rgba(0,20,64,0.88), rgba(0,20,64,0.72))',
+          border: '1px solid rgba(240,220,0,0.18)',
+        }}
+      >
         <BuddySection
           user={user}
           allUsers={allUsers}
