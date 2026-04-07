@@ -88,6 +88,12 @@ export function LogScreen() {
   const sentinelRef = useRef(null);
 
   const today = localToday();
+  const jongleraIndex = EXERCISES.findIndex((ex) => ex.id === 'jonglera');
+  const freeTrainingIndex = EXERCISES.findIndex((ex) => ex.id === 'fritraning');
+  const jongleraExercise = EXERCISES[jongleraIndex];
+  const freeTrainingExercise = EXERCISES[freeTrainingIndex];
+  const pairedBeforeJonglera = EXERCISES.slice(0, jongleraIndex);
+  const pairedAfterJonglera = EXERCISES.slice(jongleraIndex + 1, freeTrainingIndex);
 
   // Derive current log for selected date (most recent if multiple)
   const selectedDateLog =
@@ -378,8 +384,58 @@ export function LogScreen() {
 
         {/* Training section */}
         <div style={SECTION_LABEL}>⚽ Träning</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-          {EXERCISES.map((ex) => {
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
+          {pairedBeforeJonglera.map((ex) => {
+            const val = exercises.find((e) => e.id === ex.id);
+            return (
+              <Card
+                key={ex.id}
+                style={{
+                  borderLeft: `4px solid ${ex.color}`,
+                  padding: '16px 14px',
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: ex.color,
+                      marginTop: 4,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{ex.label}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 3 }}>
+                      0–{ex.max} {ex.unit}
+                    </div>
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max={ex.max}
+                  placeholder={`Antal ${ex.unit}`}
+                  value={val?.value || ''}
+                  onChange={(e) => setVal(ex.id, 'value', e.target.value)}
+                  style={{ ...INPUT_STYLE, width: '100%', boxSizing: 'border-box' }}
+                />
+              </Card>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
+          {[jongleraExercise].filter(Boolean).map((ex) => {
             const val = exercises.find((e) => e.id === ex.id);
             return (
               <Card key={ex.id} style={{ borderLeft: `4px solid ${ex.color}` }}>
@@ -392,31 +448,69 @@ export function LogScreen() {
                     0–{ex.max} {ex.unit}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    min="0"
-                    max={ex.max}
-                    placeholder={`Antal ${ex.unit}`}
-                    value={val?.value || ''}
-                    onChange={(e) => setVal(ex.id, 'value', e.target.value)}
-                    style={{ ...INPUT_STYLE, flex: 1 }}
-                  />
-                  {ex.hasHighscore && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: ex.hasHighscore ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+                    gap: 10,
+                    alignItems: 'start',
+                  }}
+                >
+                  <div>
+                    {ex.hasHighscore && (
+                      <div
+                        style={{
+                          color: 'rgba(255,255,255,0.45)',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          marginBottom: 6,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.6,
+                        }}
+                      >
+                        Touch
+                      </div>
+                    )}
                     <input
                       type="number"
                       min="0"
                       max={ex.max}
-                      placeholder="🏆 Rekord"
-                      value={val?.highscore || ''}
-                      onChange={(e) => setVal(ex.id, 'highscore', e.target.value)}
-                      style={{
-                        ...INPUT_STYLE,
-                        flex: 1,
-                        border: `1.5px solid ${COLORS.accent}55`,
-                        background: 'rgba(255,218,61,0.06)',
-                      }}
+                      placeholder={`Antal ${ex.unit}`}
+                      value={val?.value || ''}
+                      onChange={(e) => setVal(ex.id, 'value', e.target.value)}
+                      style={{ ...INPUT_STYLE, width: '100%', boxSizing: 'border-box' }}
                     />
+                  </div>
+                  {ex.hasHighscore && (
+                    <div>
+                      <div
+                        style={{
+                          color: 'rgba(255,255,255,0.45)',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          marginBottom: 6,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.6,
+                        }}
+                      >
+                        Rekord
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        max={ex.max}
+                        placeholder="🏆 Rekord"
+                        value={val?.highscore || ''}
+                        onChange={(e) => setVal(ex.id, 'highscore', e.target.value)}
+                        style={{
+                          ...INPUT_STYLE,
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          border: `1.5px solid ${COLORS.accent}55`,
+                          background: 'rgba(255,218,61,0.06)',
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
                 {ex.hasHighscore && (
@@ -428,16 +522,118 @@ export function LogScreen() {
             );
           })}
         </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: 12,
+            marginBottom: 24,
+          }}
+        >
+          {pairedAfterJonglera.map((ex) => {
+            const val = exercises.find((e) => e.id === ex.id);
+            return (
+              <Card
+                key={ex.id}
+                style={{
+                  borderLeft: `4px solid ${ex.color}`,
+                  padding: '16px 14px',
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: ex.color,
+                      marginTop: 4,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{ex.label}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 3 }}>
+                      0–{ex.max} {ex.unit}
+                    </div>
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max={ex.max}
+                  placeholder={`Antal ${ex.unit}`}
+                  value={val?.value || ''}
+                  onChange={(e) => setVal(ex.id, 'value', e.target.value)}
+                  style={{ ...INPUT_STYLE, width: '100%', boxSizing: 'border-box' }}
+                />
+              </Card>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+          {[freeTrainingExercise].filter(Boolean).map((ex) => {
+            const val = exercises.find((e) => e.id === ex.id);
+            return (
+              <Card key={ex.id} style={{ borderLeft: `4px solid ${ex.color}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div
+                    style={{ width: 10, height: 10, borderRadius: '50%', background: ex.color }}
+                  />
+                  <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{ex.label}</div>
+                  <div style={RANGE_STYLE}>
+                    0–{ex.max} {ex.unit}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr',
+                    gap: 10,
+                    alignItems: 'start',
+                  }}
+                >
+                  <div>
+                    <input
+                      type="number"
+                      min="0"
+                      max={ex.max}
+                      placeholder={`Antal ${ex.unit}`}
+                      value={val?.value || ''}
+                      onChange={(e) => setVal(ex.id, 'value', e.target.value)}
+                      style={{ ...INPUT_STYLE, width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
 
         {/* Summer activities */}
         <div style={SECTION_LABEL}>☀️ Sommargrejer</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 10,
+            marginBottom: 24,
+          }}
+        >
           {SUMMER_ACTIVITIES.map((act) => (
-            <Card key={act.id} style={{ borderLeft: `4px solid ${act.color}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <span style={{ fontSize: 18 }}>{act.icon}</span>
-                <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{act.label}</div>
-                <div style={RANGE_STYLE}>
+            <Card
+              key={act.id}
+              style={{
+                borderTop: `4px solid ${act.color}`,
+                padding: '14px 10px 12px',
+                minWidth: 0,
+              }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 22, lineHeight: 1, marginBottom: 6 }}>{act.icon}</div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{act.label}</div>
+                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 4 }}>
                   0–{act.max} {act.unit}
                 </div>
               </div>
@@ -448,7 +644,13 @@ export function LogScreen() {
                 placeholder={`Antal ${act.unit}`}
                 value={summer[act.id] || ''}
                 onChange={(e) => setSummerVal(act.id, e.target.value)}
-                style={{ ...INPUT_STYLE, width: '100%', boxSizing: 'border-box' }}
+                style={{
+                  ...INPUT_STYLE,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '9px 8px',
+                  textAlign: 'center',
+                }}
               />
             </Card>
           ))}
