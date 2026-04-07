@@ -11,12 +11,14 @@ export function invalidateUsersCache() {
   cacheTime = 0;
 }
 
-// Returns cached data immediately if available (even if stale), and always
-// triggers a background refresh. Calls onChange(newData) when fresh data
-// arrives and differs from the current cache.
+// Returns cached data immediately if available (even if stale), and triggers
+// a background refresh only if the cache is older than TTL. Calls
+// onChange(newData) when fresh data arrives and differs from current cache.
 export function fetchAllUsersStale(onChange) {
-  // Kick off background fetch (deduplicated — only one in-flight at a time)
-  if (!inflightPromise) {
+  const cacheIsFresh = cachedUsers && (Date.now() - cacheTime < CACHE_TTL);
+
+  // Skip background fetch if cache is still fresh or a fetch is already running
+  if (!cacheIsFresh && !inflightPromise) {
     inflightPromise = apiGet('/users')
       .then(users => {
         const changed = JSON.stringify(users) !== JSON.stringify(cachedUsers);
