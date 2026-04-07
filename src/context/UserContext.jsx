@@ -226,6 +226,7 @@ export function UserProvider({ children }) {
       invalidateUsersCache();
       const updated = await apiGet(`/users?alias=${user.alias}`);
       setUser(updated);
+      fetchBuddyChallenges(user.alias);
     } catch (e) {
       alert("Kunde inte uppdatera träning: " + e.message);
     }
