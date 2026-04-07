@@ -232,6 +232,25 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
           >
             {formBusy ? <><ButtonLoader color={COLORS.dark} /> Skickar...</> : '📤 Skicka utmaning'}
           </button>
+
+          <div style={{
+            marginTop: 12,
+            padding: '10px 14px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.05)',
+            display: 'flex', flexDirection: 'column', gap: 5,
+          }}>
+            {[
+              `🤝 Ni ska klara ${formAmount ? `${formAmount} ${selectedEx?.unit}` : 'övningen'} var`,
+              '⏰ Ni har 48h på er efter att kompisen accepterat',
+              '🌟 Dubbla poäng när ni båda är klara!',
+              '📊 Max tre aktiva utmaningar per person',
+            ].map((line, i) => (
+              <div key={i} style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 600 }}>
+                {line}
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
