@@ -113,6 +113,7 @@ export function UserProvider({ children }) {
 
   function handleLogout() {
     localStorage.removeItem("hogalid_session");
+    invalidateUsersCache();
     setUser(null);
     setScreen("home");
   }
