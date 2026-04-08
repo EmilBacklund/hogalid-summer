@@ -5,3 +5,4 @@ export { EXERCISES, SUMMER_ACTIVITIES } from './exercises';
 export { BINGO, DAILY_CHALLENGES, WEEKLY_CHALLENGES } from './challenges';
 export { STARTER_OPTIONS, AVATAR_REWARDS, CATEGORIES, randomAvatarConfig, getAvailableOptions, isCategoryAvailable } from './avatar';
 export { PLAYER_CARDS, LEGEND_CARDS, ALL_CARDS, CARD_PACK_COST, LEGEND_PACK_COST, TOTAL_PLAYER_CARDS, TOTAL_LEGEND_CARDS, TOTAL_ALL_CARDS } from './cards';
+export { PLAYER_CARD_PROFILES } from './playerCards';
