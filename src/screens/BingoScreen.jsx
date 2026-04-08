@@ -1,11 +1,12 @@
 import { useState, useMemo, useRef } from 'react';
 import { COLORS, BINGO, BADGES } from '../constants';
+import { localToday } from '../utils';
 import { Card, ProgressBar, Confetti, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft } from 'lucide-react';
 
 export function BingoScreen() {
-  const { user, setScreen, handleBingoDone } = useUser();
+  const { user, setScreen, handleBingoDone, handleSaveLog } = useUser();
 
   const done = user.bingo || [];
   const remaining = BINGO.filter(b => !done.includes(b.id));
@@ -83,6 +84,30 @@ export function BingoScreen() {
     setBusy(true);
     const challenge = BINGO.find(b => b.id === id);
     await handleBingoDone(id, challenge?.points || 0);
+
+    // Check if this completion fills a new row or column
+    const newDone = new Set([...done, id]);
+    const idx = BINGO.findIndex(b => b.id === id);
+    let bonus = 0;
+    const bonusLabels = [];
+    if (idx >= 0) {
+      const row = Math.floor(idx / 10);
+      const col = idx % 10;
+      const rowComplete = Array.from({ length: 10 }, (_, c) => BINGO[row * 10 + c])
+        .every(b => b && newDone.has(b.id));
+      const colComplete = Array.from({ length: 5 }, (_, r) => BINGO[r * 10 + col])
+        .every(b => b && newDone.has(b.id));
+      // Only award if not already completed before
+      if (rowComplete && !completedRowSet.has(row)) { bonus += ROW_BONUS; bonusLabels.push(`Rad ${row + 1}`); }
+      if (colComplete && !completedColSet.has(col)) { bonus += COL_BONUS; bonusLabels.push(`Kolumn ${col + 1}`); }
+    }
+    if (bonus > 0) {
+      await handleSaveLog(
+        { date: localToday(), exercises: [], points: bonus, minutes: 0, bingo: true, title: `🎯 Bingobonus: ${bonusLabels.join(' + ')}` },
+        user.highscores || {},
+      );
+    }
+
     setJustDone(id);
     setRandomPick(null);
     setShowConfetti(true);
