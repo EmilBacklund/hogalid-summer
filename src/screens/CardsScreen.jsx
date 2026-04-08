@@ -219,76 +219,94 @@ function CardDetailModal({ card, onClose }) {
         overflowY: 'auto',
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: 340 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: 340, width: '100%' }}>
         <CardFront card={card} size={1.6} />
+
+        {/* Info panel — solid background for readability */}
         <div style={{
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 22,
-          color: card.type === 'legend' ? '#ffd700' : '#fff',
-          marginTop: 16,
-          textAlign: 'center',
-        }}>
-          {card.name}
-        </div>
-
-        {/* Position & club */}
-        {card.position && (
-          <div style={{
-            color: '#f0dc00',
-            fontSize: 13,
-            fontWeight: 700,
-            marginTop: 4,
-            textAlign: 'center',
-          }}>
-            {card.position}
-          </div>
-        )}
-        {card.club && (
-          <div style={{
-            color: 'rgba(255,255,255,0.5)',
-            fontSize: 12,
-            marginTop: 2,
-            textAlign: 'center',
-          }}>
-            {card.club}
-          </div>
-        )}
-        {card.youthClub && (
-          <div style={{
-            color: 'rgba(255,255,255,0.3)',
-            fontSize: 11,
-            marginTop: 1,
-            textAlign: 'center',
-          }}>
-            Moderklubb: {card.youthClub}
-          </div>
-        )}
-
-        {/* Blurb */}
-        {card.blurb && (
-          <div style={{
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: 13,
-            lineHeight: 1.5,
-            marginTop: 12,
-            textAlign: 'center',
-            padding: '0 8px',
-            fontWeight: 600,
-          }}>
-            {card.blurb}
-          </div>
-        )}
-
-        <div style={{
-          color: card.type === 'legend' ? '#ffd700' : '#f0dc00',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: 1.5,
-          textTransform: 'uppercase',
+          width: '100%',
           marginTop: 12,
+          borderRadius: 18,
+          background: 'rgba(0, 20, 60, 0.95)',
+          border: `1.5px solid ${card.type === 'legend' ? 'rgba(255,215,0,0.3)' : 'rgba(240,220,0,0.2)'}`,
+          padding: '16px 18px',
+          backdropFilter: 'blur(12px)',
         }}>
-          Kort #{card.number} {card.type === 'legend' ? '— Legend' : '— Damlandslaget 2026'}
+          <div style={{
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: 20,
+            color: card.type === 'legend' ? '#ffd700' : '#fff',
+            textAlign: 'center',
+            marginBottom: 2,
+          }}>
+            {card.name}
+          </div>
+
+          {card.position && (
+            <div style={{
+              color: '#f0dc00',
+              fontSize: 13,
+              fontWeight: 700,
+              textAlign: 'center',
+              marginBottom: 2,
+            }}>
+              {card.position}
+            </div>
+          )}
+          {card.club && (
+            <div style={{
+              color: 'rgba(255,255,255,0.65)',
+              fontSize: 12,
+              textAlign: 'center',
+              marginBottom: card.youthClub ? 1 : 8,
+            }}>
+              {card.club}
+            </div>
+          )}
+          {card.youthClub && (
+            <div style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontSize: 11,
+              textAlign: 'center',
+              marginBottom: 8,
+            }}>
+              Moderklubb: {card.youthClub}
+            </div>
+          )}
+
+          {card.blurb && (
+            <>
+              <div style={{
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                marginBottom: 10,
+              }} />
+              <div style={{
+                color: 'rgba(255,255,255,0.85)',
+                fontSize: 13,
+                lineHeight: 1.6,
+                textAlign: 'center',
+                fontWeight: 600,
+              }}>
+                {card.blurb}
+              </div>
+            </>
+          )}
+
+          <div style={{
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            marginTop: 10,
+            paddingTop: 8,
+            color: card.type === 'legend' ? 'rgba(255,215,0,0.5)' : 'rgba(240,220,0,0.45)',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: 1.5,
+            textTransform: 'uppercase',
+            textAlign: 'center',
+          }}>
+            Kort #{card.number} {card.type === 'legend' ? '— Legend' : '— Damlandslaget 2026'}
+          </div>
         </div>
+
         <div style={{
           color: 'rgba(255,255,255,0.3)',
           fontSize: 11,
