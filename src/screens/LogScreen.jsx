@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { COLORS, EXERCISES, SUMMER_ACTIVITIES } from '../constants';
-import { localToday, getWeekStart } from '../utils';
+import { localToday, getWeekStart, computeStats, getLevel } from '../utils';
 import { Card, ButtonLoader, PenaltyGame } from '../components/common';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -84,6 +84,7 @@ export function LogScreen() {
   );
   const [summer, setSummer] = useState({ iceCream: '', swim: '', pages: '' });
   const [saved, setSaved] = useState(false);
+  const [saveSummary, setSaveSummary] = useState(null); // { points, touch, mins, newRecord, streakBefore, streakAfter }
   const [saving, setSaving] = useState(false);
   const [tooLittle, setTooLittle] = useState(false);
   const [calWeekOffset, setCalWeekOffset] = useState(0);
@@ -196,11 +197,17 @@ export function LogScreen() {
 
     const points = totalTouch + totalMins * 5;
 
+    // Capture pre-save state for summary
+    const statsBefore = computeStats(user);
+    const levelBefore = getLevel(statsBefore.totalPoints);
+
     const newHighscores = { ...user.highscores };
+    let hasNewRecord = false;
     exercises.forEach((e) => {
       if (e.highscore && Number(e.highscore) > 0) {
         if (!newHighscores[e.id] || Number(e.highscore) > newHighscores[e.id]) {
           newHighscores[e.id] = Number(e.highscore);
+          hasNewRecord = true;
         }
       }
     });
@@ -230,8 +237,20 @@ export function LogScreen() {
     } finally {
       setSaving(false);
     }
+
+    // Build save summary
+    const levelAfter = getLevel(statsBefore.totalPoints + points);
+    const leveledUp = levelAfter.name !== levelBefore.name ? levelAfter : null;
+    setSaveSummary({
+      points,
+      touch: totalTouch,
+      mins: totalMins,
+      newRecord: hasNewRecord,
+      leveledUp,
+      isEdit: !!selectedDateLog,
+    });
     setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setTimeout(() => { setSaved(false); setSaveSummary(null); }, 4000);
 
     // Easter egg: 37 skott → penalty shootout
     const skottVal = filled.find(e => e.id === 'skott');
@@ -250,6 +269,92 @@ export function LogScreen() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
+      <style>{`
+        @keyframes saveFlyIn { 0% { opacity: 0; transform: translateY(30px) scale(0.9); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes savePointsPop { 0% { opacity: 0; transform: scale(0.5); } 50% { transform: scale(1.15); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes saveFadeOut { 0% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+      `}</style>
+
+      {/* Save summary overlay */}
+      {saveSummary && saved && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.7)',
+          animation: 'saveFlyIn 0.35s ease-out',
+          padding: 24,
+        }} onClick={() => { setSaved(false); setSaveSummary(null); }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: `linear-gradient(160deg, rgba(0,20,64,0.98), rgba(0,40,100,0.96))`,
+            borderRadius: 24,
+            border: `2px solid ${COLORS.lime}66`,
+            padding: '28px 24px',
+            textAlign: 'center',
+            maxWidth: 340,
+            width: '100%',
+            boxShadow: `0 16px 60px rgba(0,0,0,0.5)`,
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 8, animation: 'savePointsPop 0.5s ease-out 0.2s both' }}>
+              {saveSummary.leveledUp ? saveSummary.leveledUp.icon : saveSummary.isEdit ? '✏️' : '⚽'}
+            </div>
+            <div style={{
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: saveSummary.leveledUp ? 20 : 24,
+              color: COLORS.lime,
+              marginBottom: 4,
+              animation: 'savePointsPop 0.5s ease-out 0.3s both',
+            }}>
+              {saveSummary.leveledUp
+                ? `Nivå upp! ${saveSummary.leveledUp.icon} ${saveSummary.leveledUp.name}`
+                : saveSummary.isEdit ? 'Uppdaterat!' : 'Bra jobbat!'}
+            </div>
+            <div style={{
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: 36,
+              color: COLORS.yellow,
+              lineHeight: 1.1,
+              marginBottom: 8,
+              animation: 'savePointsPop 0.5s ease-out 0.4s both',
+            }}>
+              +{saveSummary.points}p
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: saveSummary.newRecord ? 12 : 4, animation: 'saveFlyIn 0.4s ease-out 0.5s both' }}>
+              {saveSummary.touch > 0 && (
+                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
+                  🦶 {saveSummary.touch} touch
+                </span>
+              )}
+              {saveSummary.mins > 0 && (
+                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
+                  ⏱ {saveSummary.mins} min
+                </span>
+              )}
+            </div>
+            {saveSummary.newRecord && (
+              <div style={{
+                color: COLORS.yellow,
+                fontSize: 14,
+                fontWeight: 700,
+                animation: 'savePointsPop 0.5s ease-out 0.6s both',
+              }}>
+                🏆 Nytt personligt rekord!
+              </div>
+            )}
+            <div style={{
+              color: 'rgba(255,255,255,0.3)',
+              fontSize: 11,
+              marginTop: 14,
+            }}>
+              Tryck för att stänga
+            </div>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={() => setScreen('home')}
         style={{
