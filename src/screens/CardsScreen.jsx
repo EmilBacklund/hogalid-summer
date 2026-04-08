@@ -11,10 +11,6 @@ import { useUser } from '../context/UserContext';
 import { ArrowLeft } from 'lucide-react';
 
 // ── Helpers ──
-function getCollectedCards(unlockedItems) {
-  const ids = new Set(unlockedItems || []);
-  return ALL_CARDS.filter(c => ids.has(c.id));
-}
 
 function getCollectedPlayerCount(unlockedItems) {
   const ids = new Set(unlockedItems || []);
@@ -24,6 +20,19 @@ function getCollectedPlayerCount(unlockedItems) {
 function getCollectedLegendCount(unlockedItems) {
   const ids = new Set(unlockedItems || []);
   return LEGEND_CARDS.filter(c => ids.has(c.id)).length;
+}
+
+// Compute total points spent on cards (deterministic from unlockedItems)
+function getSpentOnCards(unlockedItems) {
+  const ids = new Set(unlockedItems || []);
+  let spent = 0;
+  for (const c of PLAYER_CARDS) {
+    if (ids.has(c.id)) spent += CARD_PACK_COST;
+  }
+  for (const c of LEGEND_CARDS) {
+    if (ids.has(c.id)) spent += LEGEND_PACK_COST;
+  }
+  return spent;
 }
 
 function getNextRandomCard(unlockedItems) {
@@ -44,7 +53,6 @@ function getNextRandomCard(unlockedItems) {
 
 // ── Pack Opening Overlay ──
 function PackOpeningOverlay({ card, phase, onFinish }) {
-  // phase: 'shake' -> 'flip' -> 'reveal'
   return (
     <div
       onClick={phase === 'reveal' ? onFinish : undefined}
@@ -99,7 +107,6 @@ function PackOpeningOverlay({ card, phase, onFinish }) {
         }
       `}</style>
 
-      {/* Sparkles during reveal */}
       {phase === 'reveal' && (
         <>
           {Array.from({ length: 8 }).map((_, i) => {
@@ -193,34 +200,86 @@ function CardDetailModal({ card, onClose }) {
         justifyContent: 'center',
         padding: 24,
         cursor: 'pointer',
+        overflowY: 'auto',
       }}
     >
-      <CardFront card={card} size={1.8} />
-      <div style={{
-        fontFamily: "'Fredoka One', cursive",
-        fontSize: 22,
-        color: card.type === 'legend' ? '#ffd700' : '#fff',
-        marginTop: 20,
-        textAlign: 'center',
-      }}>
-        {card.name}
-      </div>
-      <div style={{
-        color: card.type === 'legend' ? '#ffd700' : '#f0dc00',
-        fontSize: 12,
-        fontWeight: 700,
-        letterSpacing: 1.5,
-        textTransform: 'uppercase',
-        marginTop: 4,
-      }}>
-        #{card.number} {card.type === 'legend' ? '— Legend' : '— Damlandslaget'}
-      </div>
-      <div style={{
-        color: 'rgba(255,255,255,0.35)',
-        fontSize: 12,
-        marginTop: 16,
-      }}>
-        Tryck var som helst
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: 340 }}>
+        <CardFront card={card} size={1.6} />
+        <div style={{
+          fontFamily: "'Fredoka One', cursive",
+          fontSize: 22,
+          color: card.type === 'legend' ? '#ffd700' : '#fff',
+          marginTop: 16,
+          textAlign: 'center',
+        }}>
+          {card.name}
+        </div>
+
+        {/* Position & club */}
+        {card.position && (
+          <div style={{
+            color: '#f0dc00',
+            fontSize: 13,
+            fontWeight: 700,
+            marginTop: 4,
+            textAlign: 'center',
+          }}>
+            {card.position}
+          </div>
+        )}
+        {card.club && (
+          <div style={{
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 12,
+            marginTop: 2,
+            textAlign: 'center',
+          }}>
+            {card.club}
+          </div>
+        )}
+        {card.youthClub && (
+          <div style={{
+            color: 'rgba(255,255,255,0.3)',
+            fontSize: 11,
+            marginTop: 1,
+            textAlign: 'center',
+          }}>
+            Moderklubb: {card.youthClub}
+          </div>
+        )}
+
+        {/* Blurb */}
+        {card.blurb && (
+          <div style={{
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: 13,
+            lineHeight: 1.5,
+            marginTop: 12,
+            textAlign: 'center',
+            padding: '0 8px',
+            fontWeight: 600,
+          }}>
+            {card.blurb}
+          </div>
+        )}
+
+        <div style={{
+          color: card.type === 'legend' ? '#ffd700' : '#f0dc00',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          marginTop: 12,
+        }}>
+          #{card.number} {card.type === 'legend' ? '— Legend' : '— Damlandslaget 2026'}
+        </div>
+        <div style={{
+          color: 'rgba(255,255,255,0.3)',
+          fontSize: 11,
+          marginTop: 14,
+        }}>
+          Tryck var som helst
+        </div>
       </div>
     </div>
   );
@@ -229,7 +288,7 @@ function CardDetailModal({ card, onClose }) {
 // ── Main Screen ──
 export function CardsScreen() {
   const { user, stats, setScreen, handleUnlock } = useUser();
-  const [openingPhase, setOpeningPhase] = useState(null); // null | 'shake' | 'flip' | 'reveal'
+  const [openingPhase, setOpeningPhase] = useState(null);
   const [revealCard, setRevealCard] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [viewCard, setViewCard] = useState(null);
@@ -243,8 +302,12 @@ export function CardsScreen() {
 
   const collectedIds = useMemo(() => new Set(unlockedItems), [unlockedItems]);
 
+  // Economy: coins = totalPoints - spent on cards
+  const spentOnCards = getSpentOnCards(unlockedItems);
+  const coins = stats.totalPoints - spentOnCards;
+
   const cost = allPlayersCollected ? LEGEND_PACK_COST : CARD_PACK_COST;
-  const canAfford = stats.totalPoints >= cost;
+  const canAfford = coins >= cost;
   const nextCard = useMemo(() => getNextRandomCard(unlockedItems), [unlockedItems]);
   const canOpen = canAfford && nextCard && !openingPhase;
 
@@ -255,12 +318,10 @@ export function CardsScreen() {
     setRevealCard(card);
     setOpeningPhase('shake');
 
-    // Shake -> flip -> reveal sequence
     setTimeout(() => setOpeningPhase('flip'), 1200);
     setTimeout(async () => {
       setOpeningPhase('reveal');
       setShowConfetti(true);
-      // Actually unlock the card
       await handleUnlock(card.id, card.type === 'legend' ? LEGEND_PACK_COST : CARD_PACK_COST);
       setTimeout(() => setShowConfetti(false), 3000);
     }, 2000);
@@ -271,17 +332,9 @@ export function CardsScreen() {
     setRevealCard(null);
   }
 
-  // Collected player cards, sorted by number
-  const collectedPlayerCards = PLAYER_CARDS.filter(c => collectedIds.has(c.id));
-  const collectedLegendCards = LEGEND_CARDS.filter(c => collectedIds.has(c.id));
-
   return (
     <div style={{ padding: '20px 16px', fontFamily: "'Nunito', sans-serif" }}>
       <style>{`
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
         @keyframes gentlePulse {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.03); }
@@ -343,9 +396,47 @@ export function CardsScreen() {
           letterSpacing: 1,
           textTransform: 'uppercase',
         }}>
-          Svenska damlandslaget
+          Damlandslaget 2026 — {TOTAL_PLAYER_CARDS} spelare
         </div>
       </div>
+
+      {/* Coin balance */}
+      <Card style={{
+        marginBottom: 12,
+        padding: '14px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 24 }}>🪙</span>
+          <div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Ditt saldo
+            </div>
+            <div style={{
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: 22,
+              color: coins >= cost ? COLORS.lime : 'rgba(255,255,255,0.5)',
+              lineHeight: 1.1,
+            }}>
+              {coins} mynt
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+            Nästa kort kostar
+          </div>
+          <div style={{
+            color: coins >= cost ? COLORS.yellow : 'rgba(255,255,255,0.4)',
+            fontWeight: 700,
+            fontSize: 14,
+          }}>
+            {allCollected ? '—' : `${cost} mynt`}
+          </div>
+        </div>
+      </Card>
 
       {/* Collection progress */}
       <Card style={{ marginBottom: 16, padding: '16px 18px' }}>
@@ -353,7 +444,7 @@ export function CardsScreen() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 10,
+          marginBottom: 12,
         }}>
           <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>
             Din samling
@@ -375,7 +466,7 @@ export function CardsScreen() {
             marginBottom: 4,
           }}>
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600 }}>
-              Spelare
+              ⚽ Spelare ({TOTAL_PLAYER_CARDS} st)
             </span>
             <span style={{
               color: allPlayersCollected ? COLORS.lime : 'rgba(255,255,255,0.5)',
@@ -386,7 +477,7 @@ export function CardsScreen() {
             </span>
           </div>
           <ProgressBar
-            value={playerCount / TOTAL_PLAYER_CARDS}
+            value={(playerCount / TOTAL_PLAYER_CARDS) * 100}
             color={COLORS.lime}
             height={8}
           />
@@ -400,7 +491,7 @@ export function CardsScreen() {
             marginBottom: 4,
           }}>
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600 }}>
-              Legendkort
+              👑 Legendkort ({TOTAL_LEGEND_CARDS} st)
             </span>
             <span style={{
               color: allPlayersCollected
@@ -415,7 +506,7 @@ export function CardsScreen() {
             </span>
           </div>
           <ProgressBar
-            value={allPlayersCollected ? legendCount / TOTAL_LEGEND_CARDS : 0}
+            value={allPlayersCollected ? (legendCount / TOTAL_LEGEND_CARDS) * 100 : 0}
             color={allPlayersCollected ? '#ffd700' : 'rgba(255,255,255,0.2)'}
             height={8}
           />
@@ -448,7 +539,7 @@ export function CardsScreen() {
             color: '#fff',
             marginBottom: 4,
           }}>
-            {allPlayersCollected ? 'Öppna legendkort' : 'Öppna nytt kort'}
+            {allPlayersCollected ? 'Öppna legendkort' : 'Öppna nytt spelarkort'}
           </div>
           <div style={{
             color: 'rgba(255,255,255,0.5)',
@@ -456,8 +547,8 @@ export function CardsScreen() {
             marginBottom: 14,
           }}>
             {allPlayersCollected
-              ? `${TOTAL_LEGEND_CARDS - legendCount} legendkort kvar att samla`
-              : `${TOTAL_PLAYER_CARDS - playerCount} spelarkort kvar att samla`}
+              ? `${TOTAL_LEGEND_CARDS - legendCount} av ${TOTAL_LEGEND_CARDS} legendkort kvar`
+              : `${TOTAL_PLAYER_CARDS - playerCount} av ${TOTAL_PLAYER_CARDS} spelare i Damlandslaget 2026 kvar`}
           </div>
 
           <button
@@ -479,9 +570,19 @@ export function CardsScreen() {
             }}
           >
             {canOpen
-              ? `Öppna kort — ${cost}p`
-              : `${cost}p krävs (du har ${stats.totalPoints}p)`}
+              ? `🪙 Öppna kort — ${cost} mynt`
+              : `${cost} mynt krävs (du har ${coins})`}
           </button>
+
+          {!canOpen && !allCollected && (
+            <div style={{
+              color: 'rgba(255,255,255,0.3)',
+              fontSize: 11,
+              marginTop: 10,
+            }}>
+              Träna och logga för att tjäna fler mynt!
+            </div>
+          )}
         </Card>
       ) : (
         <Card style={{
@@ -504,7 +605,7 @@ export function CardsScreen() {
             color: 'rgba(255,255,255,0.5)',
             fontSize: 13,
           }}>
-            Du har samlat alla {TOTAL_PLAYER_CARDS + TOTAL_LEGEND_CARDS} kort!
+            Du har samlat alla {TOTAL_PLAYER_CARDS} spelare + {TOTAL_LEGEND_CARDS} legender!
           </div>
         </Card>
       )}
@@ -515,19 +616,17 @@ export function CardsScreen() {
           fontFamily: "'Fredoka One', cursive",
           fontSize: 18,
           color: '#fff',
-          marginBottom: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
+          marginBottom: 4,
         }}>
-          <span>Spelarkort</span>
-          <span style={{
-            color: 'rgba(255,255,255,0.4)',
-            fontSize: 14,
-            fontWeight: 400,
-          }}>
-            {playerCount}/{TOTAL_PLAYER_CARDS}
-          </span>
+          Damlandslaget 2026
+        </div>
+        <div style={{
+          color: 'rgba(255,255,255,0.4)',
+          fontSize: 12,
+          fontWeight: 600,
+          marginBottom: 12,
+        }}>
+          {playerCount} av {TOTAL_PLAYER_CARDS} spelare samlade
         </div>
         <div style={{
           display: 'grid',
@@ -562,19 +661,19 @@ export function CardsScreen() {
           fontFamily: "'Fredoka One', cursive",
           fontSize: 18,
           color: allPlayersCollected ? '#ffd700' : 'rgba(255,255,255,0.35)',
-          marginBottom: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
+          marginBottom: 4,
         }}>
-          <span>{allPlayersCollected ? '👑' : '🔒'} Legendkort</span>
-          <span style={{
-            color: allPlayersCollected ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.25)',
-            fontSize: 14,
-            fontWeight: 400,
-          }}>
-            {allPlayersCollected ? `${legendCount}/${TOTAL_LEGEND_CARDS}` : ''}
-          </span>
+          {allPlayersCollected ? '👑' : '🔒'} Legendkort
+        </div>
+        <div style={{
+          color: allPlayersCollected ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.25)',
+          fontSize: 12,
+          fontWeight: 600,
+          marginBottom: 12,
+        }}>
+          {allPlayersCollected
+            ? `${legendCount} av ${TOTAL_LEGEND_CARDS} legender samlade`
+            : `Samla alla ${TOTAL_PLAYER_CARDS} spelare för att låsa upp`}
         </div>
 
         {!allPlayersCollected ? (
@@ -589,7 +688,7 @@ export function CardsScreen() {
               fontSize: 13,
               fontWeight: 600,
             }}>
-              Samla alla {TOTAL_PLAYER_CARDS} spelarkort för att låsa upp legendkorten
+              Samla alla {TOTAL_PLAYER_CARDS} spelare i Damlandslaget 2026 för att låsa upp legendkorten
             </div>
             <div style={{
               color: 'rgba(255,255,255,0.3)',

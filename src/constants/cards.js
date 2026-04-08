@@ -1,5 +1,7 @@
-// Collector cards — Swedish Women's National Team
-// Player names are auto-generated from filenames in /public/spelarbilder/
+// Collector cards — Swedish Women's National Team 2026
+// Enriched with profile data from playerCards.js
+
+import { PLAYER_CARD_PROFILES } from './playerCards';
 
 const PLAYER_FILES = [
   'Amanda_Ilestedt.jpg',
@@ -27,17 +29,26 @@ const PLAYER_FILES = [
   'Zecira_Musovic.jpg',
 ];
 
-function nameFromFile(filename) {
-  return filename.replace('.jpg', '').replace(/_/g, ' ');
+// Build profile lookup by imageFile
+const profileByFile = {};
+for (const p of PLAYER_CARD_PROFILES) {
+  profileByFile[p.imageFile] = p;
 }
 
-export const PLAYER_CARDS = PLAYER_FILES.map((file, i) => ({
-  id: `card_${file.replace('.jpg', '').toLowerCase()}`,
-  name: nameFromFile(file),
-  image: `/spelarbilder/${file}`,
-  type: 'player',
-  number: i + 1,
-}));
+export const PLAYER_CARDS = PLAYER_FILES.map((file, i) => {
+  const profile = profileByFile[file] || {};
+  return {
+    id: `card_${file.replace('.jpg', '').toLowerCase()}`,
+    name: profile.name || file.replace('.jpg', '').replace(/_/g, ' '),
+    image: `/spelarbilder/${file}`,
+    type: 'player',
+    number: i + 1,
+    position: profile.position || null,
+    club: profile.currentClub || null,
+    youthClub: profile.youthClub || null,
+    blurb: profile.blurb || null,
+  };
+});
 
 export const LEGEND_CARDS = [
   { id: 'legend_pia_sundhage',     name: 'Pia Sundhage',      type: 'legend', number: 24, emoji: '👑' },
@@ -49,9 +60,9 @@ export const LEGEND_CARDS = [
 
 export const ALL_CARDS = [...PLAYER_CARDS, ...LEGEND_CARDS];
 
-// Cost per card opening (in points).
+// Cost per card opening (in "coins" = points spent on cards).
 // ~1000 points/week earned by active player. 23 cards over 10 weeks =
-// ~2.3 cards/week. 350p × 2.3 ≈ 805p/week, leaving ~200p/week for avatars.
+// ~2.3 cards/week. 350 × 2.3 ≈ 805 coins/week, leaving ~200p/week for avatars.
 export const CARD_PACK_COST = 350;
 
 // Legend cards cost more — they're a bonus goal

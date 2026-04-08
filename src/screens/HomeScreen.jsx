@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { COLORS, EXERCISES, PLAYER_CARDS, LEGEND_CARDS, TOTAL_PLAYER_CARDS, TOTAL_LEGEND_CARDS, CARD_PACK_COST } from '../constants';
+import { COLORS, EXERCISES, PLAYER_CARDS, LEGEND_CARDS, TOTAL_PLAYER_CARDS, TOTAL_LEGEND_CARDS, CARD_PACK_COST, LEGEND_PACK_COST } from '../constants';
 import {
   getLevel,
   getNextLevel,
@@ -1018,23 +1018,48 @@ export function HomeScreen() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '18px 12px',
+            padding: '14px 12px',
+            gap: 6,
           }}
         >
-          <div style={{ fontSize: 42, lineHeight: 1, marginBottom: 8 }}>⭐</div>
-          <div
-            style={{
-              fontFamily: "'Fredoka One', cursive",
-              fontSize: 34,
-              color: COLORS.accent,
-              lineHeight: 1,
-              marginBottom: 8,
-            }}
-          >
-            {stats.totalPoints}
+          <div>
+            <div style={{ fontSize: 28, lineHeight: 1, marginBottom: 4 }}>⭐</div>
+            <div
+              style={{
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: 28,
+                color: COLORS.accent,
+                lineHeight: 1,
+              }}
+            >
+              {stats.totalPoints}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700 }}>
+              poäng
+            </div>
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 700 }}>
-            totala poäng
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', width: '80%' }} />
+          <div>
+            <div style={{ fontSize: 20, lineHeight: 1, marginBottom: 3 }}>🪙</div>
+            <div
+              style={{
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: 22,
+                color: '#f0dc00',
+                lineHeight: 1,
+              }}
+            >
+              {(() => {
+                const ids = new Set(user.unlockedItems || []);
+                let spent = 0;
+                for (const c of PLAYER_CARDS) { if (ids.has(c.id)) spent += CARD_PACK_COST; }
+                for (const c of LEGEND_CARDS) { if (ids.has(c.id)) spent += LEGEND_PACK_COST; }
+                return stats.totalPoints - spent;
+              })()}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700 }}>
+              mynt
+            </div>
           </div>
         </Card>
       </div>
@@ -1105,7 +1130,12 @@ export function HomeScreen() {
         const lCount = LEGEND_CARDS.filter(c => ids.has(c.id)).length;
         const total = pCount + lCount;
         const max = TOTAL_PLAYER_CARDS + TOTAL_LEGEND_CARDS;
-        const canBuy = stats.totalPoints >= CARD_PACK_COST;
+        let spent = 0;
+        for (const c of PLAYER_CARDS) { if (ids.has(c.id)) spent += CARD_PACK_COST; }
+        for (const c of LEGEND_CARDS) { if (ids.has(c.id)) spent += LEGEND_PACK_COST; }
+        const mynt = stats.totalPoints - spent;
+        const nextCost = pCount >= TOTAL_PLAYER_CARDS ? LEGEND_PACK_COST : CARD_PACK_COST;
+        const canBuy = mynt >= nextCost;
         return (
           <button
             onClick={() => setScreen('cards')}
@@ -1167,7 +1197,7 @@ export function HomeScreen() {
               gap: 3,
               flexShrink: 0,
             }}>
-              {total < max && (canBuy ? 'Öppna kort!' : `${CARD_PACK_COST}p`)}
+              {total < max && (canBuy ? '🪙 Öppna kort!' : `🪙 ${nextCost}`)}
               <ArrowRight size={14} />
             </div>
           </button>

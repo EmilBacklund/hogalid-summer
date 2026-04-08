@@ -273,7 +273,7 @@ export function CardFront({ card, size = 1, style = {}, onClick }) {
             marginTop: 2 * size,
             opacity: 0.7,
           }}>
-            Damlandslaget
+            {card.position || 'Damlandslaget'}
           </div>
         )}
       </div>
