@@ -1,6 +1,6 @@
 import { COLORS } from './constants';
 import { UserProvider, useUser } from './context/UserContext';
-import { TopBar, LoadingSpinner, TopLoadingBar, BuddyCelebration } from './components/common';
+import { TopBar, LoadingSpinner, TopLoadingBar, BuddyCelebration, LevelUpModal } from './components/common';
 import {
   LoginScreen,
   HomeScreen,
@@ -14,7 +14,8 @@ import {
 
 function AppContent() {
   const { user, loading, autoLoading, screen, setScreen, handleLogout,
-          newlyCompletedChallenge, clearNewlyCompletedChallenge } = useUser();
+          newlyCompletedChallenge, clearNewlyCompletedChallenge,
+          levelUpData, clearLevelUp } = useUser();
 
   const bgStyle = {
     minHeight: "100vh",
@@ -69,6 +70,10 @@ function AppContent() {
           user={user}
           onClose={clearNewlyCompletedChallenge}
         />
+      )}
+
+      {levelUpData && (
+        <LevelUpModal level={levelUpData} onClose={clearLevelUp} />
       )}
 
       <TopBar onLogout={handleLogout} onHome={() => setScreen('home')} />

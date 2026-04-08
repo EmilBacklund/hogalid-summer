@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { apiGet, apiPost, apiPut, localToday, computeStats, invalidateUsersCache } from '../utils';
+import { apiGet, apiPost, apiPut, localToday, computeStats, invalidateUsersCache, getLevel } from '../utils';
 import { BINGO } from '../constants';
 
 const UserContext = createContext(null);
@@ -27,7 +27,9 @@ export function UserProvider({ children }) {
   const [buddyChallenges, setBuddyChallenges] = useState([]);
   const [challengeScrollTarget, setChallengeScrollTarget] = useState(null);
   const [newlyCompletedChallenge, setNewlyCompletedChallenge] = useState(null);
+  const [levelUpData, setLevelUpData] = useState(null);
   const seenCompletedIds = useRef(null);
+  const prevLevelName = useRef(null);
 
   // Detect newly completed buddy challenges (don't fire on first load)
   useEffect(() => {
@@ -92,6 +94,20 @@ export function UserProvider({ children }) {
     if (!user || user.isAdmin) return null;
     return computeStats(user);
   }, [user]);
+
+  // Detect level-up (skip first load)
+  useEffect(() => {
+    if (!stats) return;
+    const currentLevel = getLevel(stats.totalPoints);
+    if (prevLevelName.current === null) {
+      prevLevelName.current = currentLevel.name;
+      return;
+    }
+    if (currentLevel.name !== prevLevelName.current) {
+      setLevelUpData(currentLevel);
+      prevLevelName.current = currentLevel.name;
+    }
+  }, [stats]);
 
   async function fetchBuddyChallenges(alias) {
     try {
@@ -282,6 +298,8 @@ export function UserProvider({ children }) {
     setChallengeScrollTarget,
     newlyCompletedChallenge,
     clearNewlyCompletedChallenge: () => setNewlyCompletedChallenge(null),
+    levelUpData,
+    clearLevelUp: () => setLevelUpData(null),
   };
 
   return (
