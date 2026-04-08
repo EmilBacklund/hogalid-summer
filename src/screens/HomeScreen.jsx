@@ -353,6 +353,11 @@ export function HomeScreen() {
   const pendingBuddies = buddyChallenges.filter(c => c.status === 'pending' && c.toAlias === user.alias);
   const activeBuddies = buddyChallenges.filter(c => c.status === 'active');
 
+  const playersLoggedToday = useMemo(() => {
+    if (!allUsers.length) return 0;
+    return allUsers.filter(u => (u.logs || []).some(l => l.date === todayStr && !l.bingo && !l.dailyChallenge)).length;
+  }, [allUsers, todayStr]);
+
   const nudge = useMemo(() => {
     if (!hasLogToday) return { icon: '⚽', text: 'Dags att träna! Logga din dag', action: 'log', color: COLORS.lime };
     if (!dailyDoneToday) return { icon: '📅', text: 'Dagens utmaning väntar!', action: 'daily', color: COLORS.yellow };
@@ -494,15 +499,26 @@ export function HomeScreen() {
         }}
       >
         <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>{nudge.icon}</span>
-        <span style={{
-          color: '#fff',
-          fontSize: 14,
-          fontWeight: 700,
-          fontFamily: "'Nunito', sans-serif",
-          flex: 1,
-        }}>
-          {nudge.text}
-        </span>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 700,
+            fontFamily: "'Nunito', sans-serif",
+          }}>
+            {nudge.text}
+          </div>
+          {!loadingTeam && allUsers.length > 1 && (
+            <div style={{
+              color: 'rgba(255,255,255,0.45)',
+              fontSize: 11,
+              fontWeight: 600,
+              marginTop: 3,
+            }}>
+              {playersLoggedToday} av {allUsers.length} spelare har tränat idag
+            </div>
+          )}
+        </div>
         {nudge.action && (
           <ArrowRight size={18} style={{ color: nudge.color, flexShrink: 0 }} />
         )}
