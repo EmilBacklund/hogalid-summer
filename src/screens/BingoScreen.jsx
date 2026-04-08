@@ -21,6 +21,26 @@ export function BingoScreen() {
   const summerCount   = done.filter(id => BINGO.find(b => b.id === id)?.cat === "☀️").length;
   const totalPoints   = done.reduce((s, id) => s + (BINGO.find(b => b.id === id)?.points || 0), 0);
 
+  // Row/column completion (10 cols × 5 rows)
+  const doneSet = new Set(done);
+  const completedRows = [];
+  const completedCols = [];
+  for (let row = 0; row < 5; row++) {
+    const allDone = Array.from({ length: 10 }, (_, col) => BINGO[row * 10 + col])
+      .every(b => b && doneSet.has(b.id));
+    if (allDone) completedRows.push(row);
+  }
+  for (let col = 0; col < 10; col++) {
+    const allDone = Array.from({ length: 5 }, (_, row) => BINGO[row * 10 + col])
+      .every(b => b && doneSet.has(b.id));
+    if (allDone) completedCols.push(col);
+  }
+  const ROW_BONUS = 30;
+  const COL_BONUS = 50;
+  const lineBonus = completedRows.length * ROW_BONUS + completedCols.length * COL_BONUS;
+  const completedRowSet = new Set(completedRows);
+  const completedColSet = new Set(completedCols);
+
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -112,7 +132,7 @@ export function BingoScreen() {
           <ProgressBar value={Math.round((done.length / 50) * 100)} color={COLORS.lime} height={10} />
         </div>
         <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 5 }}>
-          +{totalPoints} poäng tjänade från bingo
+          +{totalPoints} poäng från bingo{lineBonus > 0 && <span style={{ color: COLORS.lime }}> + {lineBonus}p radbonus!</span>}
         </div>
       </Card>
 
@@ -121,13 +141,16 @@ export function BingoScreen() {
         display: 'grid',
         gridTemplateColumns: 'repeat(10, 1fr)',
         gap: 3,
-        marginBottom: 14,
+        marginBottom: 6,
         padding: '0 2px',
       }}>
         {BINGO.map((b, i) => {
           const isDone = done.includes(b.id);
           const isJust = justDone === b.id;
           const isFootball = b.cat === '⚽';
+          const row = Math.floor(i / 10);
+          const col = i % 10;
+          const inCompletedLine = completedRowSet.has(row) || completedColSet.has(col);
           return (
             <div
               key={b.id}
@@ -143,13 +166,18 @@ export function BingoScreen() {
                   : '1px solid rgba(255,255,255,0.08)',
                 transition: 'all 0.3s',
                 transform: isJust ? 'scale(1.3)' : 'scale(1)',
-                boxShadow: isJust ? `0 0 8px ${COLORS.lime}` : 'none',
+                boxShadow: isJust
+                  ? `0 0 8px ${COLORS.lime}`
+                  : inCompletedLine && isDone
+                    ? '0 0 6px rgba(255,255,255,0.3)'
+                    : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 7,
                 color: isDone ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.15)',
                 fontWeight: 700,
+                opacity: inCompletedLine && isDone ? 1 : undefined,
               }}
             >
               {i + 1}
@@ -157,6 +185,43 @@ export function BingoScreen() {
           );
         })}
       </div>
+      {/* Line bonus indicators */}
+      {(completedRows.length > 0 || completedCols.length > 0) && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 6,
+          marginBottom: 10,
+          justifyContent: 'center',
+        }}>
+          {completedRows.map(row => (
+            <span key={`row-${row}`} style={{
+              background: 'rgba(168,230,61,0.15)',
+              border: `1px solid ${COLORS.lime}55`,
+              borderRadius: 8,
+              padding: '3px 8px',
+              fontSize: 11,
+              fontWeight: 700,
+              color: COLORS.lime,
+            }}>
+              Rad {row + 1} ✓ +{ROW_BONUS}p
+            </span>
+          ))}
+          {completedCols.map(col => (
+            <span key={`col-${col}`} style={{
+              background: 'rgba(251,191,36,0.15)',
+              border: '1px solid rgba(251,191,36,0.4)',
+              borderRadius: 8,
+              padding: '3px 8px',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#fbbf24',
+            }}>
+              Kolumn {col + 1} ✓ +{COL_BONUS}p
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Bingo milestone badges */}
       {[5, 10, 20, 35, 50].map(milestone => {
