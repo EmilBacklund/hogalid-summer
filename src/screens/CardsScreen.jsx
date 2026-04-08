@@ -52,7 +52,11 @@ function getNextRandomCard(unlockedItems) {
 }
 
 // ── Pack Opening Overlay ──
+// Uses a real 3D flip: both card faces exist in the same container,
+// and backface-visibility hides whichever side faces away.
 function PackOpeningOverlay({ card, phase, onFinish }) {
+  const isFlipOrReveal = phase === 'flip' || phase === 'reveal';
+
   return (
     <div
       onClick={phase === 'reveal' ? onFinish : undefined}
@@ -82,20 +86,13 @@ function PackOpeningOverlay({ card, phase, onFinish }) {
           80% { transform: rotate(3deg) scale(1.04); }
           90% { transform: rotate(-1deg) scale(1.02); }
         }
-        @keyframes cardFlip {
+        @keyframes cardFlipToFront {
           0% { transform: perspective(800px) rotateY(0deg) scale(1); }
-          40% { transform: perspective(800px) rotateY(90deg) scale(1.1); }
-          60% { transform: perspective(800px) rotateY(90deg) scale(1.1); }
-          100% { transform: perspective(800px) rotateY(0deg) scale(1.15); }
-        }
-        @keyframes cardRevealGlow {
-          0% { box-shadow: 0 0 20px rgba(240,220,0,0.2); }
-          50% { box-shadow: 0 0 60px rgba(240,220,0,0.6), 0 0 120px rgba(240,220,0,0.3); }
-          100% { box-shadow: 0 0 30px rgba(240,220,0,0.3); }
+          100% { transform: perspective(800px) rotateY(180deg) scale(1.15); }
         }
         @keyframes revealPulse {
-          0%, 100% { transform: scale(1.15); }
-          50% { transform: scale(1.18); }
+          0%, 100% { transform: perspective(800px) rotateY(180deg) scale(1.15); }
+          50% { transform: perspective(800px) rotateY(180deg) scale(1.18); }
         }
         @keyframes fadeInUp {
           0% { opacity: 0; transform: translateY(20px); }
@@ -132,20 +129,39 @@ function PackOpeningOverlay({ card, phase, onFinish }) {
         </>
       )}
 
-      <div style={{
-        animation: phase === 'shake'
-          ? 'cardShake 1.2s ease-in-out'
-          : phase === 'flip'
-            ? 'cardFlip 0.8s ease-in-out forwards'
-            : 'revealPulse 2s ease-in-out infinite',
-      }}>
-        {phase === 'reveal' ? (
-          <div style={{ animation: 'cardRevealGlow 1.5s ease-in-out' }}>
+      {/* 3D flip container — perspective on outer, transformStyle on inner */}
+      <div style={{ perspective: 800 }}>
+        <div style={{
+          transformStyle: 'preserve-3d',
+          animation: phase === 'shake'
+            ? 'cardShake 1.2s ease-in-out'
+            : phase === 'flip'
+              ? 'cardFlipToFront 0.8s ease-out forwards'
+              : 'revealPulse 2s ease-in-out infinite',
+          position: 'relative',
+          width: 180 * 1.6,
+          height: 231 * 1.6,
+        }}>
+          {/* Back face (visible at 0°) */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+          }}>
+            <CardBack size={1.6} />
+          </div>
+          {/* Front face (pre-rotated 180°, visible when container flips to 180°) */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+          }}>
             <CardFront card={card} size={1.6} />
           </div>
-        ) : (
-          <CardBack size={1.6} />
-        )}
+        </div>
       </div>
 
       {phase === 'reveal' && (
@@ -271,7 +287,7 @@ function CardDetailModal({ card, onClose }) {
           textTransform: 'uppercase',
           marginTop: 12,
         }}>
-          #{card.number} {card.type === 'legend' ? '— Legend' : '— Damlandslaget 2026'}
+          Kort #{card.number} {card.type === 'legend' ? '— Legend' : '— Damlandslaget 2026'}
         </div>
         <div style={{
           color: 'rgba(255,255,255,0.3)',
@@ -318,13 +334,14 @@ export function CardsScreen() {
     setRevealCard(card);
     setOpeningPhase('shake');
 
+    // Shake 1.2s → flip 0.8s → reveal with confetti
     setTimeout(() => setOpeningPhase('flip'), 1200);
     setTimeout(async () => {
       setOpeningPhase('reveal');
       setShowConfetti(true);
       await handleUnlock(card.id, card.type === 'legend' ? LEGEND_PACK_COST : CARD_PACK_COST);
       setTimeout(() => setShowConfetti(false), 3000);
-    }, 2000);
+    }, 2100);
   }, [canOpen, unlockedItems, handleUnlock]);
 
   function handleFinishReveal() {
