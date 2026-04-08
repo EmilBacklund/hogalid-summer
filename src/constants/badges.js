@@ -11,4 +11,5 @@ export const BADGES = [
   { id: "bingo20",      label: "Halvvägs till legenden!", icon: "🌈", condition: (s) => (s.bingoCount || 0) >= 20 },
   { id: "bingo35",      label: "Sommaratlet!",         icon: "🏆", condition: (s) => (s.bingoCount || 0) >= 35 },
   { id: "bingo50",      label: "SOMMARLEGEND!",        icon: "👑", condition: (s) => (s.bingoCount || 0) >= 50 },
+  { id: "bingoline",    label: "Bingolinje!",          icon: "🎯", condition: (s) => (s.bingoLines || 0) >= 1 },
 ];

@@ -589,6 +589,7 @@ function getBadgeDescription(id) {
     bingo20: 'Klara 20 bingoutmaningar',
     bingo35: 'Klara 35 bingoutmaningar',
     bingo50: 'Klara alla 50 bingoutmaningar',
+    bingoline: 'Klara en hel rad eller kolumn i bingo',
   };
   return descriptions[id] || '';
 }

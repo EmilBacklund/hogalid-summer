@@ -86,6 +86,19 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
       });
     });
 
+    // Bingo line bonuses — title starts with "🎯"
+    (u.logs || []).filter(l => l.title && l.title.startsWith('🎯')).forEach(l => {
+      events.push({
+        date: l.date,
+        createdAt: l.createdAt || '',
+        type: 'bingoline',
+        alias: u.alias,
+        isMe,
+        text: `klarade en bingorad! ${l.title}`,
+        icon: '🎯',
+      });
+    });
+
     // Badge earned — check earned badges and approximate with join/log dates
     const stats = computeStats(u);
     const earned = BADGES.filter(b => b.condition(stats));

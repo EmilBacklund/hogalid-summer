@@ -1,4 +1,4 @@
-import { EXERCISES } from '../constants';
+import { EXERCISES, BINGO } from '../constants';
 import { localToday } from './date';
 
 export function computeStats(user) {
@@ -52,6 +52,16 @@ export function computeStats(user) {
   }
   const bingoCount = (user.bingo || []).length;
 
+  // Bingo line completions (10 cols × 5 rows)
+  const bingoDoneSet = new Set(user.bingo || []);
+  let bingoLines = 0;
+  for (let row = 0; row < 5; row++) {
+    if (Array.from({ length: 10 }, (_, c) => BINGO[row * 10 + c]).every(b => b && bingoDoneSet.has(b.id))) bingoLines++;
+  }
+  for (let col = 0; col < 10; col++) {
+    if (Array.from({ length: 5 }, (_, r) => BINGO[r * 10 + col]).every(b => b && bingoDoneSet.has(b.id))) bingoLines++;
+  }
+
   // Summer activity totals
   const totalIceCream = logs.reduce((s, l) => s + (l.iceCream || 0), 0);
   const totalSwim     = logs.reduce((s, l) => s + (l.swim || 0), 0);
@@ -71,5 +81,5 @@ export function computeStats(user) {
   const swimStreak     = calcSummerStreak('swim');
   const readStreak     = calcSummerStreak('pages');
 
-  return { totalPoints, totalMinutes, totalLogs, totalTouch, exerciseCounts, exerciseHighscores, streak, maxStreak, bingoCount, totalIceCream, totalSwim, totalPages, iceCreamStreak, swimStreak, readStreak };
+  return { totalPoints, totalMinutes, totalLogs, totalTouch, exerciseCounts, exerciseHighscores, streak, maxStreak, bingoCount, bingoLines, totalIceCream, totalSwim, totalPages, iceCreamStreak, swimStreak, readStreak };
 }
