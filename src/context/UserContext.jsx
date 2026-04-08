@@ -7,7 +7,7 @@ const UserContext = createContext(null);
 /* ── URL ↔ screen mapping ── */
 const SCREEN_PATHS = {
   home: "/", log: "/log", profile: "/profile", bingo: "/bingo",
-  team: "/team", challenges: "/challenges",
+  team: "/team", challenges: "/challenges", cards: "/cards",
 };
 const PATH_SCREENS = {
   ...Object.fromEntries(Object.entries(SCREEN_PATHS).map(([s, p]) => [p, s])),

@@ -1,0 +1,632 @@
+import { useState, useMemo, useCallback } from 'react';
+import { COLORS } from '../constants';
+import {
+  PLAYER_CARDS, LEGEND_CARDS, ALL_CARDS,
+  CARD_PACK_COST, LEGEND_PACK_COST,
+  TOTAL_PLAYER_CARDS, TOTAL_LEGEND_CARDS,
+} from '../constants/cards';
+import { Card, ProgressBar, Confetti } from '../components/common';
+import { CardFront, CardBack } from '../components/common/CollectorCard';
+import { useUser } from '../context/UserContext';
+import { ArrowLeft } from 'lucide-react';
+
+// ── Helpers ──
+function getCollectedCards(unlockedItems) {
+  const ids = new Set(unlockedItems || []);
+  return ALL_CARDS.filter(c => ids.has(c.id));
+}
+
+function getCollectedPlayerCount(unlockedItems) {
+  const ids = new Set(unlockedItems || []);
+  return PLAYER_CARDS.filter(c => ids.has(c.id)).length;
+}
+
+function getCollectedLegendCount(unlockedItems) {
+  const ids = new Set(unlockedItems || []);
+  return LEGEND_CARDS.filter(c => ids.has(c.id)).length;
+}
+
+function getNextRandomCard(unlockedItems) {
+  const ids = new Set(unlockedItems || []);
+  const playerCount = PLAYER_CARDS.filter(c => ids.has(c.id)).length;
+  const allPlayersCollected = playerCount >= TOTAL_PLAYER_CARDS;
+
+  if (!allPlayersCollected) {
+    const remaining = PLAYER_CARDS.filter(c => !ids.has(c.id));
+    if (remaining.length === 0) return null;
+    return remaining[Math.floor(Math.random() * remaining.length)];
+  } else {
+    const remaining = LEGEND_CARDS.filter(c => !ids.has(c.id));
+    if (remaining.length === 0) return null;
+    return remaining[Math.floor(Math.random() * remaining.length)];
+  }
+}
+
+// ── Pack Opening Overlay ──
+function PackOpeningOverlay({ card, phase, onFinish }) {
+  // phase: 'shake' -> 'flip' -> 'reveal'
+  return (
+    <div
+      onClick={phase === 'reveal' ? onFinish : undefined}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1200,
+        background: 'rgba(0, 0, 0, 0.85)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        cursor: phase === 'reveal' ? 'pointer' : 'default',
+      }}
+    >
+      <style>{`
+        @keyframes cardShake {
+          0%, 100% { transform: rotate(0deg) scale(1); }
+          10% { transform: rotate(-3deg) scale(1.02); }
+          20% { transform: rotate(3deg) scale(1.02); }
+          30% { transform: rotate(-4deg) scale(1.04); }
+          40% { transform: rotate(4deg) scale(1.04); }
+          50% { transform: rotate(-5deg) scale(1.06); }
+          60% { transform: rotate(5deg) scale(1.06); }
+          70% { transform: rotate(-3deg) scale(1.04); }
+          80% { transform: rotate(3deg) scale(1.04); }
+          90% { transform: rotate(-1deg) scale(1.02); }
+        }
+        @keyframes cardFlip {
+          0% { transform: perspective(800px) rotateY(0deg) scale(1); }
+          40% { transform: perspective(800px) rotateY(90deg) scale(1.1); }
+          60% { transform: perspective(800px) rotateY(90deg) scale(1.1); }
+          100% { transform: perspective(800px) rotateY(0deg) scale(1.15); }
+        }
+        @keyframes cardRevealGlow {
+          0% { box-shadow: 0 0 20px rgba(240,220,0,0.2); }
+          50% { box-shadow: 0 0 60px rgba(240,220,0,0.6), 0 0 120px rgba(240,220,0,0.3); }
+          100% { box-shadow: 0 0 30px rgba(240,220,0,0.3); }
+        }
+        @keyframes revealPulse {
+          0%, 100% { transform: scale(1.15); }
+          50% { transform: scale(1.18); }
+        }
+        @keyframes fadeInUp {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes sparkle {
+          0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+          50% { opacity: 1; transform: scale(1) rotate(180deg); }
+        }
+      `}</style>
+
+      {/* Sparkles during reveal */}
+      {phase === 'reveal' && (
+        <>
+          {Array.from({ length: 8 }).map((_, i) => {
+            const angle = (i / 8) * 360;
+            const dist = 120 + Math.random() * 40;
+            const x = Math.cos(angle * Math.PI / 180) * dist;
+            const y = Math.sin(angle * Math.PI / 180) * dist;
+            return (
+              <div key={i} style={{
+                position: 'absolute',
+                left: '50%',
+                top: '45%',
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: card.type === 'legend' ? '#ffd700' : '#f0dc00',
+                transform: `translate(${x}px, ${y}px)`,
+                animation: `sparkle 1.2s ease-in-out ${i * 0.1}s infinite`,
+                boxShadow: `0 0 10px ${card.type === 'legend' ? '#ffd700' : '#f0dc00'}`,
+              }} />
+            );
+          })}
+        </>
+      )}
+
+      <div style={{
+        animation: phase === 'shake'
+          ? 'cardShake 1.2s ease-in-out'
+          : phase === 'flip'
+            ? 'cardFlip 0.8s ease-in-out forwards'
+            : 'revealPulse 2s ease-in-out infinite',
+      }}>
+        {phase === 'reveal' ? (
+          <div style={{ animation: 'cardRevealGlow 1.5s ease-in-out' }}>
+            <CardFront card={card} size={1.6} />
+          </div>
+        ) : (
+          <CardBack size={1.6} />
+        )}
+      </div>
+
+      {phase === 'reveal' && (
+        <div style={{
+          animation: 'fadeInUp 0.5s ease-out 0.3s both',
+          textAlign: 'center',
+          marginTop: 24,
+        }}>
+          <div style={{
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: 22,
+            color: card.type === 'legend' ? '#ffd700' : '#fff',
+            marginBottom: 4,
+          }}>
+            {card.name}
+          </div>
+          <div style={{
+            color: card.type === 'legend' ? '#ffd700' : '#f0dc00',
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: 1.5,
+            textTransform: 'uppercase',
+          }}>
+            {card.type === 'legend' ? 'Legendkort!' : 'Nytt kort!'}
+          </div>
+          <div style={{
+            color: 'rgba(255,255,255,0.4)',
+            fontSize: 12,
+            marginTop: 16,
+          }}>
+            Tryck var som helst
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Card Detail Modal ──
+function CardDetailModal({ card, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1100,
+        background: 'rgba(0, 0, 0, 0.82)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        cursor: 'pointer',
+      }}
+    >
+      <CardFront card={card} size={1.8} />
+      <div style={{
+        fontFamily: "'Fredoka One', cursive",
+        fontSize: 22,
+        color: card.type === 'legend' ? '#ffd700' : '#fff',
+        marginTop: 20,
+        textAlign: 'center',
+      }}>
+        {card.name}
+      </div>
+      <div style={{
+        color: card.type === 'legend' ? '#ffd700' : '#f0dc00',
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        marginTop: 4,
+      }}>
+        #{card.number} {card.type === 'legend' ? '— Legend' : '— Damlandslaget'}
+      </div>
+      <div style={{
+        color: 'rgba(255,255,255,0.35)',
+        fontSize: 12,
+        marginTop: 16,
+      }}>
+        Tryck var som helst
+      </div>
+    </div>
+  );
+}
+
+// ── Main Screen ──
+export function CardsScreen() {
+  const { user, stats, setScreen, handleUnlock } = useUser();
+  const [openingPhase, setOpeningPhase] = useState(null); // null | 'shake' | 'flip' | 'reveal'
+  const [revealCard, setRevealCard] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [viewCard, setViewCard] = useState(null);
+
+  const unlockedItems = user.unlockedItems || [];
+  const playerCount = getCollectedPlayerCount(unlockedItems);
+  const legendCount = getCollectedLegendCount(unlockedItems);
+  const totalCollected = playerCount + legendCount;
+  const allPlayersCollected = playerCount >= TOTAL_PLAYER_CARDS;
+  const allCollected = allPlayersCollected && legendCount >= TOTAL_LEGEND_CARDS;
+
+  const collectedIds = useMemo(() => new Set(unlockedItems), [unlockedItems]);
+
+  const cost = allPlayersCollected ? LEGEND_PACK_COST : CARD_PACK_COST;
+  const canAfford = stats.totalPoints >= cost;
+  const nextCard = useMemo(() => getNextRandomCard(unlockedItems), [unlockedItems]);
+  const canOpen = canAfford && nextCard && !openingPhase;
+
+  const handleOpenPack = useCallback(async () => {
+    if (!canOpen) return;
+    const card = getNextRandomCard(unlockedItems);
+    if (!card) return;
+    setRevealCard(card);
+    setOpeningPhase('shake');
+
+    // Shake -> flip -> reveal sequence
+    setTimeout(() => setOpeningPhase('flip'), 1200);
+    setTimeout(async () => {
+      setOpeningPhase('reveal');
+      setShowConfetti(true);
+      // Actually unlock the card
+      await handleUnlock(card.id, card.type === 'legend' ? LEGEND_PACK_COST : CARD_PACK_COST);
+      setTimeout(() => setShowConfetti(false), 3000);
+    }, 2000);
+  }, [canOpen, unlockedItems, handleUnlock]);
+
+  function handleFinishReveal() {
+    setOpeningPhase(null);
+    setRevealCard(null);
+  }
+
+  // Collected player cards, sorted by number
+  const collectedPlayerCards = PLAYER_CARDS.filter(c => collectedIds.has(c.id));
+  const collectedLegendCards = LEGEND_CARDS.filter(c => collectedIds.has(c.id));
+
+  return (
+    <div style={{ padding: '20px 16px', fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes gentlePulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.03); }
+        }
+      `}</style>
+
+      {showConfetti && <Confetti />}
+
+      {openingPhase && revealCard && (
+        <PackOpeningOverlay
+          card={revealCard}
+          phase={openingPhase}
+          onFinish={handleFinishReveal}
+        />
+      )}
+
+      {viewCard && (
+        <CardDetailModal card={viewCard} onClose={() => setViewCard(null)} />
+      )}
+
+      {/* Back button */}
+      <button
+        onClick={() => setScreen('home')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          background: 'none',
+          border: 'none',
+          color: COLORS.lime,
+          cursor: 'pointer',
+          fontSize: 15,
+          fontWeight: 700,
+          marginBottom: 16,
+          padding: 0,
+        }}
+      >
+        <ArrowLeft size={16} />
+        Tillbaka
+      </button>
+
+      {/* Header */}
+      <div style={{
+        textAlign: 'center',
+        marginBottom: 20,
+      }}>
+        <div style={{
+          fontFamily: "'Fredoka One', cursive",
+          fontSize: 26,
+          color: '#fff',
+          marginBottom: 4,
+        }}>
+          Samlarkort
+        </div>
+        <div style={{
+          color: '#f0dc00',
+          fontSize: 13,
+          fontWeight: 700,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+        }}>
+          Svenska damlandslaget
+        </div>
+      </div>
+
+      {/* Collection progress */}
+      <Card style={{ marginBottom: 16, padding: '16px 18px' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 10,
+        }}>
+          <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>
+            Din samling
+          </div>
+          <div style={{
+            color: COLORS.lime,
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: 18,
+          }}>
+            {totalCollected}/{TOTAL_PLAYER_CARDS + TOTAL_LEGEND_CARDS}
+          </div>
+        </div>
+
+        {/* Player cards progress */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginBottom: 4,
+          }}>
+            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600 }}>
+              Spelare
+            </span>
+            <span style={{
+              color: allPlayersCollected ? COLORS.lime : 'rgba(255,255,255,0.5)',
+              fontSize: 12,
+              fontWeight: 700,
+            }}>
+              {playerCount}/{TOTAL_PLAYER_CARDS} {allPlayersCollected && '✅'}
+            </span>
+          </div>
+          <ProgressBar
+            value={playerCount / TOTAL_PLAYER_CARDS}
+            color={COLORS.lime}
+            height={8}
+          />
+        </div>
+
+        {/* Legend cards progress */}
+        <div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginBottom: 4,
+          }}>
+            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600 }}>
+              Legendkort
+            </span>
+            <span style={{
+              color: allPlayersCollected
+                ? legendCount >= TOTAL_LEGEND_CARDS ? '#ffd700' : 'rgba(255,255,255,0.5)'
+                : 'rgba(255,255,255,0.3)',
+              fontSize: 12,
+              fontWeight: 700,
+            }}>
+              {allPlayersCollected
+                ? `${legendCount}/${TOTAL_LEGEND_CARDS} ${legendCount >= TOTAL_LEGEND_CARDS ? '✅' : ''}`
+                : '🔒 Samla alla 23 spelare först'}
+            </span>
+          </div>
+          <ProgressBar
+            value={allPlayersCollected ? legendCount / TOTAL_LEGEND_CARDS : 0}
+            color={allPlayersCollected ? '#ffd700' : 'rgba(255,255,255,0.2)'}
+            height={8}
+          />
+        </div>
+      </Card>
+
+      {/* Open pack button */}
+      {!allCollected ? (
+        <Card style={{
+          marginBottom: 20,
+          padding: '20px 16px',
+          textAlign: 'center',
+          border: canOpen ? `1.5px solid ${COLORS.lime}55` : undefined,
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: 16,
+          }}>
+            <div style={{
+              animation: canOpen ? 'gentlePulse 2s ease-in-out infinite' : 'none',
+            }}>
+              <CardBack size={0.9} />
+            </div>
+          </div>
+
+          <div style={{
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: 18,
+            color: '#fff',
+            marginBottom: 4,
+          }}>
+            {allPlayersCollected ? 'Öppna legendkort' : 'Öppna nytt kort'}
+          </div>
+          <div style={{
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 12,
+            marginBottom: 14,
+          }}>
+            {allPlayersCollected
+              ? `${TOTAL_LEGEND_CARDS - legendCount} legendkort kvar att samla`
+              : `${TOTAL_PLAYER_CARDS - playerCount} spelarkort kvar att samla`}
+          </div>
+
+          <button
+            onClick={handleOpenPack}
+            disabled={!canOpen}
+            style={{
+              padding: '14px 32px',
+              borderRadius: 16,
+              border: 'none',
+              background: canOpen
+                ? `linear-gradient(135deg, ${COLORS.lime}, ${COLORS.limeGlow})`
+                : 'rgba(255,255,255,0.1)',
+              color: canOpen ? COLORS.dark : 'rgba(255,255,255,0.35)',
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: 18,
+              cursor: canOpen ? 'pointer' : 'not-allowed',
+              boxShadow: canOpen ? `0 4px 20px ${COLORS.lime}44` : 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            {canOpen
+              ? `Öppna kort — ${cost}p`
+              : `${cost}p krävs (du har ${stats.totalPoints}p)`}
+          </button>
+        </Card>
+      ) : (
+        <Card style={{
+          marginBottom: 20,
+          padding: '20px 16px',
+          textAlign: 'center',
+          border: `2px solid #ffd700`,
+          background: 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.02))',
+        }}>
+          <div style={{ fontSize: 42, marginBottom: 8 }}>🏆</div>
+          <div style={{
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: 20,
+            color: '#ffd700',
+            marginBottom: 4,
+          }}>
+            Komplett samling!
+          </div>
+          <div style={{
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 13,
+          }}>
+            Du har samlat alla {TOTAL_PLAYER_CARDS + TOTAL_LEGEND_CARDS} kort!
+          </div>
+        </Card>
+      )}
+
+      {/* My collection — Player cards */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{
+          fontFamily: "'Fredoka One', cursive",
+          fontSize: 18,
+          color: '#fff',
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span>Spelarkort</span>
+          <span style={{
+            color: 'rgba(255,255,255,0.4)',
+            fontSize: 14,
+            fontWeight: 400,
+          }}>
+            {playerCount}/{TOTAL_PLAYER_CARDS}
+          </span>
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 10,
+          justifyItems: 'center',
+        }}>
+          {PLAYER_CARDS.map((card) => {
+            const collected = collectedIds.has(card.id);
+            return collected ? (
+              <CardFront
+                key={card.id}
+                card={card}
+                size={0.6}
+                onClick={() => setViewCard(card)}
+                style={{ cursor: 'pointer' }}
+              />
+            ) : (
+              <CardBack
+                key={card.id}
+                size={0.6}
+                style={{ opacity: 0.5 }}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legend cards section */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{
+          fontFamily: "'Fredoka One', cursive",
+          fontSize: 18,
+          color: allPlayersCollected ? '#ffd700' : 'rgba(255,255,255,0.35)',
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span>{allPlayersCollected ? '👑' : '🔒'} Legendkort</span>
+          <span style={{
+            color: allPlayersCollected ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.25)',
+            fontSize: 14,
+            fontWeight: 400,
+          }}>
+            {allPlayersCollected ? `${legendCount}/${TOTAL_LEGEND_CARDS}` : ''}
+          </span>
+        </div>
+
+        {!allPlayersCollected ? (
+          <Card style={{
+            padding: '16px 16px',
+            textAlign: 'center',
+            opacity: 0.6,
+          }}>
+            <div style={{ fontSize: 28, marginBottom: 6 }}>🔒</div>
+            <div style={{
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: 13,
+              fontWeight: 600,
+            }}>
+              Samla alla {TOTAL_PLAYER_CARDS} spelarkort för att låsa upp legendkorten
+            </div>
+            <div style={{
+              color: 'rgba(255,255,255,0.3)',
+              fontSize: 12,
+              marginTop: 4,
+            }}>
+              {TOTAL_PLAYER_CARDS - playerCount} kort kvar
+            </div>
+          </Card>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 10,
+            justifyItems: 'center',
+          }}>
+            {LEGEND_CARDS.map((card) => {
+              const collected = collectedIds.has(card.id);
+              return collected ? (
+                <CardFront
+                  key={card.id}
+                  card={card}
+                  size={0.6}
+                  onClick={() => setViewCard(card)}
+                  style={{ cursor: 'pointer' }}
+                />
+              ) : (
+                <CardBack
+                  key={card.id}
+                  size={0.6}
+                  style={{ opacity: 0.5 }}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

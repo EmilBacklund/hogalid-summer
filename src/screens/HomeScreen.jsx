@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { COLORS, EXERCISES } from '../constants';
+import { COLORS, EXERCISES, PLAYER_CARDS, LEGEND_CARDS, TOTAL_PLAYER_CARDS, TOTAL_LEGEND_CARDS, CARD_PACK_COST } from '../constants';
 import {
   getLevel,
   getNextLevel,
@@ -1098,6 +1098,81 @@ export function HomeScreen() {
       >
         🌞 Sommarlovsbingo — {(user.bingo || []).length}/50 klara
       </button>
+      {/* Collector cards CTA */}
+      {(() => {
+        const ids = new Set(user.unlockedItems || []);
+        const pCount = PLAYER_CARDS.filter(c => ids.has(c.id)).length;
+        const lCount = LEGEND_CARDS.filter(c => ids.has(c.id)).length;
+        const total = pCount + lCount;
+        const max = TOTAL_PLAYER_CARDS + TOTAL_LEGEND_CARDS;
+        const canBuy = stats.totalPoints >= CARD_PACK_COST;
+        return (
+          <button
+            onClick={() => setScreen('cards')}
+            style={{
+              width: '100%',
+              padding: '14px 16px',
+              borderRadius: 16,
+              border: canBuy && total < max ? `1.5px solid rgba(240,220,0,0.35)` : '1px solid rgba(255,255,255,0.1)',
+              background: `linear-gradient(135deg, rgba(0,26,77,0.6), rgba(0,40,104,0.5))`,
+              cursor: 'pointer',
+              marginBottom: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              textAlign: 'left',
+            }}
+          >
+            <div style={{
+              width: 44,
+              height: 56,
+              borderRadius: 8,
+              background: 'linear-gradient(145deg, #001a4d, #002868)',
+              border: '2px solid #f0dc00',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 20,
+              flexShrink: 0,
+              boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+            }}>
+              ⚽
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: 16,
+                color: '#fff',
+                lineHeight: 1.2,
+              }}>
+                Samlarkort
+              </div>
+              <div style={{
+                color: total >= max ? '#ffd700' : 'rgba(255,255,255,0.5)',
+                fontSize: 12,
+                fontWeight: 600,
+                marginTop: 2,
+              }}>
+                {total >= max
+                  ? '🏆 Komplett samling!'
+                  : `${total}/${max} kort samlade`}
+              </div>
+            </div>
+            <div style={{
+              color: canBuy && total < max ? '#f0dc00' : 'rgba(255,255,255,0.35)',
+              fontWeight: 700,
+              fontSize: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              flexShrink: 0,
+            }}>
+              {total < max && (canBuy ? 'Öppna kort!' : `${CARD_PACK_COST}p`)}
+              <ArrowRight size={14} />
+            </div>
+          </button>
+        );
+      })()}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
         <button
           onClick={() => setScreen('profile')}

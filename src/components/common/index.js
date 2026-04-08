@@ -7,3 +7,4 @@ export { Countdown } from './Countdown';
 export { TopBar } from './TopBar';
 export { LoadingSpinner, SkeletonBar, TopLoadingBar, ButtonLoader } from './LoadingSpinner';
 export { LevelUpModal } from './LevelUpModal';
+export { CardFront, CardBack } from './CollectorCard';

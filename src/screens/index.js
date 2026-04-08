@@ -6,3 +6,4 @@ export { BingoScreen } from './BingoScreen';
 export { TeamScreen } from './TeamScreen';
 export { ChallengesScreen } from './ChallengesScreen';
 export { AdminScreen } from './AdminScreen';
+export { CardsScreen } from './CardsScreen';

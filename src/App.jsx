@@ -10,6 +10,7 @@ import {
   TeamScreen,
   ChallengesScreen,
   AdminScreen,
+  CardsScreen,
 } from './screens';
 
 function AppContent() {
@@ -84,6 +85,7 @@ function AppContent() {
       {screen === "profile"    && <ProfileScreen />}
       {screen === "team"       && <TeamScreen />}
       {screen === "bingo"      && <BingoScreen />}
+      {screen === "cards"      && <CardsScreen />}
     </div>
   );
 }
