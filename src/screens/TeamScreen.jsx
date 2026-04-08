@@ -22,11 +22,12 @@ import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export function TeamScreen() {
-  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen } = useUser();
+  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showRoster, setShowRoster] = useState(false);
+  const [cheerSent, setCheerSent] = useState({});  // alias → 'sent' | 'already'
   const [showHistory, setShowHistory] = useState(false);
   const [showAllLevels, setShowAllLevels] = useState(false);
   const [reactions, setReactions] = useState({});
@@ -348,15 +349,46 @@ export function TeamScreen() {
         </button>
         {showRoster && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 14 }}>
-            {allUsers.map(u => (
-              <div key={u.alias} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '50%', padding: 4, border: u.alias === user.alias ? `2px solid ${COLORS.lime}` : '2px solid transparent' }}>
-                  <AvatarSVG avatarConfig={u.avatarConfig} size={52} />
+            {allUsers.map(u => {
+              const isMe = u.alias === user.alias;
+              const cheerState = cheerSent[u.alias];
+              return (
+                <div key={u.alias} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '50%', padding: 4, border: isMe ? `2px solid ${COLORS.lime}` : '2px solid transparent' }}>
+                    <AvatarSVG avatarConfig={u.avatarConfig} size={52} />
+                  </div>
+                  <div style={{ color: isMe ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{u.displayName || u.alias}</div>
+                  {isMe ? (
+                    <div style={{ color: COLORS.lime, fontSize: 10 }}>Du</div>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        if (cheerState) return;
+                        const result = await sendCheer(u.alias);
+                        if (result.ok) {
+                          setCheerSent(prev => ({ ...prev, [u.alias]: 'sent' }));
+                        } else if (result.error === 'already_today') {
+                          setCheerSent(prev => ({ ...prev, [u.alias]: 'already' }));
+                        }
+                      }}
+                      style={{
+                        background: cheerState === 'sent' ? 'rgba(168,230,61,0.2)' : cheerState === 'already' ? 'rgba(255,255,255,0.06)' : 'rgba(255,200,0,0.15)',
+                        border: cheerState === 'sent' ? `1px solid ${COLORS.lime}` : '1px solid rgba(255,200,0,0.3)',
+                        borderRadius: 12,
+                        padding: '3px 10px',
+                        cursor: cheerState ? 'default' : 'pointer',
+                        color: cheerState === 'sent' ? COLORS.lime : cheerState === 'already' ? 'rgba(255,255,255,0.4)' : COLORS.yellow,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {cheerState === 'sent' ? '✅ Hejat!' : cheerState === 'already' ? 'Redan hejat' : '📣 Heja!'}
+                    </button>
+                  )}
                 </div>
-                <div style={{ color: u.alias === user.alias ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{u.alias}</div>
-                {u.alias === user.alias && <div style={{ color: COLORS.lime, fontSize: 10 }}>Du</div>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Card>

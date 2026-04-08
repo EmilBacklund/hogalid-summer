@@ -32,6 +32,18 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ seasonStart }), { status: 200, headers });
     }
 
+    // GET - unseen cheers for a user
+    if (method === 'GET' && action === 'cheers') {
+      const alias = url.searchParams.get('alias');
+      if (!alias) return new Response(JSON.stringify({ error: 'missing_alias' }), { status: 400, headers });
+      const result = await db.execute({
+        sql: 'SELECT id, from_alias, created_at FROM cheers WHERE to_alias = ? AND seen = 0 ORDER BY created_at DESC',
+        args: [alias.toLowerCase()],
+      });
+      const cheers = result.rows.map(r => ({ id: r.id, fromAlias: r.from_alias, createdAt: r.created_at }));
+      return new Response(JSON.stringify(cheers), { status: 200, headers });
+    }
+
     // GET - feed reactions
     if (method === 'GET' && action === 'reactions') {
       const result = await db.execute('SELECT event_key, alias, emoji FROM feed_reactions');
@@ -275,6 +287,40 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
+    // POST - send cheer
+    if (method === 'POST' && action === 'cheer') {
+      const body = await req.json();
+      const { fromAlias, toAlias } = body;
+      if (!fromAlias || !toAlias) return new Response(JSON.stringify({ error: 'missing_fields' }), { status: 400, headers });
+      // Rate limit: max 1 cheer per sender→receiver per day
+      const today = new Date().toISOString().slice(0, 10);
+      const existing = await db.execute({
+        sql: "SELECT id FROM cheers WHERE from_alias = ? AND to_alias = ? AND created_at LIKE ?",
+        args: [fromAlias.toLowerCase(), toAlias.toLowerCase(), today + '%'],
+      });
+      if (existing.rows.length > 0) {
+        return new Response(JSON.stringify({ error: 'already_cheered_today' }), { status: 429, headers });
+      }
+      await db.execute({
+        sql: 'INSERT INTO cheers (from_alias, to_alias, created_at) VALUES (?, ?, ?)',
+        args: [fromAlias.toLowerCase(), toAlias.toLowerCase(), new Date().toISOString()],
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
+    // PUT - mark cheers as seen
+    if (method === 'PUT' && action === 'cheerseen') {
+      const body = await req.json();
+      const { ids } = body;
+      if (!ids || !ids.length) return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+      const placeholders = ids.map(() => '?').join(',');
+      await db.execute({
+        sql: `UPDATE cheers SET seen = 1 WHERE id IN (${placeholders})`,
+        args: ids,
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
     // POST - add/remove reaction
     if (method === 'POST' && action === 'react') {
       const body = await req.json();
@@ -322,6 +368,7 @@ export default async (req, context) => {
         DELETE FROM users;
         DELETE FROM weekly_results;
         DELETE FROM feed_reactions;
+        DELETE FROM cheers;
       `);
       await db.execute({
         sql: "INSERT OR REPLACE INTO config (key, value) VALUES ('season_start', ?)",

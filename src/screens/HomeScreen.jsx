@@ -287,7 +287,7 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
 }
 
 export function HomeScreen() {
-  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget } = useUser();
+  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget, pendingCheers, markCheersSeen } = useUser();
 
   function goTo(target) {
     setChallengeScrollTarget(target);
@@ -301,6 +301,8 @@ export function HomeScreen() {
     const weekKey = `fire_seen_${getWeekStart(localToday())}`;
     return !!localStorage.getItem(weekKey);
   });
+  const [cheerToast, setCheerToast] = useState(null);  // { names: [...] }
+  const [cheerFading, setCheerFading] = useState(false);
 
   useEffect(() => {
     const stale = fetchAllUsersStale(fresh => {
@@ -322,6 +324,19 @@ export function HomeScreen() {
       localStorage.setItem(introKey, '1');
     }
   }, [user?.alias]);
+
+  // Show cheer toast when there are pending cheers
+  useEffect(() => {
+    if (!pendingCheers || pendingCheers.length === 0 || cheerToast) return;
+    const names = [...new Set(pendingCheers.map(c => c.fromAlias))];
+    setCheerToast({ names });
+    const ids = pendingCheers.map(c => c.id);
+    markCheersSeen(ids);
+    // Auto-dismiss after 5s
+    const t1 = setTimeout(() => setCheerFading(true), 4500);
+    const t2 = setTimeout(() => { setCheerToast(null); setCheerFading(false); }, 5200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [pendingCheers]);
 
   const level = getLevel(stats.totalPoints);
   const nextLevel = getNextLevel(stats.totalPoints);
@@ -389,7 +404,55 @@ export function HomeScreen() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
+        @keyframes cheerSlideIn {
+          0% { transform: translateY(-100%); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes cheerFadeOut {
+          0% { transform: translateY(0); opacity: 1; }
+          100% { transform: translateY(-100%); opacity: 0; }
+        }
+        @keyframes cheerBounce {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.15); }
+        }
       `}</style>
+
+      {/* Cheer toast */}
+      {cheerToast && (
+        <div
+          onClick={() => { setCheerToast(null); setCheerFading(false); }}
+          style={{
+            position: 'fixed',
+            top: 60,
+            left: 16,
+            right: 16,
+            zIndex: 1200,
+            background: 'linear-gradient(135deg, rgba(255,200,0,0.95) 0%, rgba(255,140,0,0.95) 100%)',
+            borderRadius: 18,
+            padding: '16px 20px',
+            boxShadow: '0 8px 32px rgba(255,140,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            animation: cheerFading ? 'cheerFadeOut 0.7s ease-in forwards' : 'cheerSlideIn 0.5s ease-out',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ fontSize: 36, animation: 'cheerBounce 0.6s ease-in-out 3', lineHeight: 1 }}>📣</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: '#1a1a2e', fontFamily: "'Fredoka One', cursive", fontSize: 16, lineHeight: 1.2 }}>
+              {cheerToast.names.length === 1
+                ? `${cheerToast.names[0]} hejar på dig!`
+                : `${cheerToast.names.slice(0, -1).join(', ')} & ${cheerToast.names[cheerToast.names.length - 1]} hejar på dig!`}
+            </div>
+            <div style={{ color: 'rgba(26,26,46,0.6)', fontSize: 12, marginTop: 3, fontWeight: 600 }}>
+              Kämpa vidare! 💪
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
         <button

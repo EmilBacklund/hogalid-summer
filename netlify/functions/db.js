@@ -66,6 +66,14 @@ export async function initDb(db) {
       level_name TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS cheers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_alias TEXT NOT NULL,
+      to_alias TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      seen INTEGER DEFAULT 0
+    );
+
     CREATE TABLE IF NOT EXISTS buddy_challenges (
       id TEXT PRIMARY KEY,
       from_alias TEXT NOT NULL,

@@ -28,6 +28,7 @@ export function UserProvider({ children }) {
   const [challengeScrollTarget, setChallengeScrollTarget] = useState(null);
   const [newlyCompletedChallenge, setNewlyCompletedChallenge] = useState(null);
   const [levelUpData, setLevelUpData] = useState(null);
+  const [pendingCheers, setPendingCheers] = useState([]);
   const seenCompletedIds = useRef(null);
   const prevLevelName = useRef(null);
 
@@ -56,7 +57,7 @@ export function UserProvider({ children }) {
       try {
         const { alias, password } = JSON.parse(saved);
         apiPost("/users?action=login", { alias, password })
-          .then(u => { setUser(u); fetchBuddyChallenges(u.alias); })
+          .then(u => { setUser(u); fetchBuddyChallenges(u.alias); fetchCheers(u.alias); })
           .catch(() => localStorage.removeItem("hogalid_session"))
           .finally(() => setAutoLoading(false));
       } catch {
@@ -109,6 +110,37 @@ export function UserProvider({ children }) {
     }
   }, [stats]);
 
+  async function fetchCheers(alias) {
+    try {
+      const data = await apiGet(`/users?action=cheers&alias=${encodeURIComponent(alias)}`);
+      setPendingCheers(data);
+    } catch (e) {
+      // ignore — non-critical
+    }
+  }
+
+  async function sendCheer(toAlias) {
+    try {
+      await apiPost('/users?action=cheer', { fromAlias: user.alias, toAlias });
+      return { ok: true };
+    } catch (e) {
+      const msg = e.message || '';
+      if (msg.includes('already_cheered_today') || msg.includes('429')) {
+        return { ok: false, error: 'already_today' };
+      }
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function markCheersSeen(ids) {
+    try {
+      await apiPut('/users?action=cheerseen', { ids });
+      setPendingCheers(prev => prev.filter(c => !ids.includes(c.id)));
+    } catch (e) {
+      // ignore
+    }
+  }
+
   async function fetchBuddyChallenges(alias) {
     try {
       const data = await apiGet(`/buddy-challenges?alias=${encodeURIComponent(alias)}`);
@@ -124,6 +156,7 @@ export function UserProvider({ children }) {
     }
     setUser(u);
     fetchBuddyChallenges(u.alias);
+    fetchCheers(u.alias);
     setScreen("home");
   }
 
@@ -300,6 +333,9 @@ export function UserProvider({ children }) {
     clearNewlyCompletedChallenge: () => setNewlyCompletedChallenge(null),
     levelUpData,
     clearLevelUp: () => setLevelUpData(null),
+    pendingCheers,
+    sendCheer,
+    markCheersSeen,
   };
 
   return (
