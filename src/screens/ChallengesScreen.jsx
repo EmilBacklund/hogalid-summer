@@ -487,6 +487,8 @@ export function ChallengesScreen() {
 
   const completedDaily = user.completedDaily || {};
   const dailyDoneToday = completedDaily[today] === daily.id;
+  const [dailyJustCompleted, setDailyJustCompleted] = useState(false);
+  const [showDailyConfetti, setShowDailyConfetti] = useState(false);
 
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
@@ -528,6 +530,11 @@ export function ChallengesScreen() {
 
   return (
     <div style={{ padding: '20px 16px 32px', fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        @keyframes dailyPop { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes dailySlide { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+      `}</style>
+      <Confetti active={showDailyConfetti} />
       <button
         onClick={() => setScreen('home')}
         style={{
@@ -604,20 +611,57 @@ export function ChallengesScreen() {
         {dailyDoneToday ? (
           <div
             style={{
-              background: 'rgba(240,220,0,0.15)',
-              borderRadius: 10,
-              padding: '10px 14px',
+              background: 'rgba(240,220,0,0.12)',
+              borderRadius: 14,
+              padding: '16px 14px',
               textAlign: 'center',
-              color: COLORS.yellow,
-              fontWeight: 700,
-              fontSize: 15,
             }}
           >
-            ✅ Klarat idag!
+            {dailyJustCompleted ? (
+              <>
+                <div style={{ fontSize: 40, marginBottom: 6, animation: 'dailyPop 0.5s ease-out both' }}>
+                  {daily.icon}
+                </div>
+                <div style={{
+                  fontFamily: "'Fredoka One', cursive",
+                  fontSize: 28,
+                  color: COLORS.yellow,
+                  animation: 'dailyPop 0.5s ease-out 0.15s both',
+                }}>
+                  +{daily.points}p
+                </div>
+                <div style={{
+                  color: COLORS.lime,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  marginTop: 4,
+                  animation: 'dailySlide 0.4s ease-out 0.3s both',
+                }}>
+                  ✅ Bra jobbat!
+                </div>
+              </>
+            ) : (
+              <div style={{ color: COLORS.yellow, fontWeight: 700, fontSize: 15 }}>
+                ✅ Klarat idag!
+              </div>
+            )}
+            <div style={{
+              color: 'rgba(255,255,255,0.35)',
+              fontSize: 11,
+              marginTop: 8,
+              animation: dailyJustCompleted ? 'dailySlide 0.4s ease-out 0.5s both' : 'none',
+            }}>
+              Ny utmaning imorgon 🌅
+            </div>
           </div>
         ) : (
           <button
-            onClick={() => handleCompleteDaily(daily.id, daily.points)}
+            onClick={async () => {
+              await handleCompleteDaily(daily.id, daily.points);
+              setDailyJustCompleted(true);
+              setShowDailyConfetti(true);
+              setTimeout(() => setShowDailyConfetti(false), 3000);
+            }}
             disabled={loading}
             style={{
               width: '100%',
