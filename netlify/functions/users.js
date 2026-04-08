@@ -391,6 +391,55 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
+    // DELETE - remove a player and all their data
+    if (method === 'DELETE' && action === 'deleteuser') {
+      const body = await req.json();
+      const { alias } = body;
+      const key = alias.toLowerCase();
+      const tables = [
+        { sql: 'DELETE FROM logs WHERE alias = ?', args: [key] },
+        { sql: 'DELETE FROM bingo WHERE alias = ?', args: [key] },
+        { sql: 'DELETE FROM completed_daily WHERE alias = ?', args: [key] },
+        { sql: 'DELETE FROM buddy_challenges WHERE from_alias = ? OR to_alias = ?', args: [key, key] },
+        { sql: 'DELETE FROM cheers WHERE from_alias = ? OR to_alias = ?', args: [key, key] },
+        { sql: 'DELETE FROM users WHERE alias = ?', args: [key] },
+      ];
+      for (const q of tables) await db.execute(q);
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
+    // PUT - update season start date (without resetting data)
+    if (method === 'PUT' && action === 'updateseasonstart') {
+      const body = await req.json();
+      const { date } = body;
+      await db.execute({
+        sql: "INSERT OR REPLACE INTO config (key, value) VALUES ('season_start', ?)",
+        args: [date],
+      });
+      return new Response(JSON.stringify({ ok: true, seasonStart: date }), { status: 200, headers });
+    }
+
+    // PUT - update date of a player's first log entry
+    if (method === 'PUT' && action === 'updatefirstlog') {
+      const body = await req.json();
+      const { alias, date } = body;
+      const key = alias.toLowerCase();
+      // Find earliest log for this player
+      const result = await db.execute({
+        sql: 'SELECT id FROM logs WHERE alias = ? ORDER BY date ASC LIMIT 1',
+        args: [key],
+      });
+      if (result.rows.length === 0) {
+        return new Response(JSON.stringify({ error: 'no_logs' }), { status: 404, headers });
+      }
+      const logId = result.rows[0].id;
+      await db.execute({
+        sql: 'UPDATE logs SET date = ? WHERE id = ?',
+        args: [date, logId],
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
     return new Response(JSON.stringify({ error: 'unknown_action' }), { status: 400, headers });
   } catch (err) {
     console.error(err);

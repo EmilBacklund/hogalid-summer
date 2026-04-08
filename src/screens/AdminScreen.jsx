@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { COLORS } from '../constants';
-import { apiGet, apiPut, localToday, computeStats, getLevel } from '../utils';
+import { apiGet, apiPut, apiDelete, localToday, computeStats, getLevel } from '../utils';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
@@ -12,6 +12,20 @@ export function AdminScreen() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetDone, setResetDone] = useState(false);
+
+  // Season start editor
+  const [seasonDateInput, setSeasonDateInput] = useState('');
+  const [savingSeasonDate, setSavingSeasonDate] = useState(false);
+  const [seasonDateSaved, setSeasonDateSaved] = useState(false);
+
+  // Delete player
+  const [deleteConfirm, setDeleteConfirm] = useState({}); // { alias: true }
+  const [deleting, setDeleting] = useState({});
+
+  // First log date editor
+  const [firstLogDate, setFirstLogDate] = useState({});  // { alias: 'YYYY-MM-DD' }
+  const [savingFirstLog, setSavingFirstLog] = useState({});
+  const [firstLogSaved, setFirstLogSaved] = useState({});
 
   useEffect(() => {
     apiGet("/users").then(users => {
@@ -59,6 +73,46 @@ export function AdminScreen() {
       alert("Kunde inte byta lösenord: " + e.message);
     }
     setResettingPw(prev => ({ ...prev, [alias]: false }));
+  }
+
+  async function handleUpdateSeasonStart() {
+    if (!seasonDateInput) return;
+    setSavingSeasonDate(true);
+    try {
+      await apiPut("/users?action=updateseasonstart", { date: seasonDateInput });
+      setSeasonStart(seasonDateInput);
+      setSeasonDateSaved(true);
+      setTimeout(() => setSeasonDateSaved(false), 3000);
+    } catch (e) {
+      alert("Kunde inte uppdatera säsongstart: " + e.message);
+    }
+    setSavingSeasonDate(false);
+  }
+
+  async function handleDeleteUser(alias) {
+    setDeleting(prev => ({ ...prev, [alias]: true }));
+    try {
+      await apiDelete("/users?action=deleteuser", { alias });
+      setPlayers(prev => prev.filter(p => p.alias !== alias));
+      setDeleteConfirm(prev => ({ ...prev, [alias]: false }));
+    } catch (e) {
+      alert("Kunde inte ta bort spelare: " + e.message);
+    }
+    setDeleting(prev => ({ ...prev, [alias]: false }));
+  }
+
+  async function handleUpdateFirstLog(alias) {
+    const date = firstLogDate[alias];
+    if (!date) return;
+    setSavingFirstLog(prev => ({ ...prev, [alias]: true }));
+    try {
+      await apiPut("/users?action=updatefirstlog", { alias, date });
+      setFirstLogSaved(prev => ({ ...prev, [alias]: true }));
+      setTimeout(() => setFirstLogSaved(prev => ({ ...prev, [alias]: false })), 3000);
+    } catch (e) {
+      alert("Kunde inte uppdatera datum: " + e.message);
+    }
+    setSavingFirstLog(prev => ({ ...prev, [alias]: false }));
   }
 
   function daysSince(dateStr) {
@@ -142,6 +196,31 @@ export function AdminScreen() {
           </button>
         )}
 
+        {/* Season start editor */}
+        <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+            📅 Ändra säsongstart
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 10, lineHeight: 1.4 }}>
+            Ändrar startdatumet för säsongen utan att radera träningsdata. Påverkar dagsutmaningar och veckoutmaningar.
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="date"
+              value={seasonDateInput}
+              onChange={e => setSeasonDateInput(e.target.value)}
+              style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
+            />
+            <button
+              onClick={handleUpdateSeasonStart}
+              disabled={!seasonDateInput || savingSeasonDate}
+              style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: !seasonDateInput || savingSeasonDate ? "rgba(255,255,255,0.1)" : COLORS.lime, color: !seasonDateInput || savingSeasonDate ? "rgba(255,255,255,0.35)" : COLORS.dark, fontWeight: 700, fontSize: 13, cursor: !seasonDateInput || savingSeasonDate ? "not-allowed" : "pointer", fontFamily: "'Nunito', sans-serif", whiteSpace: "nowrap" }}
+            >
+              {savingSeasonDate ? "Sparar..." : seasonDateSaved ? "✅ Sparat!" : "Spara"}
+            </button>
+          </div>
+        </div>
+
         {/* Player cards */}
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
           Alla spelare ({players.length}) — sorterat senast aktiv
@@ -202,6 +281,27 @@ export function AdminScreen() {
                   Pass: <span style={{ color: "#fff", fontWeight: 700 }}>{p.totalLogs}</span>
                 </div>
 
+                {/* First log date */}
+                <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "8px 12px", marginBottom: 6 }}>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 6 }}>📅 Första träning</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="date"
+                      value={firstLogDate[p.alias] ?? (p.logs?.[0]?.date || '')}
+                      onChange={e => setFirstLogDate(prev => ({ ...prev, [p.alias]: e.target.value }))}
+                      style={{ flex: 1, padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 12, fontFamily: "'Nunito', sans-serif" }}
+                    />
+                    <button
+                      onClick={() => handleUpdateFirstLog(p.alias)}
+                      disabled={savingFirstLog[p.alias] || !firstLogDate[p.alias]}
+                      style={{ padding: "5px 12px", borderRadius: 8, border: "none", background: savingFirstLog[p.alias] || !firstLogDate[p.alias] ? "rgba(255,255,255,0.08)" : COLORS.lime, color: savingFirstLog[p.alias] || !firstLogDate[p.alias] ? "rgba(255,255,255,0.3)" : COLORS.dark, fontWeight: 700, fontSize: 12, cursor: savingFirstLog[p.alias] || !firstLogDate[p.alias] ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                    >
+                      {savingFirstLog[p.alias] ? '...' : firstLogSaved[p.alias] ? '✅' : 'Spara'}
+                    </button>
+                  </div>
+                  {!p.logs?.length && <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, marginTop: 4 }}>Inga träningar loggade ännu</div>}
+                </div>
+
                 {/* Password row */}
                 <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "8px 12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -242,6 +342,37 @@ export function AdminScreen() {
                     </div>
                   )}
                 </div>
+
+                {/* Delete player */}
+                {deleteConfirm[p.alias] ? (
+                  <div style={{ background: "rgba(220,40,40,0.1)", border: "1px solid rgba(220,40,40,0.35)", borderRadius: 10, padding: "10px 12px", marginTop: 6 }}>
+                    <div style={{ color: "#f87171", fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                      ⚠️ Ta bort {p.alias}? All data raderas permanent.
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => handleDeleteUser(p.alias)}
+                        disabled={deleting[p.alias]}
+                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: COLORS.red, color: "#fff", fontWeight: 700, fontSize: 13, cursor: deleting[p.alias] ? "not-allowed" : "pointer", opacity: deleting[p.alias] ? 0.6 : 1 }}
+                      >
+                        {deleting[p.alias] ? "Tar bort..." : "Ja, ta bort"}
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(prev => ({ ...prev, [p.alias]: false }))}
+                        style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer" }}
+                      >
+                        Avbryt
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDeleteConfirm(prev => ({ ...prev, [p.alias]: true }))}
+                    style={{ width: "100%", marginTop: 6, padding: "7px 0", borderRadius: 10, border: "1px solid rgba(220,40,40,0.3)", background: "transparent", color: "#f87171", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    🗑️ Ta bort spelare
+                  </button>
+                )}
 
               </div>
             );
