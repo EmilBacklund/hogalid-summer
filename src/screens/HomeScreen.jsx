@@ -346,6 +346,21 @@ export function HomeScreen() {
     return generateFeed(allUsers, user.alias, seasonStart).slice(0, 5);
   }, [allUsers, user.alias, seasonStart]);
 
+  // "Gör-det-nu" logic
+  const hasLogToday = (user.logs || []).some(l => l.date === todayStr && !l.bingo && !l.dailyChallenge);
+  const dailyChallenge = getDailyChallenge(seasonStart);
+  const dailyDoneToday = (user.completedDaily || {})[todayStr] === dailyChallenge?.id;
+  const pendingBuddies = buddyChallenges.filter(c => c.status === 'pending' && c.toAlias === user.alias);
+  const activeBuddies = buddyChallenges.filter(c => c.status === 'active');
+
+  const nudge = useMemo(() => {
+    if (!hasLogToday) return { icon: '⚽', text: 'Dags att träna! Logga din dag', action: 'log', color: COLORS.lime };
+    if (!dailyDoneToday) return { icon: '📅', text: 'Dagens utmaning väntar!', action: 'daily', color: COLORS.yellow };
+    if (pendingBuddies.length > 0) return { icon: '🤝', text: `${pendingBuddies.length} kompisutmaning väntar på svar!`, action: 'buddy', color: '#f9a8d4' };
+    if (activeBuddies.length > 0) return { icon: '💪', text: 'Du har en aktiv kompisutmaning — kämpa på!', action: 'buddy', color: '#60a5fa' };
+    return { icon: '🎉', text: 'Du har gjort allt idag — bra jobbat!', action: null, color: COLORS.lime };
+  }, [hasLogToday, dailyDoneToday, pendingBuddies.length, activeBuddies.length]);
+
   return (
     <div style={{ padding: '20px 16px', fontFamily: "'Nunito', sans-serif" }}>
       {showIntro && (
@@ -456,6 +471,42 @@ export function HomeScreen() {
           </div>
         </button>
       )}
+
+      {/* Gör-det-nu nudge */}
+      <button
+        onClick={() => {
+          if (nudge.action === 'log') setScreen('log');
+          else if (nudge.action === 'daily') goTo('daily');
+          else if (nudge.action === 'buddy') goTo('buddy');
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          width: '100%',
+          padding: '14px 16px',
+          marginBottom: 12,
+          borderRadius: 16,
+          border: `1.5px solid ${nudge.color}44`,
+          background: `linear-gradient(135deg, ${nudge.color}18, ${nudge.color}08)`,
+          cursor: nudge.action ? 'pointer' : 'default',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>{nudge.icon}</span>
+        <span style={{
+          color: '#fff',
+          fontSize: 14,
+          fontWeight: 700,
+          fontFamily: "'Nunito', sans-serif",
+          flex: 1,
+        }}>
+          {nudge.text}
+        </span>
+        {nudge.action && (
+          <ArrowRight size={18} style={{ color: nudge.color, flexShrink: 0 }} />
+        )}
+      </button>
 
       {/* Daily + Weekly challenges widget */}
       {(() => {
