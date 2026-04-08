@@ -116,6 +116,48 @@ export function BingoScreen() {
         </div>
       </Card>
 
+      {/* Visual bingo grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(10, 1fr)',
+        gap: 3,
+        marginBottom: 14,
+        padding: '0 2px',
+      }}>
+        {BINGO.map((b, i) => {
+          const isDone = done.includes(b.id);
+          const isJust = justDone === b.id;
+          const isFootball = b.cat === '⚽';
+          return (
+            <div
+              key={b.id}
+              title={b.label}
+              style={{
+                aspectRatio: '1',
+                borderRadius: 4,
+                background: isDone
+                  ? (isFootball ? COLORS.lime : '#fbbf24')
+                  : 'rgba(255,255,255,0.06)',
+                border: isDone
+                  ? 'none'
+                  : '1px solid rgba(255,255,255,0.08)',
+                transition: 'all 0.3s',
+                transform: isJust ? 'scale(1.3)' : 'scale(1)',
+                boxShadow: isJust ? `0 0 8px ${COLORS.lime}` : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 7,
+                color: isDone ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.15)',
+                fontWeight: 700,
+              }}
+            >
+              {i + 1}
+            </div>
+          );
+        })}
+      </div>
+
       {/* Bingo milestone badges */}
       {[5, 10, 20, 35, 50].map(milestone => {
         const reached = done.length >= milestone;
