@@ -21,12 +21,14 @@ import { Card, ProgressBar, Confetti } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight, Camera } from 'lucide-react';
+import { PhotoAlbumModal } from './PhotoAlbumScreen';
 
 export function TeamScreen() {
   const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [teamPhotos, setTeamPhotos] = useState([]);
+  const [showAlbum, setShowAlbum] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showRoster, setShowRoster] = useState(false);
   const [cheerSent, setCheerSent] = useState({});  // alias → 'sent' | 'already'
@@ -205,6 +207,7 @@ export function TeamScreen() {
     );
 
   const myStats = allStats.find((u) => u.alias === user.alias);
+  const latestPhotos = teamPhotos.slice(0, 3);
 
   // Next few team levels to show as "road ahead"
   const currentIdx = TEAM_LEVELS.findIndex((l) => l.name === teamLevel.name);
@@ -212,6 +215,13 @@ export function TeamScreen() {
 
   return (
     <div style={{ padding: '20px 16px', fontFamily: "'Nunito', sans-serif" }}>
+      {showAlbum && (
+        <PhotoAlbumModal
+          initialPhotos={teamPhotos.length > 0 ? teamPhotos : null}
+          onPhotosChange={setTeamPhotos}
+          onClose={() => setShowAlbum(false)}
+        />
+      )}
       <Confetti active={showConfetti} />
       <button
         onClick={() => setScreen('home')}
@@ -247,7 +257,7 @@ export function TeamScreen() {
       </div>
 
       <Card
-        onClick={() => setScreen('album')}
+        onClick={() => setShowAlbum(true)}
         style={{
           marginBottom: 16,
           padding: '16px 18px',
@@ -255,7 +265,7 @@ export function TeamScreen() {
           border: '1px solid rgba(240,220,0,0.22)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
           <div
             style={{
               width: 56,
@@ -280,8 +290,74 @@ export function TeamScreen() {
             </div>
             <div style={{ color: 'rgba(255,255,255,0.62)', fontSize: 13, marginTop: 6 }}>
               {teamPhotos.length > 0
-                ? `${teamPhotos.length} bilder uppladdade hittills. Öppna albumet och fyll på med sommarminnen.`
+                ? `${teamPhotos.length} bilder uppladdade hittills. Tryck för att öppna albumet och bläddra bland sidorna.`
                 : 'Här samlar ni träningsbilder, lagbilder och små sommarminnen tillsammans.'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 12 }}>
+              {Array.from({ length: 3 }, (_, index) => {
+                const photo = latestPhotos[index];
+                const rotation = [-3, 2, -2][index];
+                return (
+                  <div
+                    key={photo?.id || `placeholder-${index}`}
+                    style={{
+                      position: 'relative',
+                      background: '#fffdf6',
+                      borderRadius: 14,
+                      padding: '6px 6px 8px',
+                      minHeight: 100,
+                      transform: `rotate(${rotation}deg)`,
+                      boxShadow: '0 10px 20px rgba(0,0,0,0.18)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: -6,
+                        left: '50%',
+                        width: 40,
+                        height: 14,
+                        transform: `translateX(-50%) rotate(${rotation * -1.5}deg)`,
+                        borderRadius: 6,
+                        background: 'rgba(246, 228, 139, 0.7)',
+                      }}
+                    />
+                    {photo ? (
+                      <>
+                        <img
+                          src={photo.imageUrl || photo.imageData}
+                          alt={`Foto av ${photo.uploaderName}`}
+                          style={{
+                            width: '100%',
+                            display: 'block',
+                            aspectRatio: '1 / 1',
+                            objectFit: 'cover',
+                            borderRadius: 10,
+                          }}
+                        />
+                        <div style={{ color: COLORS.navy, fontSize: 10, fontWeight: 800, marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {photo.uploaderName}
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        style={{
+                          aspectRatio: '1 / 1',
+                          borderRadius: 10,
+                          background: 'linear-gradient(135deg, rgba(223,231,244,0.95), rgba(255,255,255,0.72))',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'rgba(0,40,100,0.42)',
+                          fontSize: 22,
+                        }}
+                      >
+                        📷
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
           <ArrowRight size={18} style={{ color: COLORS.yellow, flexShrink: 0 }} />
@@ -476,7 +552,7 @@ export function TeamScreen() {
               animation: isMaxLevel ? 'fireGlow 1.5s ease-in-out infinite' : 'none',
               cursor: e.type === 'photo' ? 'pointer' : 'default',
             }}
-            onClick={e.type === 'photo' ? () => setScreen('album') : undefined}
+            onClick={e.type === 'photo' ? () => setShowAlbum(true) : undefined}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ fontSize: 20, flexShrink: 0 }}>{e.icon}</div>

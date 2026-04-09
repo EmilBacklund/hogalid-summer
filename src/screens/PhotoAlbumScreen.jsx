@@ -1,11 +1,37 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowLeftCircle, ArrowRightCircle, Camera, ImagePlus, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowLeftCircle,
+  ArrowRight,
+  ArrowRightCircle,
+  Camera,
+  ImagePlus,
+  X,
+} from 'lucide-react';
 import { COLORS } from '../constants';
-import { Card, ButtonLoader, LoadingSpinner } from '../components/common';
+import { ButtonLoader, LoadingSpinner } from '../components/common';
 import { useUser } from '../context/UserContext';
-import { apiPost, fetchTeamPhotos, fetchTeamPhotosStale, invalidatePhotosCache, getWeekStart, localToday } from '../utils';
+import {
+  apiPost,
+  fetchTeamPhotos,
+  fetchTeamPhotosStale,
+  getWeekStart,
+  invalidatePhotosCache,
+  localToday,
+} from '../utils';
 
 const MAX_UPLOADS_PER_WEEK = 2;
+const PAGE_PATTERNS = [
+  { key: 'hero-side', count: 3 },
+  { key: 'duo', count: 2 },
+  { key: 'solo', count: 1 },
+  { key: 'grid', count: 4 },
+  { key: 'top-strip', count: 3 },
+];
+
+function getPhotoSrc(photo) {
+  return photo.imageUrl || photo.imageData || '';
+}
 
 function getUploadsLeft(photos, alias) {
   const weekStart = getWeekStart(localToday());
@@ -13,19 +39,76 @@ function getUploadsLeft(photos, alias) {
   return Math.max(0, MAX_UPLOADS_PER_WEEK - used);
 }
 
-function getAlbumStyle(id) {
-  const seed = Number(id) || 0;
-  const rotations = [-4, 3, -2, 5, -5, 2];
-  const spans = [3, 2, 3, 2, 2, 3];
-  const offsets = [0, 14, -10, 8, -4, 12];
-  const tapeRotations = [-8, 6, -4, 10, -6, 4];
-  const idx = seed % rotations.length;
-  return {
-    rotate: rotations[idx],
-    span: spans[idx],
-    offset: offsets[idx],
-    tapeRotate: tapeRotations[idx],
-  };
+function getTapeRotation(seed) {
+  const values = [-8, 7, -5, 10, -6, 4];
+  return values[seed % values.length];
+}
+
+function getPaperRotation(seed) {
+  const values = [-3, 2, -1, 4, -4, 1];
+  return values[seed % values.length];
+}
+
+function getLayoutSlots(layoutKey) {
+  if (layoutKey === 'solo') {
+    return [
+      { gridColumn: '2 / 12', gridRow: '1 / 3', aspectRatio: '3 / 4', rotate: -2, tape: -6 },
+    ];
+  }
+  if (layoutKey === 'duo') {
+    return [
+      { gridColumn: '1 / 7', gridRow: '1 / 3', aspectRatio: '3 / 4', rotate: -3, tape: -8 },
+      { gridColumn: '7 / 13', gridRow: '1 / 3', aspectRatio: '3 / 4', rotate: 2, tape: 7 },
+    ];
+  }
+  if (layoutKey === 'grid') {
+    return [
+      { gridColumn: '1 / 7', gridRow: '1 / 2', aspectRatio: '4 / 3', rotate: -2, tape: -6 },
+      { gridColumn: '7 / 13', gridRow: '1 / 2', aspectRatio: '4 / 3', rotate: 3, tape: 8 },
+      { gridColumn: '1 / 7', gridRow: '2 / 3', aspectRatio: '4 / 3', rotate: 1, tape: -4 },
+      { gridColumn: '7 / 13', gridRow: '2 / 3', aspectRatio: '4 / 3', rotate: -3, tape: 6 },
+    ];
+  }
+  if (layoutKey === 'top-strip') {
+    return [
+      { gridColumn: '1 / 13', gridRow: '1 / 2', aspectRatio: '16 / 9', rotate: -2, tape: -6 },
+      { gridColumn: '1 / 6', gridRow: '2 / 3', aspectRatio: '3 / 4', rotate: 2, tape: 8 },
+      { gridColumn: '8 / 13', gridRow: '2 / 3', aspectRatio: '3 / 4', rotate: -3, tape: -8 },
+    ];
+  }
+  return [
+    { gridColumn: '1 / 8', gridRow: '1 / 3', aspectRatio: '3 / 4', rotate: -3, tape: -6 },
+    { gridColumn: '8 / 13', gridRow: '1 / 2', aspectRatio: '1 / 1', rotate: 3, tape: 7 },
+    { gridColumn: '8 / 13', gridRow: '2 / 3', aspectRatio: '1 / 1', rotate: -2, tape: -5 },
+  ];
+}
+
+function getFallbackLayout(count, pageIndex) {
+  if (count <= 1) return 'solo';
+  if (count === 2) return 'duo';
+  if (count === 4) return 'grid';
+  return pageIndex % 2 === 0 ? 'hero-side' : 'top-strip';
+}
+
+function buildAlbumPages(photos) {
+  const pages = [];
+  let cursor = 0;
+  let pageIndex = 0;
+
+  while (cursor < photos.length) {
+    const remaining = photos.length - cursor;
+    const pattern = PAGE_PATTERNS[pageIndex % PAGE_PATTERNS.length];
+    const count = Math.min(pattern.count, remaining);
+    const layout = count === pattern.count ? pattern.key : getFallbackLayout(count, pageIndex);
+    pages.push({
+      layout,
+      photos: photos.slice(cursor, cursor + count),
+    });
+    cursor += count;
+    pageIndex += 1;
+  }
+
+  return pages;
 }
 
 async function fileToCompressedDataUrl(file) {
@@ -71,7 +154,7 @@ function AlbumLightbox({ photos, index, onClose, onPrev, onNext }) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1200,
+        zIndex: 1400,
         background: 'rgba(0, 7, 20, 0.9)',
         display: 'flex',
         alignItems: 'center',
@@ -116,7 +199,7 @@ function AlbumLightbox({ photos, index, onClose, onPrev, onNext }) {
         >
           <div style={{ position: 'relative' }}>
             <img
-              src={photo.imageData}
+              src={getPhotoSrc(photo)}
               alt={`Foto uppladdat av ${photo.uploaderName}`}
               style={{
                 width: '100%',
@@ -209,39 +292,205 @@ function AlbumLightbox({ photos, index, onClose, onPrev, onNext }) {
   );
 }
 
-export function PhotoAlbumScreen() {
-  const { user, setScreen } = useUser();
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(true);
+function AlbumPage({ page, pageIndex, allPhotos, onOpenPhoto }) {
+  const slots = getLayoutSlots(page.layout);
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        minHeight: 430,
+        borderRadius: 28,
+        padding: '24px 18px 20px 28px',
+        background:
+          'linear-gradient(180deg, #fff9e8 0%, #fdf1d1 52%, #f8e7bf 100%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 18px 40px rgba(0,0,0,0.22)',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'repeating-linear-gradient(180deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 34px)',
+          opacity: 0.55,
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 16,
+          background: 'linear-gradient(90deg, rgba(171,133,68,0.22), rgba(171,133,68,0.02))',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 12,
+          top: 22,
+          bottom: 22,
+          width: 2,
+          background: 'rgba(163,123,62,0.15)',
+          borderRadius: 999,
+        }}
+      />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginBottom: 14,
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        <div style={{ color: 'rgba(58,42,18,0.72)', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1.1 }}>
+          Sida {pageIndex + 1}
+        </div>
+        <div style={{ color: 'rgba(58,42,18,0.5)', fontSize: 12 }}>
+          Sommarminnen
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: 'relative',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+          gridAutoRows: 'minmax(96px, auto)',
+          gap: 12,
+          zIndex: 1,
+        }}
+      >
+        {page.photos.map((photo, index) => {
+          const slot = slots[index] || slots[slots.length - 1];
+          const globalIndex = allPhotos.findIndex((candidate) => candidate.id === photo.id);
+          const frameSeed = Number(photo.id || index) + pageIndex;
+          return (
+            <button
+              key={photo.id}
+              onClick={() => onOpenPhoto(globalIndex)}
+              style={{
+                ...slot,
+                position: 'relative',
+                border: 'none',
+                padding: 0,
+                background: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transform: `rotate(${slot.rotate ?? getPaperRotation(frameSeed)}deg)`,
+              }}
+            >
+              <div
+                style={{
+                  position: 'relative',
+                  background: '#fffdf7',
+                  borderRadius: 18,
+                  padding: '12px 12px 14px',
+                  boxShadow: '0 14px 28px rgba(63,42,10,0.18)',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: -10,
+                    left: '50%',
+                    width: slot.aspectRatio === '16 / 9' ? 82 : 68,
+                    height: 24,
+                    transform: `translateX(-50%) rotate(${slot.tape ?? getTapeRotation(frameSeed)}deg)`,
+                    borderRadius: 8,
+                    background: 'rgba(246, 228, 139, 0.72)',
+                    boxShadow: '0 6px 10px rgba(0,0,0,0.08)',
+                  }}
+                />
+                <img
+                  src={getPhotoSrc(photo)}
+                  alt={`Foto av ${photo.uploaderName}`}
+                  style={{
+                    width: '100%',
+                    display: 'block',
+                    objectFit: 'cover',
+                    borderRadius: 14,
+                    aspectRatio: slot.aspectRatio,
+                    background: '#dfe7f4',
+                  }}
+                />
+                <div style={{ paddingTop: 10 }}>
+                  <div style={{ color: COLORS.navy, fontWeight: 900, fontSize: 13, lineHeight: 1.2 }}>
+                    {photo.uploaderName}
+                  </div>
+                  <div style={{ color: 'rgba(0,0,0,0.52)', fontSize: 11, marginTop: 4 }}>
+                    {photo.date}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function PhotoAlbumModal({
+  initialPhotos = null,
+  onPhotosChange,
+  onClose,
+}) {
+  const { user } = useUser();
+  const [photos, setPhotos] = useState(initialPhotos || []);
+  const [loading, setLoading] = useState(!initialPhotos);
   const [uploading, setUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [pageIndex, setPageIndex] = useState(0);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
+    if (initialPhotos) {
+      setPhotos(initialPhotos);
+      setLoading(false);
+    }
+  }, [initialPhotos]);
+
+  useEffect(() => {
     const stale = fetchTeamPhotosStale((fresh) => {
-      setPhotos(fresh || []);
+      const nextPhotos = fresh || [];
+      setPhotos(nextPhotos);
+      onPhotosChange?.(nextPhotos);
       setLoading(false);
     });
     if (stale) {
       setPhotos(stale);
+      onPhotosChange?.(stale);
       setLoading(false);
     }
-    if (!stale) {
-      setLoading(true);
-      fetchTeamPhotos()
-        .then((fresh) => {
-          setPhotos(fresh || []);
-        })
-        .catch(() => {})
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }, []);
+
+    fetchTeamPhotos()
+      .then((fresh) => {
+        const nextPhotos = fresh || [];
+        setPhotos(nextPhotos);
+        onPhotosChange?.(nextPhotos);
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [onPhotosChange]);
 
   const uploadsLeft = useMemo(() => getUploadsLeft(photos, user.alias), [photos, user.alias]);
-  const remainingPhotos = Math.max(0, photos.length);
-  const lightboxPhotos = photos;
+  const pages = useMemo(() => buildAlbumPages(photos), [photos]);
+
+  useEffect(() => {
+    if (pageIndex > pages.length - 1) {
+      setPageIndex(Math.max(0, pages.length - 1));
+    }
+  }, [pageIndex, pages.length]);
 
   async function onFileChange(event) {
     const file = event.target.files?.[0];
@@ -264,9 +513,11 @@ export function PhotoAlbumScreen() {
         imageData,
         mimeType: 'image/jpeg',
       });
-      const newPhoto = result.photo;
+      const nextPhotos = [result.photo, ...photos];
       invalidatePhotosCache();
-      setPhotos((prev) => [newPhoto, ...prev]);
+      setPhotos(nextPhotos);
+      onPhotosChange?.(nextPhotos);
+      setPageIndex(0);
     } catch (error) {
       if ((error.message || '').includes('weekly_limit_reached')) {
         alert('Du har redan laddat upp 2 bilder den här veckan.');
@@ -280,224 +531,257 @@ export function PhotoAlbumScreen() {
     }
   }
 
-  if (loading) {
-    return <LoadingSpinner text="Laddar fotoalbumet..." />;
-  }
-
   return (
-    <div style={{ padding: '20px 16px 28px', fontFamily: "'Nunito', sans-serif" }}>
-      <style>{`
-        @keyframes albumFloat {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-3px); }
-        }
-      `}</style>
-
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1300,
+        background: 'rgba(0, 10, 30, 0.72)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '18px 12px',
+      }}
+    >
       {lightboxIndex !== null && (
         <AlbumLightbox
-          photos={lightboxPhotos}
+          photos={photos}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
-          onPrev={() => setLightboxIndex((current) => (current - 1 + lightboxPhotos.length) % lightboxPhotos.length)}
-          onNext={() => setLightboxIndex((current) => (current + 1) % lightboxPhotos.length)}
+          onPrev={() => setLightboxIndex((current) => (current - 1 + photos.length) % photos.length)}
+          onNext={() => setLightboxIndex((current) => (current + 1) % photos.length)}
         />
       )}
-
-      <button
-        onClick={() => setScreen('team')}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          background: 'none',
-          border: 'none',
-          color: COLORS.lime,
-          cursor: 'pointer',
-          fontSize: 15,
-          fontWeight: 700,
-          marginBottom: 16,
-          padding: 0,
-        }}
-      >
-        <ArrowLeft size={16} />
-        Till laget
-      </button>
 
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 28,
-          lineHeight: 1.08,
-          color: '#fff',
-          marginBottom: 4,
+          width: '100%',
+          maxWidth: 460,
+          maxHeight: '92vh',
+          borderRadius: 30,
+          overflow: 'hidden',
+          background:
+            'linear-gradient(180deg, rgba(0,27,76,0.98) 0%, rgba(0,40,100,0.97) 54%, rgba(6,18,52,0.99) 100%)',
+          border: '1px solid rgba(240,220,0,0.24)',
+          boxShadow: '0 28px 80px rgba(0,0,0,0.42)',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        Veckans foto 📸
-      </div>
-      <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 13, marginBottom: 16 }}>
-        Lagets sommarminnen i ett fotoalbum med träningsbilder, lagbilder och små ögonblick.
-      </div>
-
-      <Card
-        style={{
-          marginBottom: 16,
-          background: 'linear-gradient(145deg, rgba(0,40,100,0.72), rgba(220,40,40,0.35))',
-          border: '1px solid rgba(240,220,0,0.22)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1 }}>
-              Din vecka
+        <div
+          style={{
+            padding: '18px 18px 16px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                background: 'rgba(255,255,255,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: COLORS.yellow,
+                flexShrink: 0,
+              }}
+            >
+              <Camera size={22} />
             </div>
-            <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 28, lineHeight: 1.05, marginTop: 4 }}>
-              {uploadsLeft} kvar
+            <div style={{ flex: 1 }}>
+              <div style={{ color: 'rgba(255,255,255,0.56)', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1 }}>
+                Veckans foto
+              </div>
+              <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 24, lineHeight: 1.06, marginTop: 4 }}>
+                Fotoalbumet
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.64)', fontSize: 13, marginTop: 6 }}>
+                {photos.length > 0
+                  ? `${photos.length} bilder, fördelade på ${pages.length} sida${pages.length !== 1 ? 'r' : ''}.`
+                  : 'Här samlas lagets sommarminnen i ett riktigt fotoalbum.'}
+              </div>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.66)', fontSize: 13, marginTop: 6, maxWidth: 220 }}>
-              Du kan ladda upp max 2 bilder per vecka så att albumet håller sig lagom och roligt.
-            </div>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'rgba(255,255,255,0.09)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#fff',
+                width: 36,
+                height: 36,
+                borderRadius: 999,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <X size={18} style={{ marginTop: 2 }} />
+            </button>
           </div>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading || uploadsLeft <= 0}
+          <div
             style={{
-              border: 'none',
-              borderRadius: 18,
-              padding: '14px 16px',
-              minWidth: 124,
-              background: uploadsLeft > 0
-                ? `linear-gradient(135deg, ${COLORS.yellow} 0%, #ffe760 100%)`
-                : 'rgba(255,255,255,0.08)',
-              color: uploadsLeft > 0 ? COLORS.navy : 'rgba(255,255,255,0.42)',
-              fontWeight: 900,
-              cursor: uploading || uploadsLeft <= 0 ? 'default' : 'pointer',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              gap: 8,
-              boxShadow: uploadsLeft > 0 ? '0 12px 24px rgba(240,220,0,0.18)' : 'none',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginTop: 14,
+              flexWrap: 'wrap',
             }}
           >
-            {uploading ? <ButtonLoader color={COLORS.navy} /> : <ImagePlus size={22} />}
-            <span style={{ fontSize: 13 }}>
+            <div style={{ color: 'rgba(255,255,255,0.74)', fontSize: 12 }}>
+              Du har <strong style={{ color: '#fff' }}>{uploadsLeft}</strong> uppladdning{uploadsLeft !== 1 ? 'ar' : ''} kvar den här veckan
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || uploadsLeft <= 0}
+              style={{
+                border: 'none',
+                borderRadius: 16,
+                padding: '12px 16px',
+                background: uploadsLeft > 0
+                  ? `linear-gradient(135deg, ${COLORS.yellow} 0%, #ffe760 100%)`
+                  : 'rgba(255,255,255,0.08)',
+                color: uploadsLeft > 0 ? COLORS.navy : 'rgba(255,255,255,0.42)',
+                fontWeight: 900,
+                cursor: uploading || uploadsLeft <= 0 ? 'default' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              {uploading ? <ButtonLoader color={COLORS.navy} /> : <ImagePlus size={18} />}
               {uploading ? 'Laddar upp...' : uploadsLeft > 0 ? 'Lägg till bild' : 'Veckan är full'}
-            </span>
-          </button>
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onFileChange}
+            style={{ display: 'none' }}
+          />
         </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={onFileChange}
-          style={{ display: 'none' }}
-        />
 
         <div
           style={{
-            marginTop: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            flexWrap: 'wrap',
+            padding: '16px',
+            overflowY: 'auto',
+            flex: 1,
           }}
         >
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
-            {remainingPhotos} bilder i albumet just nu
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.48)', fontSize: 12 }}>
-            Bilder syns direkt. Admin-godkännande kan läggas till senare om ni vill.
-          </div>
-        </div>
-      </Card>
+          {loading ? (
+            <LoadingSpinner text="Laddar fotoalbumet..." />
+          ) : photos.length === 0 ? (
+            <div
+              style={{
+                minHeight: 360,
+                borderRadius: 28,
+                background:
+                  'linear-gradient(180deg, #fff9e8 0%, #fdf1d1 52%, #f8e7bf 100%)',
+                padding: '34px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: 42, marginBottom: 8 }}>📷</div>
+              <div style={{ color: COLORS.navy, fontFamily: "'Fredoka One', cursive", fontSize: 24 }}>
+                Albumet väntar på första bilden
+              </div>
+              <div style={{ color: 'rgba(27,35,61,0.66)', fontSize: 14, lineHeight: 1.5, marginTop: 10, maxWidth: 260 }}>
+                Lägg till en träningsbild, en lagbild eller ett sommarminne så börjar albumet fyllas.
+              </div>
+            </div>
+          ) : (
+            <>
+              <AlbumPage
+                page={pages[pageIndex]}
+                pageIndex={pageIndex}
+                allPhotos={photos}
+                onOpenPhoto={setLightboxIndex}
+              />
 
-      {photos.length === 0 ? (
-        <Card style={{ textAlign: 'center', padding: '28px 20px' }}>
-          <div style={{ fontSize: 42, marginBottom: 8 }}>📷</div>
-          <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: '#fff', marginBottom: 8 }}>
-            Albumet väntar på första bilden
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 14, lineHeight: 1.5 }}>
-            Lägg till en träningsbild, en lagbild eller ett sommarminne så börjar albumet fyllas.
-          </div>
-        </Card>
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
-            gap: 12,
-            alignItems: 'start',
-          }}
-        >
-          {photos.map((photo, index) => {
-            const styleSeed = getAlbumStyle(photo.id);
-            return (
-              <button
-                key={photo.id}
-                onClick={() => setLightboxIndex(index)}
+              <div
                 style={{
-                  gridColumn: `span ${styleSeed.span}`,
-                  marginTop: styleSeed.offset,
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transform: `rotate(${styleSeed.rotate}deg)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  marginTop: 16,
                 }}
               >
-                <div
+                <button
+                  onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+                  disabled={pageIndex === 0}
                   style={{
-                    position: 'relative',
-                    background: '#fffdf4',
-                    borderRadius: 18,
-                    padding: '12px 12px 14px',
-                    boxShadow: '0 16px 30px rgba(0,0,0,0.25)',
-                    animation: 'albumFloat 4.5s ease-in-out infinite',
+                    border: 'none',
+                    background: 'rgba(255,255,255,0.08)',
+                    color: pageIndex === 0 ? 'rgba(255,255,255,0.28)' : '#fff',
+                    borderRadius: 16,
+                    padding: '12px 14px',
+                    cursor: pageIndex === 0 ? 'default' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    fontWeight: 800,
                   }}
                 >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: -10,
-                      left: '50%',
-                      width: 72,
-                      height: 26,
-                      transform: `translateX(-50%) rotate(${styleSeed.tapeRotate}deg)`,
-                      borderRadius: 8,
-                      background: 'rgba(255, 244, 157, 0.7)',
-                      boxShadow: '0 6px 12px rgba(0,0,0,0.12)',
-                    }}
-                  />
-                  <img
-                    src={photo.imageData}
-                    alt={`Foto av ${photo.uploaderName}`}
-                    style={{
-                      width: '100%',
-                      display: 'block',
-                      objectFit: 'cover',
-                      borderRadius: 14,
-                      aspectRatio: '3 / 4',
-                      background: '#dfe7f4',
-                    }}
-                  />
-                  <div style={{ paddingTop: 10 }}>
-                    <div style={{ color: COLORS.navy, fontWeight: 900, fontSize: 13, lineHeight: 1.2 }}>
-                      {photo.uploaderName}
-                    </div>
-                    <div style={{ color: 'rgba(0,0,0,0.52)', fontSize: 11, marginTop: 4 }}>
-                      {photo.date}
-                    </div>
+                  <ArrowLeft size={16} />
+                  Förra sidan
+                </button>
+
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 18 }}>
+                    {pageIndex + 1}/{pages.length}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                    Bläddra i albumet
                   </div>
                 </div>
-              </button>
-            );
-          })}
+
+                <button
+                  onClick={() => setPageIndex((current) => Math.min(pages.length - 1, current + 1))}
+                  disabled={pageIndex >= pages.length - 1}
+                  style={{
+                    border: 'none',
+                    background: 'rgba(255,255,255,0.08)',
+                    color: pageIndex >= pages.length - 1 ? 'rgba(255,255,255,0.28)' : '#fff',
+                    borderRadius: 16,
+                    padding: '12px 14px',
+                    cursor: pageIndex >= pages.length - 1 ? 'default' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    fontWeight: 800,
+                  }}
+                >
+                  Nästa sidan
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
+  );
+}
+
+export function PhotoAlbumScreen() {
+  const { setScreen } = useUser();
+
+  return (
+    <PhotoAlbumModal
+      onClose={() => setScreen('team')}
+    />
   );
 }
