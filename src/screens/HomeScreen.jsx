@@ -383,7 +383,7 @@ export function HomeScreen() {
   }, [allUsers, todayStr]);
 
   const nudge = useMemo(() => {
-    if (!hasLogToday) return { icon: '⚽', text: 'Dags att träna! Logga din dag', action: 'log', color: COLORS.lime };
+    if (!hasLogToday) return { icon: '⚽', text: 'Dags att träna! Sisten som loggar sin dag hejar på Reymers!', action: 'log', color: COLORS.lime };
     if (!dailyDoneToday) return { icon: '📅', text: 'Dagens utmaning väntar!', action: 'daily', color: COLORS.yellow };
     if (pendingBuddies.length > 0) return { icon: '🤝', text: `${pendingBuddies.length} kompisutmaning väntar på svar!`, action: 'buddy', color: '#f9a8d4' };
     if (activeBuddies.length > 0) return { icon: '💪', text: 'Du har en aktiv kompisutmaning — kämpa på!', action: 'buddy', color: '#60a5fa' };
