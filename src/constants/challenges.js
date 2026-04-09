@@ -135,16 +135,16 @@ export const DAILY_CHALLENGES = [
 // Weekly challenges — team goals based on week number
 // Each week alternates between touch-heavy and minutes-heavy
 export const WEEKLY_CHALLENGES = [
-  { id: "w01", label: "2800 touch tillsammans den här veckan", type: "touch", goal: 2800, points: 50 },
+  { id: "w01", label: "Jonas utmanar er: 2800 touch tillsammans den här veckan", type: "touch", goal: 2800, points: 50 },
   { id: "w02", label: "190 minuters träning tillsammans den här veckan", type: "minutes", goal: 190, points: 50 },
-  { id: "w03", label: "3000 touch tillsammans den här veckan", type: "touch", goal: 3000, points: 60 },
+  { id: "w03", label: "Calle utmanar er: 3000 touch tillsammans den här veckan", type: "touch", goal: 3000, points: 60 },
   { id: "w04", label: "210 minuters träning tillsammans den här veckan", type: "minutes", goal: 210, points: 60 },
-  { id: "w05", label: "3200 touch tillsammans den här veckan", type: "touch", goal: 3200, points: 70 },
+  { id: "w05", label: "Jakob utmanar er: 3200 touch tillsammans den här veckan", type: "touch", goal: 3200, points: 70 },
   { id: "w06", label: "230 minuters träning tillsammans den här veckan", type: "minutes", goal: 230, points: 70 },
-  { id: "w07", label: "3400 touch tillsammans den här veckan", type: "touch", goal: 3400, points: 75 },
+  { id: "w07", label: "Richard utmanar er: 3400 touch tillsammans den här veckan", type: "touch", goal: 3400, points: 75 },
   { id: "w08", label: "250 minuters träning tillsammans den här veckan", type: "minutes", goal: 250, points: 75 },
-  { id: "w09", label: "3600 touch tillsammans den här veckan", type: "touch", goal: 3600, points: 80 },
+  { id: "w09", label: "Peter utmanar er: 3600 touch tillsammans den här veckan", type: "touch", goal: 3600, points: 80 },
   { id: "w10", label: "270 minuters träning tillsammans den här veckan", type: "minutes", goal: 270, points: 80 },
-  { id: "w11", label: "3800 touch tillsammans den här veckan", type: "touch", goal: 3800, points: 90 },
+  { id: "w11", label: "Jonas utmanar er igen: 3800 touch tillsammans den här veckan", type: "touch", goal: 3800, points: 90 },
   { id: "w12", label: "290 minuters träning tillsammans den här veckan", type: "minutes", goal: 290, points: 90 },
 ];
