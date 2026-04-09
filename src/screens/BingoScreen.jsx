@@ -249,7 +249,7 @@ export function BingoScreen() {
       )}
 
       {/* Bingo milestone badges */}
-      {[5, 10, 20, 35, 50].map(milestone => {
+      {[10, 20, 35, 50].map(milestone => {
         const reached = done.length >= milestone;
         const badge = BADGES.find(b => b.id === `bingo${milestone}`);
         return (

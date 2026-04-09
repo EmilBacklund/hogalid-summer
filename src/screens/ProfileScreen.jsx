@@ -2,13 +2,15 @@ import { useState, useMemo } from 'react';
 import {
   COLORS,
   BADGES,
+  STICKERS,
+  STICKER_GROUPS,
   EXERCISES,
   STARTER_OPTIONS,
   AVATAR_REWARDS,
   CATEGORIES,
   getAvailableOptions,
 } from '../constants';
-import { getLevel, getNextLevel, calcProgress } from '../utils';
+import { getLevel, getNextLevel, calcProgress, getEarnedStickers } from '../utils';
 import { Card, ProgressBar, ButtonLoader } from '../components/common';
 import { AvatarSVG, AvatarBuilder } from '../components/avatar';
 import { useUser } from '../context/UserContext';
@@ -46,6 +48,7 @@ function getPreviewItems(reward) {
 
 const TABS = [
   { id: 'avatar', label: 'Avatar', icon: '👧' },
+  { id: 'stickers', label: 'Stickers', icon: '🌟' },
   { id: 'badges', label: 'Medaljer', icon: '🏅' },
   { id: 'stats', label: 'Stats', icon: '📊' },
 ];
@@ -72,6 +75,7 @@ export function ProfileScreen() {
   const level = getLevel(stats.totalPoints);
   const nextLevel = getNextLevel(stats.totalPoints);
   const progress = calcProgress(stats.totalPoints);
+  const earnedStickers = useMemo(() => getEarnedStickers(user, stats), [user, stats]);
   const earnedBadges = BADGES.filter((b) => b.condition(stats));
 
   const unlockedOptions = useMemo(() => {
@@ -323,6 +327,9 @@ export function ProfileScreen() {
       )}
       {activeTab === 'badges' && (
         <BadgesTab earnedBadges={earnedBadges} stats={stats} />
+      )}
+      {activeTab === 'stickers' && (
+        <StickersTab earnedStickers={earnedStickers} />
       )}
       {activeTab === 'stats' && (
         <StatsTab stats={stats} user={user} />
@@ -577,17 +584,12 @@ function BadgesTab({ earnedBadges, stats }) {
 
 function getBadgeDescription(id) {
   const descriptions = {
-    first_log: 'Logga din första träning',
-    streak3: 'Håll en streak i 3 dagar',
     streak7: 'Håll en streak i 7 dagar',
+    streak14: 'Håll en streak i 14 dagar',
     juggle50: 'Jonglera 50 gånger i rad',
-    minutes60: 'Träna totalt 60 minuter',
     minutes300: 'Träna totalt 5 timmar',
-    photographer: 'Ladda upp 2 bilder i fotoalbumet',
-    master_photographer: 'Ladda upp 6 bilder i fotoalbumet',
     paparazzi: 'Ladda upp 10 bilder i fotoalbumet',
     allExercises: 'Testa minst 7 olika övningar',
-    bingo5: 'Klara 5 bingoutmaningar',
     bingo10: 'Klara 10 bingoutmaningar',
     bingo20: 'Klara 20 bingoutmaningar',
     bingo35: 'Klara 35 bingoutmaningar',
@@ -595,6 +597,98 @@ function getBadgeDescription(id) {
     bingoline: 'Klara en hel rad eller kolumn i bingo',
   };
   return descriptions[id] || '';
+}
+
+function StickersTab({ earnedStickers }) {
+  const earnedIds = new Set(earnedStickers.map((sticker) => sticker.id));
+
+  return (
+    <div>
+      <div
+        style={{
+          textAlign: 'center',
+          marginBottom: 16,
+          color: 'rgba(255,255,255,0.5)',
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+      >
+        {earnedStickers.length} av {STICKERS.length} stickers upplåsta
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {STICKER_GROUPS.map((group) => {
+          const groupStickers = STICKERS.filter((sticker) => sticker.group === group);
+          return (
+            <div key={group}>
+              <div
+                style={{
+                  color: 'rgba(255,255,255,0.55)',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                  marginBottom: 8,
+                }}
+              >
+                {group}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                {groupStickers.map((sticker) => {
+                  const earned = earnedIds.has(sticker.id);
+                  return (
+                    <div
+                      key={sticker.id}
+                      style={{
+                        borderRadius: 16,
+                        padding: '12px 10px 10px',
+                        background: earned
+                          ? 'linear-gradient(160deg, rgba(240,220,0,0.18), rgba(255,255,255,0.08))'
+                          : 'rgba(255,255,255,0.05)',
+                        border: earned
+                          ? '1px solid rgba(240,220,0,0.35)'
+                          : '1px solid rgba(255,255,255,0.08)',
+                        opacity: earned ? 1 : 0.42,
+                        textAlign: 'center',
+                        minHeight: 104,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: 28, lineHeight: 1 }}>{earned ? sticker.icon : '🔒'}</div>
+                      <div
+                        style={{
+                          color: earned ? COLORS.yellow : 'rgba(255,255,255,0.5)',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          lineHeight: 1.2,
+                          marginTop: 8,
+                        }}
+                      >
+                        {sticker.label}
+                      </div>
+                      <div
+                        style={{
+                          color: earned ? 'rgba(255,255,255,0.52)' : 'rgba(255,255,255,0.28)',
+                          fontSize: 10,
+                          lineHeight: 1.25,
+                          marginTop: 5,
+                        }}
+                      >
+                        {sticker.description}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 /* ─── Stats Tab ─── */

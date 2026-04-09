@@ -7,3 +7,4 @@ export { fetchAllUsers, fetchAllUsersStale, invalidateUsersCache } from './users
 export { fetchTeamPhotos, fetchTeamPhotosStale, invalidatePhotosCache } from './photosCache';
 export { computeWeeklyHistory, saveWeeklyResult, getWeeklyChallengeForDate } from './weeklyHistory';
 export { generateFeed } from './feed';
+export { getEarnedStickers, getStickerContext } from './stickers';
