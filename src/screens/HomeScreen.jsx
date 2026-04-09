@@ -39,7 +39,7 @@ const INTRO_PAGES = [
     icon: '⭐',
     title: 'Poäng visar hur mycket du kämpar',
     body:
-      'När du tränar och loggar får du poäng. Ju fler poäng du samlar, desto längre kommer du.',
+      'När du tränar och loggar får du poäng. Poängen blir också mynt som du kan använda för att låsa upp samlarkort. Ju fler poäng du samlar, desto längre kommer du.',
   },
   {
     eyebrow: 'Streak',
