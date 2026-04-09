@@ -9,6 +9,38 @@ function getRealTrainingLogs(user) {
   return (user.logs || []).filter((log) => !log.bingo && !log.dailyChallenge && !(log.title || '').startsWith('🤝buddy:'));
 }
 
+function hasFirstTeamLog(user, allUsers) {
+  if (!user?.alias || !Array.isArray(allUsers) || allUsers.length === 0) return false;
+
+  const earliestByDate = new Map();
+
+  allUsers.forEach((teamUser) => {
+    getRealTrainingLogs(teamUser).forEach((log) => {
+      const key = log.date;
+      const createdAt = log.createdAt || '';
+      const existing = earliestByDate.get(key);
+
+      if (!existing) {
+        earliestByDate.set(key, { alias: teamUser.alias, createdAt });
+        return;
+      }
+
+      if (createdAt && existing.createdAt) {
+        if (createdAt < existing.createdAt) {
+          earliestByDate.set(key, { alias: teamUser.alias, createdAt });
+        }
+        return;
+      }
+
+      if (createdAt && !existing.createdAt) {
+        earliestByDate.set(key, { alias: teamUser.alias, createdAt });
+      }
+    });
+  });
+
+  return Array.from(earliestByDate.values()).some((entry) => entry.alias === user.alias);
+}
+
 function countByWeek(logs) {
   const byWeek = {};
   logs.forEach((log) => {
@@ -46,7 +78,7 @@ function countSummerActivitiesByWeek(logs) {
   return byWeek;
 }
 
-export function getStickerContext(user, stats) {
+export function getStickerContext(user, stats, allUsers = []) {
   const realLogs = getRealTrainingLogs(user);
   const weekCounts = Object.values(countByWeek(realLogs));
   const completedDailyCount = Object.keys(user.completedDaily || {}).length;
@@ -60,6 +92,7 @@ export function getStickerContext(user, stats) {
     completedDailyCount,
     buddyCompletions,
     photoCount: stats.photoCount || 0,
+    hasFirstTeamLog: () => hasFirstTeamLog(user, allUsers),
     hasWeekday: (weekday) => realLogs.some((log) => getWeekday(log.date) === weekday),
     maxLogsInWeek: weekCounts.length ? Math.max(...weekCounts) : 0,
     hasExercise: (exerciseId) => realLogs.some((log) => (log.exercises || []).some((exercise) => exercise.id === exerciseId && (exercise.value || 0) > 0)),
@@ -82,6 +115,7 @@ const STICKER_CONDITIONS = {
   sunday_hero: (ctx) => ctx.hasWeekday(0),
   week_three_logs: (ctx) => ctx.maxLogsInWeek >= 3,
   week_five_logs: (ctx) => ctx.maxLogsInWeek >= 5,
+  not_reymers: (ctx) => ctx.hasFirstTeamLog(),
   streak2: (ctx) => ctx.stats.maxStreak >= 2,
   streak3: (ctx) => ctx.stats.maxStreak >= 3,
   first_daily: (ctx) => ctx.completedDailyCount >= 1,
@@ -122,7 +156,7 @@ const STICKER_CONDITIONS = {
   summer_allrounder: (ctx) => ctx.hasSummerActivity('iceCream') && ctx.hasSummerActivity('swim') && ctx.hasSummerActivity('pages'),
 };
 
-export function getEarnedStickers(user, stats) {
-  const ctx = getStickerContext(user, stats);
+export function getEarnedStickers(user, stats, allUsers = []) {
+  const ctx = getStickerContext(user, stats, allUsers);
   return STICKERS.filter((sticker) => STICKER_CONDITIONS[sticker.id]?.(ctx));
 }

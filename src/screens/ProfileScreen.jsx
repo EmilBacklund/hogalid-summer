@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   COLORS,
   BADGES,
@@ -10,7 +10,7 @@ import {
   CATEGORIES,
   getAvailableOptions,
 } from '../constants';
-import { getLevel, getNextLevel, calcProgress, getEarnedStickers } from '../utils';
+import { getLevel, getNextLevel, calcProgress, getEarnedStickers, fetchAllUsersStale } from '../utils';
 import { Card, ProgressBar, ButtonLoader } from '../components/common';
 import { AvatarSVG, AvatarBuilder } from '../components/avatar';
 import { useUser } from '../context/UserContext';
@@ -62,6 +62,7 @@ export function ProfileScreen() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user.displayName || user.alias);
   const [savingName, setSavingName] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
 
   async function handleUnlockWithLoading(itemId, cost) {
     if (unlocking) return;
@@ -75,7 +76,12 @@ export function ProfileScreen() {
   const level = getLevel(stats.totalPoints);
   const nextLevel = getNextLevel(stats.totalPoints);
   const progress = calcProgress(stats.totalPoints);
-  const earnedStickers = useMemo(() => getEarnedStickers(user, stats), [user, stats]);
+  useEffect(() => {
+    const stale = fetchAllUsersStale((fresh) => setAllUsers(fresh || []));
+    if (stale) setAllUsers(stale);
+  }, []);
+
+  const earnedStickers = useMemo(() => getEarnedStickers(user, stats, allUsers), [user, stats, allUsers]);
   const earnedBadges = BADGES.filter((b) => b.condition(stats));
 
   const unlockedOptions = useMemo(() => {

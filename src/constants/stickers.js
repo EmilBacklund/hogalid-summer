@@ -9,6 +9,7 @@ export const STICKERS = [
   { id: 'sunday_hero', label: 'Söndagshjälte', icon: '🌅', group: 'Start & Vecka', description: 'Träna en söndag' },
   { id: 'week_three_logs', label: 'Tre pass samma vecka', icon: '🗓️', group: 'Start & Vecka', description: 'Logga 3 träningsdagar under samma vecka' },
   { id: 'week_five_logs', label: 'Fem pass samma vecka', icon: '💥', group: 'Start & Vecka', description: 'Logga 5 träningsdagar under samma vecka' },
+  { id: 'not_reymers', label: 'Hejar inte på Reymers!', icon: '😮‍💨', group: 'Start & Vecka', description: 'Var först i laget med att logga en träningsdag' },
   { id: 'streak2', label: 'Två dagar i rad', icon: '🔥', group: 'Start & Vecka', description: 'Håll en streak i 2 dagar' },
   { id: 'streak3', label: 'Tre dagar i rad', icon: '⚡', group: 'Start & Vecka', description: 'Håll en streak i 3 dagar' },
   { id: 'first_daily', label: 'Första dagsuppdraget', icon: '✅', group: 'Start & Vecka', description: 'Klara ditt första dagsuppdrag' },
