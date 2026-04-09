@@ -1,7 +1,7 @@
 // Collector cards — Swedish Women's National Team 2026
 // Enriched with profile data from playerCards.js
 
-import { PLAYER_CARD_PROFILES } from './playerCards';
+import { PLAYER_CARD_PROFILES, LEGEND_CARD_PROFILES } from './playerCards';
 
 const PLAYER_FILES = [
   'Amanda_Ilestedt.jpg',
@@ -50,13 +50,20 @@ export const PLAYER_CARDS = PLAYER_FILES.map((file, i) => {
   };
 });
 
-export const LEGEND_CARDS = [
-  { id: 'legend_pia_sundhage',     name: 'Pia Sundhage',      type: 'legend', number: 24, emoji: '👑' },
-  { id: 'legend_hanna_ljungberg',  name: 'Hanna Ljungberg',   type: 'legend', number: 25, emoji: '⚡' },
-  { id: 'legend_caroline_seger',   name: 'Caroline Seger',    type: 'legend', number: 26, emoji: '🏅' },
-  { id: 'legend_lotta_schelin',    name: 'Lotta Schelin',     type: 'legend', number: 27, emoji: '🔥' },
-  { id: 'legend_hedvig_lindahl',   name: 'Hedvig Lindahl',    type: 'legend', number: 28, emoji: '🧤' },
-];
+const LEGEND_EMOJIS = ['👑', '🏅', '⚡', '🔥', '🛡️'];
+
+export const LEGEND_CARDS = LEGEND_CARD_PROFILES.map((profile, i) => ({
+  id: profile.id,
+  name: profile.name,
+  image: `/spelarbilder/${profile.imageFile}`,
+  type: 'legend',
+  number: PLAYER_CARDS.length + i + 1,
+  emoji: LEGEND_EMOJIS[i] || '👑',
+  position: profile.position || null,
+  club: profile.currentClub || null,
+  youthClub: profile.youthClub || null,
+  blurb: profile.blurb || null,
+}));
 
 export const ALL_CARDS = [...PLAYER_CARDS, ...LEGEND_CARDS];
 

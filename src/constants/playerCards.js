@@ -1,7 +1,8 @@
-// Player card profiles for the Sweden women's national team.
-// Data is based primarily on Wikipedia pages checked on 2026-04-08.
-// Sofia Reidy is the only exception, where public football sources were used
-// because no dedicated Wikipedia player page appeared in search results.
+// Player and legend card profiles for Swedish women's football cards.
+// Data is based primarily on Wikipedia pages checked on 2026-04-09.
+// Sofia Reidy is the only exception among the regular player cards, where
+// public football sources were used because no dedicated Wikipedia page
+// appeared in search results.
 
 export const PLAYER_CARD_PROFILES = [
   {
@@ -256,5 +257,63 @@ export const PLAYER_CARD_PROFILES = [
     blurb:
       'Zecira är en målvakt som gjort stora räddningar i stora matcher. Hon är modig, snabb och gillar att utmana sig själv. När hon storspelar kan hon nästan kännas omöjlig att göra mål på.',
     sourceUrl: 'https://en.wikipedia.org/wiki/Ze%C4%87ira_Mu%C5%A1ovi%C4%87',
+  },
+];
+
+export const LEGEND_CARD_PROFILES = [
+  {
+    id: 'legend_therese_sjogran',
+    imageFile: 'legend/Therese_Sjogran.jpg',
+    name: 'Therese Sjögran',
+    position: 'Mittfältare',
+    youthClub: 'Harlösa IF',
+    currentClub: 'Legend från FC Rosengård',
+    blurb:
+      'Therese var en spelmotor som gjorde svensk fotboll bättre i många, många år. Hon hade lugnet, blicken och passningarna som kunde öppna en hel match. När man pratar om riktiga svenska legender är hennes namn alltid med.',
+    sourceUrl: 'https://en.wikipedia.org/wiki/Therese_Sj%C3%B6gran',
+  },
+  {
+    id: 'legend_caroline_seger',
+    imageFile: 'legend/Caroline_Seger.jpg',
+    name: 'Caroline Seger',
+    position: 'Mittfältare',
+    youthClub: 'Gantofta IF',
+    currentClub: 'Sista klubb: FC Rosengård',
+    blurb:
+      'Caroline var lagkaptenen som styrde spelet med hjärna, mod och massor av erfarenhet. Hon blev Sveriges mest landskamperika spelare någonsin och visade hur en riktig ledare kan bära ett helt lag. Ett legendkort passar henne perfekt.',
+    sourceUrl: 'https://en.wikipedia.org/wiki/Caroline_Seger',
+  },
+  {
+    id: 'legend_hanna_ljungberg',
+    imageFile: 'legend/Hanna_Ljungberg.jpg',
+    name: 'Hanna Ljungberg',
+    position: 'Anfallare',
+    youthClub: 'Mariehem SK',
+    currentClub: 'Sista klubb: Umeå IK',
+    blurb:
+      'Hanna var en målspruta som kunde avgöra matcher nästan på egen hand. Hon gjorde massor av mål för både Umeå IK och Sverige och var en av världens bästa anfallare under sin tid. Sådana spelare blir inte bara stjärnor, de blir legender.',
+    sourceUrl: 'https://en.wikipedia.org/wiki/Hanna_Ljungberg',
+  },
+  {
+    id: 'legend_lina_hurtig',
+    imageFile: 'legend/Lina_Hurtig.jpg',
+    name: 'Lina Hurtig',
+    position: 'Anfallare',
+    youthClub: 'Avesta AIK',
+    currentClub: 'Fiorentina',
+    blurb:
+      'Lina har en speciell förmåga att dyka upp i de stora ögonblicken. Hon är stark, kylig och har gjort viktiga mål när Sverige behövt det som mest. Det är precis så legendariska spelare sätter sina spår.',
+    sourceUrl: 'https://en.wikipedia.org/wiki/Lina_Hurtig',
+  },
+  {
+    id: 'legend_nilla_fischer',
+    imageFile: 'legend/Nilla_Fischer.jpg',
+    name: 'Nilla Fischer',
+    position: 'Mittback / defensiv mittfältare',
+    youthClub: 'Verums GoIF',
+    currentClub: 'Sista klubb: Linköpings FC',
+    blurb:
+      'Nilla var en riktig försvarsgeneral som spelade tufft, smart och orädd. Hon ledde backlinjen i stora mästerskap och var en spelare som motståndarna alltid märkte av. Hon har den där kraften som gör att man minns henne länge.',
+    sourceUrl: 'https://en.wikipedia.org/wiki/Nilla_Fischer',
   },
 ];
