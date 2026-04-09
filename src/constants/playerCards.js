@@ -316,4 +316,15 @@ export const LEGEND_CARD_PROFILES = [
       'Nilla var en riktig försvarsgeneral som spelade tufft, smart och orädd. Hon ledde backlinjen i stora mästerskap och var en spelare som motståndarna alltid märkte av. Hon har den där kraften som gör att man minns henne länge.',
     sourceUrl: 'https://en.wikipedia.org/wiki/Nilla_Fischer',
   },
+  {
+    id: 'legend_lotta_schelin',
+    imageFile: 'legend/Lotta_Schelin.jpg',
+    name: 'Lotta Schelin',
+    position: 'Anfallare',
+    youthClub: 'Kållereds SK',
+    currentClub: 'Sista klubb: FC Rosengård',
+    blurb:
+      'Lotta var en målmaskin som gjorde mål i både Sverige, Lyon och landslaget i år efter år. Hon blev Sveriges främsta målskytt genom tiderna och var en sådan spelare som kunde avgöra de största matcherna. Det här är ett kort för en riktig ikon.',
+    sourceUrl: 'https://en.wikipedia.org/wiki/Lotta_Schelin',
+  },
 ];

@@ -50,7 +50,7 @@ export const PLAYER_CARDS = PLAYER_FILES.map((file, i) => {
   };
 });
 
-const LEGEND_EMOJIS = ['👑', '🏅', '⚡', '🔥', '🛡️'];
+const LEGEND_EMOJIS = ['👑', '🏅', '⚡', '🔥', '🛡️', '⭐'];
 
 export const LEGEND_CARDS = LEGEND_CARD_PROFILES.map((profile, i) => ({
   id: profile.id,
@@ -76,5 +76,5 @@ export const CARD_PACK_COST = 350;
 export const LEGEND_PACK_COST = 500;
 
 export const TOTAL_PLAYER_CARDS = PLAYER_CARDS.length; // 23
-export const TOTAL_LEGEND_CARDS = LEGEND_CARDS.length;  // 5
-export const TOTAL_ALL_CARDS = ALL_CARDS.length;         // 28
+export const TOTAL_LEGEND_CARDS = LEGEND_CARDS.length;  // 6
+export const TOTAL_ALL_CARDS = ALL_CARDS.length;         // 29
