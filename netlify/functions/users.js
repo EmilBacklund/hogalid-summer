@@ -73,6 +73,7 @@ export default async (req, context) => {
         user.logs = await getLogs(db, alias.toLowerCase());
         user.bingo = await getBingo(db, alias.toLowerCase());
         user.completedDaily = await getCompletedDaily(db, alias.toLowerCase());
+        user.photoCount = await getPhotoCount(db, alias.toLowerCase());
         return new Response(JSON.stringify(user), { status: 200, headers });
       } else {
         // all users
@@ -83,6 +84,7 @@ export default async (req, context) => {
           u.logs = await getLogs(db, u.alias.toLowerCase());
           u.bingo = await getBingo(db, u.alias.toLowerCase());
           u.completedDaily = await getCompletedDaily(db, u.alias.toLowerCase());
+          u.photoCount = await getPhotoCount(db, u.alias.toLowerCase());
           u.password = row.display_password || '';
           users.push(u);
         }
@@ -155,6 +157,7 @@ export default async (req, context) => {
       user.logs = await getLogs(db, key);
       user.bingo = await getBingo(db, key);
       user.completedDaily = await getCompletedDaily(db, key);
+      user.photoCount = await getPhotoCount(db, key);
       return new Response(JSON.stringify(user), { status: 200, headers });
     }
 
@@ -370,6 +373,7 @@ export default async (req, context) => {
         DELETE FROM weekly_results;
         DELETE FROM feed_reactions;
         DELETE FROM cheers;
+        DELETE FROM album_photos;
       `);
       await db.execute({
         sql: "INSERT OR REPLACE INTO config (key, value) VALUES ('season_start', ?)",
@@ -403,6 +407,7 @@ export default async (req, context) => {
         { sql: 'DELETE FROM completed_daily WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM buddy_challenges WHERE from_alias = ? OR to_alias = ?', args: [key, key] },
         { sql: 'DELETE FROM cheers WHERE from_alias = ? OR to_alias = ?', args: [key, key] },
+        { sql: 'DELETE FROM album_photos WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM users WHERE alias = ?', args: [key] },
       ];
       for (const q of tables) await db.execute(q);
@@ -467,7 +472,16 @@ function rowToUser(row) {
     unlockedItems: JSON.parse(row.unlocked_items || '[]'),
     highscores: JSON.parse(row.highscores || '{}'),
     joinedAt: row.joined_at,
+    photoCount: 0,
   };
+}
+
+async function getPhotoCount(db, alias) {
+  const result = await db.execute({
+    sql: 'SELECT COUNT(*) AS count FROM album_photos WHERE alias = ?',
+    args: [alias],
+  });
+  return Number(result.rows[0]?.count || 0);
 }
 
 async function getLogs(db, alias) {

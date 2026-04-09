@@ -66,6 +66,7 @@ export function computeStats(user) {
   const totalIceCream = logs.reduce((s, l) => s + (l.iceCream || 0), 0);
   const totalSwim     = logs.reduce((s, l) => s + (l.swim || 0), 0);
   const totalPages    = logs.reduce((s, l) => s + (l.pages || 0), 0);
+  const photoCount    = user.photoCount || 0;
 
   // Summer streaks — days in a row with at least 1 of each activity
   function calcSummerStreak(field) {
@@ -81,5 +82,5 @@ export function computeStats(user) {
   const swimStreak     = calcSummerStreak('swim');
   const readStreak     = calcSummerStreak('pages');
 
-  return { totalPoints, totalMinutes, totalLogs, totalTouch, exerciseCounts, exerciseHighscores, streak, maxStreak, bingoCount, bingoLines, totalIceCream, totalSwim, totalPages, iceCreamStreak, swimStreak, readStreak };
+  return { totalPoints, totalMinutes, totalLogs, totalTouch, exerciseCounts, exerciseHighscores, streak, maxStreak, bingoCount, bingoLines, totalIceCream, totalSwim, totalPages, photoCount, iceCreamStreak, swimStreak, readStreak };
 }
