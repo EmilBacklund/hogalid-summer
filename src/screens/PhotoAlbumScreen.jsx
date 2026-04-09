@@ -449,7 +449,9 @@ export function PhotoAlbumModal({
   const [uploading, setUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [pageIndex, setPageIndex] = useState(0);
+  const [pageMotion, setPageMotion] = useState('forward');
   const fileInputRef = useRef(null);
+  const touchStartXRef = useRef(null);
 
   useEffect(() => {
     if (initialPhotos) {
@@ -491,6 +493,36 @@ export function PhotoAlbumModal({
       setPageIndex(Math.max(0, pages.length - 1));
     }
   }, [pageIndex, pages.length]);
+
+  function goToPrevPage() {
+    if (pageIndex === 0) return;
+    setPageMotion('backward');
+    setPageIndex((current) => Math.max(0, current - 1));
+  }
+
+  function goToNextPage() {
+    if (pageIndex >= pages.length - 1) return;
+    setPageMotion('forward');
+    setPageIndex((current) => Math.min(pages.length - 1, current + 1));
+  }
+
+  function handleTouchStart(event) {
+    touchStartXRef.current = event.touches[0]?.clientX ?? null;
+  }
+
+  function handleTouchEnd(event) {
+    if (touchStartXRef.current === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? touchStartXRef.current;
+    const deltaX = endX - touchStartXRef.current;
+    touchStartXRef.current = null;
+
+    if (Math.abs(deltaX) < 50) return;
+    if (deltaX > 0) {
+      goToPrevPage();
+    } else {
+      goToNextPage();
+    }
+  }
 
   async function onFileChange(event) {
     const file = event.target.files?.[0];
@@ -572,6 +604,28 @@ export function PhotoAlbumModal({
           flexDirection: 'column',
         }}
       >
+        <style>{`
+          @keyframes albumPageInForward {
+            0% {
+              opacity: 0;
+              transform: translateX(48px) rotateY(-10deg) scale(0.98);
+            }
+            100% {
+              opacity: 1;
+              transform: translateX(0) rotateY(0deg) scale(1);
+            }
+          }
+          @keyframes albumPageInBackward {
+            0% {
+              opacity: 0;
+              transform: translateX(-48px) rotateY(10deg) scale(0.98);
+            }
+            100% {
+              opacity: 1;
+              transform: translateX(0) rotateY(0deg) scale(1);
+            }
+          }
+        `}</style>
         <div
           style={{
             padding: '18px 18px 16px',
@@ -703,12 +757,25 @@ export function PhotoAlbumModal({
             </div>
           ) : (
             <>
-              <AlbumPage
-                page={pages[pageIndex]}
-                pageIndex={pageIndex}
-                allPhotos={photos}
-                onOpenPhoto={setLightboxIndex}
-              />
+              <div
+                key={`${pageIndex}-${pageMotion}`}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  touchAction: 'pan-y',
+                  animation: pageMotion === 'backward'
+                    ? 'albumPageInBackward 0.32s ease-out'
+                    : 'albumPageInForward 0.32s ease-out',
+                  transformOrigin: pageMotion === 'backward' ? 'left center' : 'right center',
+                }}
+              >
+                <AlbumPage
+                  page={pages[pageIndex]}
+                  pageIndex={pageIndex}
+                  allPhotos={photos}
+                  onOpenPhoto={setLightboxIndex}
+                />
+              </div>
 
               <div
                 style={{
@@ -720,7 +787,7 @@ export function PhotoAlbumModal({
                 }}
               >
                 <button
-                  onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+                  onClick={goToPrevPage}
                   disabled={pageIndex === 0}
                   style={{
                     border: 'none',
@@ -744,12 +811,12 @@ export function PhotoAlbumModal({
                     {pageIndex + 1}/{pages.length}
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                    Bläddra i albumet
+                    Svep eller bläddra
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setPageIndex((current) => Math.min(pages.length - 1, current + 1))}
+                  onClick={goToNextPage}
                   disabled={pageIndex >= pages.length - 1}
                   style={{
                     border: 'none',
