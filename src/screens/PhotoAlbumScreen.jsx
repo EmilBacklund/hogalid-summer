@@ -372,6 +372,7 @@ function AlbumPage({ page, pageIndex, allPhotos, onOpenPhoto }) {
           const slot = slots[index] || slots[slots.length - 1];
           const globalIndex = allPhotos.findIndex((candidate) => candidate.id === photo.id);
           const frameSeed = Number(photo.id || index) + pageIndex;
+          const useCornerTape = page.photos.length === 1;
           return (
             <button
               key={photo.id}
@@ -386,29 +387,54 @@ function AlbumPage({ page, pageIndex, allPhotos, onOpenPhoto }) {
                 textAlign: 'left',
                 transform: `rotate(${slot.rotate ?? getPaperRotation(frameSeed)}deg)`,
               }}
-            >
-              <div
-                style={{
-                  position: 'relative',
-                  background: '#fffdf7',
-                  borderRadius: 18,
-                  padding: '12px 12px 14px',
-                  boxShadow: '0 14px 28px rgba(63,42,10,0.18)',
-                }}
               >
                 <div
                   style={{
-                    position: 'absolute',
-                    top: -10,
-                    left: '50%',
-                    width: slot.aspectRatio === '16 / 9' ? 82 : 68,
-                    height: 24,
-                    transform: `translateX(-50%) rotate(${slot.tape ?? getTapeRotation(frameSeed)}deg)`,
-                    borderRadius: 8,
-                    background: 'rgba(246, 228, 139, 0.72)',
-                    boxShadow: '0 6px 10px rgba(0,0,0,0.08)',
+                    position: 'relative',
+                    background: '#fffdf7',
+                  borderRadius: 18,
+                  padding: '12px 12px 14px',
+                    boxShadow: '0 14px 28px rgba(63,42,10,0.18)',
                   }}
-                />
+                >
+                {useCornerTape ? (
+                  <>
+                    {[
+                      { top: -10, left: 10, rotate: -18 },
+                      { top: -10, right: 10, rotate: 18 },
+                      { bottom: -10, left: 10, rotate: 16 },
+                      { bottom: -10, right: 10, rotate: -16 },
+                    ].map((tape, tapeIndex) => (
+                      <div
+                        key={tapeIndex}
+                        style={{
+                          position: 'absolute',
+                          width: 54,
+                          height: 20,
+                          borderRadius: 8,
+                          background: 'rgba(246, 228, 139, 0.72)',
+                          boxShadow: '0 6px 10px rgba(0,0,0,0.08)',
+                          ...tape,
+                          transform: `rotate(${tape.rotate}deg)`,
+                        }}
+                      />
+                    ))}
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: -10,
+                      left: '50%',
+                      width: slot.aspectRatio === '16 / 9' ? 82 : 68,
+                      height: 24,
+                      transform: `translateX(-50%) rotate(${slot.tape ?? getTapeRotation(frameSeed)}deg)`,
+                      borderRadius: 8,
+                      background: 'rgba(246, 228, 139, 0.72)',
+                      boxShadow: '0 6px 10px rgba(0,0,0,0.08)',
+                    }}
+                  />
+                )}
                 <img
                   src={getPhotoSrc(photo)}
                   alt={`Foto av ${photo.uploaderName}`}
