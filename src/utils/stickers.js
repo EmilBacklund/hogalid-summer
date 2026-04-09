@@ -35,11 +35,23 @@ function hasSingleExerciseValue(logs, exerciseId, minValue) {
   );
 }
 
+function countSummerActivitiesByWeek(logs) {
+  const byWeek = {};
+  logs.forEach((log) => {
+    const total = (log.iceCream || 0) + (log.swim || 0) + (log.pages || 0 ? 1 : 0);
+    if (total <= 0) return;
+    const week = getWeekStart(log.date);
+    byWeek[week] = (byWeek[week] || 0) + total;
+  });
+  return byWeek;
+}
+
 export function getStickerContext(user, stats) {
   const realLogs = getRealTrainingLogs(user);
   const weekCounts = Object.values(countByWeek(realLogs));
   const completedDailyCount = Object.keys(user.completedDaily || {}).length;
   const buddyCompletions = (user.logs || []).filter((log) => (log.title || '').startsWith('🤝buddy:')).length;
+  const summerWeekCounts = Object.values(countSummerActivitiesByWeek(user.logs || []));
 
   return {
     user,
@@ -54,14 +66,20 @@ export function getStickerContext(user, stats) {
     exerciseDayCount: (exerciseId) => getExerciseDayCount(realLogs, exerciseId),
     hasSingleExerciseValue: (exerciseId, minValue) => hasSingleExerciseValue(realLogs, exerciseId, minValue),
     hasSummerActivity: (field) => (user.logs || []).some((log) => (log[field] || 0) >= 1),
+    hasAnySummerActivity: () => (user.logs || []).some((log) => (log.iceCream || 0) + (log.swim || 0) + (log.pages || 0 ? 1 : 0) > 0),
+    maxSummerActivitiesInWeek: summerWeekCounts.length ? Math.max(...summerWeekCounts) : 0,
   };
 }
 
 const STICKER_CONDITIONS = {
   start_shot: (ctx) => ctx.realLogs.length >= 1,
   monday_starter: (ctx) => ctx.hasWeekday(1),
+  tuesday_touch: (ctx) => ctx.hasWeekday(2),
+  wednesday_warrior: (ctx) => ctx.hasWeekday(3),
   first_thursday: (ctx) => ctx.hasWeekday(4),
   friday_focus: (ctx) => ctx.hasWeekday(5),
+  saturday_smile: (ctx) => ctx.hasWeekday(6),
+  sunday_hero: (ctx) => ctx.hasWeekday(0),
   weekend_player: (ctx) => ctx.hasWeekday(0) || ctx.hasWeekday(6),
   week_three_logs: (ctx) => ctx.maxLogsInWeek >= 3,
   week_five_logs: (ctx) => ctx.maxLogsInWeek >= 5,
@@ -86,9 +104,12 @@ const STICKER_CONDITIONS = {
 
   buddy_first: (ctx) => ctx.buddyCompletions >= 1,
   buddy_triple: (ctx) => ctx.buddyCompletions >= 3,
+  summer_start: (ctx) => ctx.hasAnySummerActivity(),
   icecream_day: (ctx) => ctx.hasSummerActivity('iceCream'),
   swim_day: (ctx) => ctx.hasSummerActivity('swim'),
   reading_day: (ctx) => ctx.hasSummerActivity('pages'),
+  summer_triple_week: (ctx) => ctx.maxSummerActivitiesInWeek >= 3,
+  summer_allrounder: (ctx) => ctx.hasSummerActivity('iceCream') && ctx.hasSummerActivity('swim') && ctx.hasSummerActivity('pages'),
 };
 
 export function getEarnedStickers(user, stats) {

@@ -1,8 +1,12 @@
 export const STICKERS = [
   { id: 'start_shot', label: 'Startskottet', icon: '🚀', group: 'Start & Vecka', description: 'Logga din första träning' },
   { id: 'monday_starter', label: 'Måndagsstart', icon: '📅', group: 'Start & Vecka', description: 'Träna en måndag' },
+  { id: 'tuesday_touch', label: 'Tisdagstouch', icon: '👟', group: 'Start & Vecka', description: 'Träna en tisdag' },
+  { id: 'wednesday_warrior', label: 'Onsdagskämpe', icon: '🛡️', group: 'Start & Vecka', description: 'Träna en onsdag' },
   { id: 'first_thursday', label: 'Första torsdagen', icon: '✨', group: 'Start & Vecka', description: 'Träna en torsdag' },
   { id: 'friday_focus', label: 'Fredagsfokus', icon: '🎯', group: 'Start & Vecka', description: 'Träna en fredag' },
+  { id: 'saturday_smile', label: 'Lördagslir', icon: '😎', group: 'Start & Vecka', description: 'Träna en lördag' },
+  { id: 'sunday_hero', label: 'Söndagshjälte', icon: '🌅', group: 'Start & Vecka', description: 'Träna en söndag' },
   { id: 'weekend_player', label: 'Helglir', icon: '🌞', group: 'Start & Vecka', description: 'Träna på helgen' },
   { id: 'week_three_logs', label: 'Tre pass samma vecka', icon: '🗓️', group: 'Start & Vecka', description: 'Logga 3 träningsdagar under samma vecka' },
   { id: 'week_five_logs', label: 'Fem pass samma vecka', icon: '💥', group: 'Start & Vecka', description: 'Logga 5 träningsdagar under samma vecka' },
@@ -27,9 +31,12 @@ export const STICKERS = [
 
   { id: 'buddy_first', label: 'Första kompisutmaningen', icon: '🤝', group: 'Kompis & Sommar', description: 'Klara en kompisutmaning' },
   { id: 'buddy_triple', label: 'Kompisflow', icon: '💪', group: 'Kompis & Sommar', description: 'Klara 3 kompisutmaningar' },
+  { id: 'summer_start', label: 'Sommargrejs-start', icon: '🍉', group: 'Kompis & Sommar', description: 'Logga första sommargrejen' },
   { id: 'icecream_day', label: 'Glassdag', icon: '🍦', group: 'Kompis & Sommar', description: 'Logga glass i sommargrejer' },
   { id: 'swim_day', label: 'Baddag', icon: '🏊', group: 'Kompis & Sommar', description: 'Logga bad i sommargrejer' },
   { id: 'reading_day', label: 'Läsdag', icon: '📖', group: 'Kompis & Sommar', description: 'Logga läsning i sommargrejer' },
+  { id: 'summer_triple_week', label: 'Sommartrippel', icon: '🌴', group: 'Kompis & Sommar', description: 'Logga 3 sommargrejer samma vecka' },
+  { id: 'summer_allrounder', label: 'Sommarallrounder', icon: '🌺', group: 'Kompis & Sommar', description: 'Logga glass, bad och läsning' },
 ];
 
 export const STICKER_GROUPS = [
