@@ -33,16 +33,22 @@ function formatCountdown(acceptedAt) {
 const QUICK_CHALLENGE_AMOUNTS = {
   toetaps: [60, 80, 100, 120, 150],
   tvafotare: [50, 75, 100, 125, 150],
-  jonglera: [10, 15, 20, 25, 30],
-  suldrag: [40, 60, 80, 100, 120],
-  cruyff: [20, 30, 40, 50, 60],
-  passningar: [20, 30, 40, 50, 75],
-  skott: [10, 12, 15, 20, 25],
-  fritraning: [10, 15, 20, 25, 30],
+  jonglera: [50, 60, 75, 100],
+  suldrag: [50, 75, 100, 125, 150],
+  cruyff: [50, 60, 75, 100],
+  passningar: [50, 60, 75, 100],
+  skott: [15, 20, 25, 30],
+  fritraning: [15, 20, 25, 30],
 };
 
 function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)];
+}
+
+function getQuickChallengeMinimum(exercise) {
+  if (exercise.isTime) return 15;
+  if (exercise.unit === 'touch') return 50;
+  return 15;
 }
 
 function buildQuickChallenge({ user, teammates, buddyChallenges, activeCountByAlias }) {
@@ -59,11 +65,13 @@ function buildQuickChallenge({ user, teammates, buddyChallenges, activeCountByAl
   if (availableTeammates.length === 0) return null;
 
   const exercise = pickRandom(EXERCISES);
-  const amounts = QUICK_CHALLENGE_AMOUNTS[exercise.id] || [Math.max(1, Math.round(exercise.max * 0.15))];
+  const minAmount = getQuickChallengeMinimum(exercise);
+  const defaultAmount = Math.max(minAmount, Math.round(exercise.max * 0.15));
+  const amounts = (QUICK_CHALLENGE_AMOUNTS[exercise.id] || [defaultAmount]).filter((amount) => amount >= minAmount);
   return {
     teammate: pickRandom(availableTeammates),
     exercise,
-    amount: pickRandom(amounts),
+    amount: pickRandom(amounts.length ? amounts : [defaultAmount]),
   };
 }
 
