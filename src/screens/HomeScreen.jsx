@@ -219,6 +219,19 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
             marginBottom: 20,
           }}
         >
+          {pageIndex === 0 && (
+            <div
+              style={{
+                color: COLORS.yellow,
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: 24,
+                lineHeight: 1.1,
+                marginBottom: 14,
+              }}
+            >
+              Heja Högans brudar!
+            </div>
+          )}
           {page.body}
         </div>
 
