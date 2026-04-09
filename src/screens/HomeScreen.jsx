@@ -514,7 +514,7 @@ export function HomeScreen() {
           </span>
           {nextLevel && (
             <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-              {nextLevel.min - stats.totalPoints}p kvar
+              {nextLevel.min - stats.totalPoints} poäng kvar till nästa nivå
             </span>
           )}
         </div>
