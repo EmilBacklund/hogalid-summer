@@ -24,12 +24,13 @@ export default async (req, context) => {
   try {
     // GET - config (season start date)
     if (method === 'GET' && action === 'config') {
-      const result = await db.execute({
-        sql: "SELECT value FROM config WHERE key = 'season_start'",
-        args: [],
-      });
-      const seasonStart = result.rows.length > 0 ? result.rows[0].value : null;
-      return new Response(JSON.stringify({ seasonStart }), { status: 200, headers });
+      const result = await db.execute("SELECT key, value FROM config");
+      const cfg = {};
+      for (const row of result.rows) cfg[row.key] = row.value;
+      return new Response(JSON.stringify({
+        seasonStart: cfg['season_start'] || null,
+        countdownDate: cfg['countdown_date'] || null,
+      }), { status: 200, headers });
     }
 
     // GET - unseen cheers for a user
@@ -417,6 +418,17 @@ export default async (req, context) => {
         args: [date],
       });
       return new Response(JSON.stringify({ ok: true, seasonStart: date }), { status: 200, headers });
+    }
+
+    // PUT - update countdown target date
+    if (method === 'PUT' && action === 'updatecountdowndate') {
+      const body = await req.json();
+      const { date } = body;
+      await db.execute({
+        sql: "INSERT OR REPLACE INTO config (key, value) VALUES ('countdown_date', ?)",
+        args: [date],
+      });
+      return new Response(JSON.stringify({ ok: true, countdownDate: date }), { status: 200, headers });
     }
 
     // PUT - update date of a player's first log entry

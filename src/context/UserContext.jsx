@@ -23,6 +23,7 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [autoLoading, setAutoLoading] = useState(true);
   const [seasonStart, setSeasonStart] = useState(null);
+  const [countdownDate, setCountdownDate] = useState(null);
   const [teamFeedOpen, setTeamFeedOpen] = useState(false);
   const [buddyChallenges, setBuddyChallenges] = useState([]);
   const [challengeScrollTarget, setChallengeScrollTarget] = useState(null);
@@ -71,7 +72,7 @@ export function UserProvider({ children }) {
 
   useEffect(() => {
     apiGet("/users?action=config")
-      .then(data => setSeasonStart(data.seasonStart))
+      .then(data => { setSeasonStart(data.seasonStart); if (data.countdownDate) setCountdownDate(data.countdownDate); })
       .catch(() => {});
   }, []);
 
@@ -310,6 +311,8 @@ export function UserProvider({ children }) {
     setScreen,
     seasonStart,
     setSeasonStart,
+    countdownDate,
+    setCountdownDate,
     autoLoading,
     handleLogin,
     handleLogout,

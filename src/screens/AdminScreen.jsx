@@ -5,7 +5,7 @@ import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
 export function AdminScreen() {
-  const { handleLogout, setSeasonStart } = useUser();
+  const { handleLogout, setSeasonStart, setCountdownDate, countdownDate } = useUser();
 
   const [players, setPlayers] = useState([]);
   const [loadingAdmin, setLoadingAdmin] = useState(true);
@@ -17,6 +17,11 @@ export function AdminScreen() {
   const [seasonDateInput, setSeasonDateInput] = useState('');
   const [savingSeasonDate, setSavingSeasonDate] = useState(false);
   const [seasonDateSaved, setSeasonDateSaved] = useState(false);
+
+  // Countdown date editor
+  const [countdownInput, setCountdownInput] = useState('');
+  const [savingCountdown, setSavingCountdown] = useState(false);
+  const [countdownSaved, setCountdownSaved] = useState(false);
 
   // Delete player
   const [deleteConfirm, setDeleteConfirm] = useState({}); // { alias: true }
@@ -73,6 +78,20 @@ export function AdminScreen() {
       alert("Kunde inte byta lösenord: " + e.message);
     }
     setResettingPw(prev => ({ ...prev, [alias]: false }));
+  }
+
+  async function handleUpdateCountdown() {
+    if (!countdownInput) return;
+    setSavingCountdown(true);
+    try {
+      await apiPut("/users?action=updatecountdowndate", { date: countdownInput });
+      setCountdownDate(countdownInput);
+      setCountdownSaved(true);
+      setTimeout(() => setCountdownSaved(false), 3000);
+    } catch (e) {
+      alert("Kunde inte uppdatera nedräkningsdatum: " + e.message);
+    }
+    setSavingCountdown(false);
   }
 
   async function handleUpdateSeasonStart() {
@@ -196,6 +215,31 @@ export function AdminScreen() {
           </button>
         )}
 
+        {/* Countdown date editor */}
+        <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: "14px 16px", marginBottom: 12 }}>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+            ⏱️ Nedräkning — "Första träningen"
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 8 }}>
+            Nuvarande: <span style={{ color: "#f0dc00", fontWeight: 700 }}>{countdownDate || "2026-08-17"}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="date"
+              value={countdownInput}
+              onChange={e => setCountdownInput(e.target.value)}
+              style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
+            />
+            <button
+              onClick={handleUpdateCountdown}
+              disabled={!countdownInput || savingCountdown}
+              style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: !countdownInput || savingCountdown ? "rgba(255,255,255,0.1)" : COLORS.lime, color: !countdownInput || savingCountdown ? "rgba(255,255,255,0.35)" : COLORS.dark, fontWeight: 700, fontSize: 13, cursor: !countdownInput || savingCountdown ? "not-allowed" : "pointer", fontFamily: "'Nunito', sans-serif", whiteSpace: "nowrap" }}
+            >
+              {savingCountdown ? "Sparar..." : countdownSaved ? "✅ Sparat!" : "Spara"}
+            </button>
+          </div>
+        </div>
+
         {/* Season start editor */}
         <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
@@ -279,27 +323,6 @@ export function AdminScreen() {
                   🔥 Streak: <span style={{ color: "#fff", fontWeight: 700 }}>{p.streak}</span> dagar &nbsp;|&nbsp;
                   Bästa: <span style={{ color: "#fff", fontWeight: 700 }}>{p.maxStreak}</span> dagar &nbsp;|&nbsp;
                   Pass: <span style={{ color: "#fff", fontWeight: 700 }}>{p.totalLogs}</span>
-                </div>
-
-                {/* First log date */}
-                <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "8px 12px", marginBottom: 6 }}>
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 6 }}>📅 Första träning</div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input
-                      type="date"
-                      value={firstLogDate[p.alias] ?? (p.logs?.[0]?.date || '')}
-                      onChange={e => setFirstLogDate(prev => ({ ...prev, [p.alias]: e.target.value }))}
-                      style={{ flex: 1, padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 12, fontFamily: "'Nunito', sans-serif" }}
-                    />
-                    <button
-                      onClick={() => handleUpdateFirstLog(p.alias)}
-                      disabled={savingFirstLog[p.alias] || !firstLogDate[p.alias]}
-                      style={{ padding: "5px 12px", borderRadius: 8, border: "none", background: savingFirstLog[p.alias] || !firstLogDate[p.alias] ? "rgba(255,255,255,0.08)" : COLORS.lime, color: savingFirstLog[p.alias] || !firstLogDate[p.alias] ? "rgba(255,255,255,0.3)" : COLORS.dark, fontWeight: 700, fontSize: 12, cursor: savingFirstLog[p.alias] || !firstLogDate[p.alias] ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
-                    >
-                      {savingFirstLog[p.alias] ? '...' : firstLogSaved[p.alias] ? '✅' : 'Spara'}
-                    </button>
-                  </div>
-                  {!p.logs?.length && <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, marginTop: 4 }}>Inga träningar loggade ännu</div>}
                 </div>
 
                 {/* Password row */}

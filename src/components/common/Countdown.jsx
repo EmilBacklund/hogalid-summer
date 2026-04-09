@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { COLORS } from '../../constants';
 import { Card } from './Card';
+import { useUser } from '../../context/UserContext';
+
+const FALLBACK_DATE = "2026-08-17T00:00:00";
 
 export function Countdown() {
-  const TARGET = new Date("2026-08-17T00:00:00");
+  const { countdownDate } = useUser();
+  const target = countdownDate ? new Date(countdownDate + "T00:00:00") : new Date(FALLBACK_DATE);
 
   function calc() {
-    const diff = TARGET - new Date();
+    const diff = target - new Date();
     if (diff <= 0) return null;
     return {
       days:    Math.floor(diff / 86400000),
@@ -19,9 +23,10 @@ export function Countdown() {
   const [t, setT] = useState(calc);
 
   useEffect(() => {
+    setT(calc());
     const id = setInterval(() => setT(calc()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [countdownDate]);
 
   if (!t) return (
     <Card style={{ textAlign: "center", marginBottom: 16, background: "rgba(168,230,61,0.12)", border: `1.5px solid ${COLORS.lime}` }}>
