@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { COLORS } from '../constants';
+import { COLORS, CELEBRATION_LINES } from '../constants';
 import {
   PLAYER_CARDS, LEGEND_CARDS, ALL_CARDS,
   CARD_PACK_COST, LEGEND_PACK_COST,
@@ -186,6 +186,14 @@ function PackOpeningOverlay({ card, phase, onFinish }) {
             textTransform: 'uppercase',
           }}>
             {card.type === 'legend' ? 'Legendkort!' : 'Nytt kort!'}
+          </div>
+          <div style={{
+            color: 'rgba(255,255,255,0.8)',
+            fontSize: 13,
+            fontWeight: 800,
+            marginTop: 8,
+          }}>
+            {CELEBRATION_LINES.drive}
           </div>
           <div style={{
             color: 'rgba(255,255,255,0.4)',

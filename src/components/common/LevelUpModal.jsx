@@ -1,4 +1,4 @@
-import { COLORS } from '../../constants';
+import { COLORS, CELEBRATION_LINES } from '../../constants';
 import { Confetti } from './Confetti';
 
 const KEYFRAMES = `
@@ -89,6 +89,17 @@ export function LevelUpModal({ level, onClose }) {
           animation: 'levelSlideUp 0.5s ease-out 0.5s both',
         }}>
           Du är nu {level.icon} {level.name}!
+        </div>
+
+        <div style={{
+          color: COLORS.yellow,
+          fontSize: 13,
+          fontWeight: 800,
+          letterSpacing: 0.3,
+          marginBottom: 18,
+          animation: 'levelSlideUp 0.5s ease-out 0.55s both',
+        }}>
+          {CELEBRATION_LINES.drive}
         </div>
 
         <button

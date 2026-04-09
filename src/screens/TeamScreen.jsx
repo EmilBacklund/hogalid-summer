@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { COLORS, EXERCISES, TEAM_LEVELS } from '../constants';
+import { COLORS, EXERCISES, TEAM_LEVELS, CELEBRATION_LINES } from '../constants';
 import { apiGet, apiPost } from '../utils/api';
 import {
   fetchAllUsersStale,
@@ -755,6 +755,9 @@ export function TeamScreen() {
             <div style={{ fontSize: 20, marginBottom: 2 }}>{levelInfo.isMaxLevel ? "🔥" : "🎉"}</div>
             <div style={{ color: levelInfo.isMaxLevel ? "#ff6a00" : COLORS.lime, fontWeight: 700, fontSize: 14 }}>
               {levelInfo.isMaxLevel ? "Ni har nått Gudarnas nivå!" : "Grattis! Ni har klarat veckans utmaning!"}
+            </div>
+            <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 800, marginTop: 4 }}>
+              {CELEBRATION_LINES.brudar}
             </div>
             {!levelInfo.isMaxLevel && (
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 3 }}>

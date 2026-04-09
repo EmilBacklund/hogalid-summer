@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { COLORS, EXERCISES } from '../../constants';
+import { COLORS, EXERCISES, CELEBRATION_LINES } from '../../constants';
 import { Confetti } from './Confetti';
 
 export function BuddyCelebration({ challenge, user, onClose }) {
@@ -58,6 +58,14 @@ export function BuddyCelebration({ challenge, user, onClose }) {
           </div>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
             Ni får dubbla poäng för träningen 🎉
+          </div>
+          <div style={{
+            color: COLORS.yellow,
+            fontSize: 13,
+            fontWeight: 800,
+            marginBottom: 20,
+          }}>
+            {CELEBRATION_LINES.hawaii}
           </div>
           <button
             onClick={onClose}

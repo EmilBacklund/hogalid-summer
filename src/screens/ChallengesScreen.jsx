@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { COLORS, EXERCISES, DAILY_CHALLENGES } from '../constants';
+import { COLORS, EXERCISES, DAILY_CHALLENGES, CELEBRATION_LINES } from '../constants';
 import {
   fetchAllUsersStale,
   localToday,
@@ -1007,6 +1007,9 @@ export function ChallengesScreen() {
                   {levelInfo.isMaxLevel
                     ? 'Ni har nått Gudarnas nivå!'
                     : 'Grattis! Ni har klarat veckans utmaning!'}
+                </div>
+                <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 800, marginTop: 4 }}>
+                  {CELEBRATION_LINES.brudar}
                 </div>
                 {!levelInfo.isMaxLevel && (
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 3 }}>
