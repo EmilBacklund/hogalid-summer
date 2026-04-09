@@ -506,6 +506,21 @@ export function HomeScreen() {
         </div>
       </div>
 
+      {/* Compact level progress */}
+      <Card style={{ marginBottom: 12, padding: '10px 12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>
+            {level.icon} {level.name}
+          </span>
+          {nextLevel && (
+            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+              {nextLevel.min - stats.totalPoints}p kvar
+            </span>
+          )}
+        </div>
+        <ProgressBar value={progress} color={COLORS.lime} height={8} />
+      </Card>
+
       {/* Countdown */}
       <Countdown />
 
@@ -1085,26 +1100,6 @@ export function HomeScreen() {
           </div>
         </Card>
       </div>
-
-      {/* Level progress */}
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>
-            {level.icon} {level.name}
-          </span>
-          {nextLevel && (
-            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <ArrowRight size={14} /> {nextLevel.icon} {nextLevel.name}
-            </span>
-          )}
-        </div>
-        <ProgressBar value={progress} color={COLORS.lime} height={12} />
-        {nextLevel && (
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 6 }}>
-            {nextLevel.min - stats.totalPoints} poäng kvar
-          </div>
-        )}
-      </Card>
 
       {/* Action buttons */}
       <button
