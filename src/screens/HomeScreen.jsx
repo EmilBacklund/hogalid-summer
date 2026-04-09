@@ -10,6 +10,7 @@ import {
   getWeeklyChallenge,
   getWeeklyLevelInfo,
   fetchAllUsersStale,
+  fetchTeamPhotosStale,
   computeWeeklyHistory,
   generateFeed,
 } from '../utils';
@@ -294,6 +295,7 @@ export function HomeScreen() {
     setScreen('challenges');
   }
   const [allUsers, setAllUsers] = useState([]);
+  const [teamPhotos, setTeamPhotos] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [showIntro, setShowIntro] = useState(false);
   const [introPage, setIntroPage] = useState(0);
@@ -312,6 +314,13 @@ export function HomeScreen() {
     if (stale && stale.length > 0) {
       setAllUsers(stale);
       setLoadingTeam(false);
+    }
+
+    const stalePhotos = fetchTeamPhotosStale((fresh) => {
+      setTeamPhotos(fresh || []);
+    });
+    if (stalePhotos) {
+      setTeamPhotos(stalePhotos);
     }
   }, []);
 
@@ -358,8 +367,8 @@ export function HomeScreen() {
 
   const feedItems = useMemo(() => {
     if (!allUsers.length) return [];
-    return generateFeed(allUsers, user.alias, seasonStart).slice(0, 5);
-  }, [allUsers, user.alias, seasonStart]);
+    return generateFeed(allUsers, user.alias, seasonStart, teamPhotos).slice(0, 5);
+  }, [allUsers, user.alias, seasonStart, teamPhotos]);
 
   // "Gör-det-nu" logic
   const hasLogToday = (user.logs || []).some(l => l.date === todayStr && !l.bingo && !l.dailyChallenge);

@@ -3,6 +3,7 @@ import { COLORS, EXERCISES, TEAM_LEVELS } from '../constants';
 import { apiGet, apiPost } from '../utils/api';
 import {
   fetchAllUsersStale,
+  fetchTeamPhotosStale,
   localToday,
   getWeekStart,
   computeStats,
@@ -19,12 +20,13 @@ import {
 import { Card, ProgressBar, Confetti } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera } from 'lucide-react';
 
 export function TeamScreen() {
   const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
+  const [teamPhotos, setTeamPhotos] = useState([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showRoster, setShowRoster] = useState(false);
   const [cheerSent, setCheerSent] = useState({});  // alias → 'sent' | 'already'
@@ -56,6 +58,13 @@ export function TeamScreen() {
     apiGet('/users?action=reactions')
       .then(data => setReactions(data))
       .catch(() => {});
+
+    const stalePhotos = fetchTeamPhotosStale((fresh) => {
+      setTeamPhotos(fresh || []);
+    });
+    if (stalePhotos) {
+      setTeamPhotos(stalePhotos);
+    }
   }, []);
 
   async function toggleReaction(eventKey, emoji) {
@@ -237,6 +246,48 @@ export function TeamScreen() {
         Träna mer — klättra upp i nivåer!
       </div>
 
+      <Card
+        onClick={() => setScreen('album')}
+        style={{
+          marginBottom: 16,
+          padding: '16px 18px',
+          background: 'linear-gradient(135deg, rgba(0,40,100,0.8) 0%, rgba(220,40,40,0.35) 100%)',
+          border: '1px solid rgba(240,220,0,0.22)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 18,
+              background: 'rgba(255,255,255,0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: COLORS.yellow,
+              flexShrink: 0,
+            }}
+          >
+            <Camera size={26} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1 }}>
+              Veckans foto
+            </div>
+            <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 22, lineHeight: 1.1, marginTop: 4 }}>
+              Lagets fotoalbum
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.62)', fontSize: 13, marginTop: 6 }}>
+              {teamPhotos.length > 0
+                ? `${teamPhotos.length} bilder uppladdade hittills. Öppna albumet och fyll på med sommarminnen.`
+                : 'Här samlar ni träningsbilder, lagbilder och små sommarminnen tillsammans.'}
+            </div>
+          </div>
+          <ArrowRight size={18} style={{ color: COLORS.yellow, flexShrink: 0 }} />
+        </div>
+      </Card>
+
       {/* Current team level card */}
       <Card
         style={{
@@ -395,7 +446,7 @@ export function TeamScreen() {
 
       {/* Activity feed */}
       {(() => {
-        const feed = generateFeed(allUsers, user.alias, seasonStart);
+        const feed = generateFeed(allUsers, user.alias, seasonStart, teamPhotos);
         if (feed.length === 0) return null;
         const totalPages = Math.ceil(feed.length / FEED_PAGE_SIZE);
         const pageStart = feedPage * FEED_PAGE_SIZE;
@@ -423,7 +474,10 @@ export function TeamScreen() {
               borderRadius: 12,
               padding: '8px 12px',
               animation: isMaxLevel ? 'fireGlow 1.5s ease-in-out infinite' : 'none',
-            }}>
+              cursor: e.type === 'photo' ? 'pointer' : 'default',
+            }}
+            onClick={e.type === 'photo' ? () => setScreen('album') : undefined}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ fontSize: 20, flexShrink: 0 }}>{e.icon}</div>
                 <div style={{ flex: 1 }}>
@@ -441,7 +495,7 @@ export function TeamScreen() {
                   const count = reactionCounts[emoji] || 0;
                   const mine = myReaction === emoji;
                   return (
-                    <button key={emoji} onClick={() => toggleReaction(eventKey, emoji)} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button key={emoji} onClick={(evt) => { evt.stopPropagation(); toggleReaction(eventKey, emoji); }} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
                       {emoji}{count > 0 && <span style={{ fontSize: 11 }}>{count}</span>}
                     </button>
                   );

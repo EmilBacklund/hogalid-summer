@@ -8,6 +8,7 @@ import {
   ProfileScreen,
   BingoScreen,
   TeamScreen,
+  PhotoAlbumScreen,
   ChallengesScreen,
   AdminScreen,
   CardsScreen,
@@ -84,6 +85,7 @@ function AppContent() {
       {screen === "challenges" && <ChallengesScreen />}
       {screen === "profile"    && <ProfileScreen />}
       {screen === "team"       && <TeamScreen />}
+      {screen === "album"      && <PhotoAlbumScreen />}
       {screen === "bingo"      && <BingoScreen />}
       {screen === "cards"      && <CardsScreen />}
     </div>

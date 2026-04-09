@@ -88,6 +88,15 @@ export async function initDb(db) {
       from_progress INTEGER DEFAULT 0,
       to_progress INTEGER DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS album_photos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alias TEXT NOT NULL,
+      image_data TEXT NOT NULL,
+      mime_type TEXT DEFAULT 'image/jpeg',
+      week_start TEXT NOT NULL,
+      uploaded_at TEXT NOT NULL
+    );
   `);
 
   // Migrations
@@ -101,6 +110,8 @@ export async function initDb(db) {
     "ALTER TABLE logs ADD COLUMN created_at TEXT DEFAULT ''",
     "ALTER TABLE buddy_challenges ADD COLUMN from_baseline INTEGER DEFAULT 0",
     "ALTER TABLE buddy_challenges ADD COLUMN to_baseline INTEGER DEFAULT 0",
+    "ALTER TABLE album_photos ADD COLUMN mime_type TEXT DEFAULT 'image/jpeg'",
+    "ALTER TABLE album_photos ADD COLUMN week_start TEXT DEFAULT ''",
   ];
   for (const sql of migrations) {
     try { await db.execute(sql); } catch (e) { /* column already exists */ }

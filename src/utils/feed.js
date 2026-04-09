@@ -16,7 +16,7 @@ function addDays(dateStr, days) {
     String(d.getDate()).padStart(2, '0');
 }
 
-export function generateFeed(allUsers, myAlias, seasonStart) {
+export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
   const events = [];
   const today = localToday();
 
@@ -143,6 +143,21 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
     }
   });
 
+  photos.forEach((photo) => {
+    const alias = photo.uploaderName || photo.alias;
+    events.push({
+      date: photo.date || (photo.uploadedAt || '').slice(0, 10) || today,
+      createdAt: photo.uploadedAt || '',
+      type: 'photo',
+      alias,
+      isMe: photo.alias === myAlias,
+      text: 'la till en bild i fotoalbumet!',
+      icon: '📸',
+      target: 'album',
+      photoId: photo.id,
+    });
+  });
+
   // Weekly challenge: level-ups during current week (day by day)
   if (seasonStart) {
     const today = localToday();
@@ -265,7 +280,11 @@ export function generateFeed(allUsers, myAlias, seasonStart) {
   // Deduplicate badge events (keep only one per alias+badge)
   const seen = new Set();
   const deduped = events.filter(e => {
-    const key = `${e.alias}-${e.type}-${e.text}`;
+    const key = e.type === 'badge'
+      ? `${e.alias}-${e.type}-${e.text}`
+      : e.type === 'photo'
+        ? `${e.alias}-${e.type}-${e.photoId}`
+        : `${e.alias}-${e.type}-${e.date}-${e.createdAt || ''}-${e.text}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
