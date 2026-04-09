@@ -30,6 +30,43 @@ function formatCountdown(acceptedAt) {
   return `${h}h ${m}m kvar`;
 }
 
+const QUICK_CHALLENGE_AMOUNTS = {
+  toetaps: [60, 80, 100, 120, 150],
+  tvafotare: [50, 75, 100, 125, 150],
+  jonglera: [10, 15, 20, 25, 30],
+  suldrag: [40, 60, 80, 100, 120],
+  cruyff: [20, 30, 40, 50, 60],
+  passningar: [20, 30, 40, 50, 75],
+  skott: [10, 12, 15, 20, 25],
+  fritraning: [10, 15, 20, 25, 30],
+};
+
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function buildQuickChallenge({ user, teammates, buddyChallenges, activeCountByAlias }) {
+  const availableTeammates = teammates.filter((tm) => {
+    const count = activeCountByAlias[tm.alias] || 0;
+    const hasPair = buddyChallenges.some((c) =>
+      ((c.fromAlias === user.alias && c.toAlias === tm.alias) ||
+        (c.fromAlias === tm.alias && c.toAlias === user.alias)) &&
+      ['pending', 'active'].includes(c.status)
+    );
+    return count < 3 && !hasPair;
+  });
+
+  if (availableTeammates.length === 0) return null;
+
+  const exercise = pickRandom(EXERCISES);
+  const amounts = QUICK_CHALLENGE_AMOUNTS[exercise.id] || [Math.max(1, Math.round(exercise.max * 0.15))];
+  return {
+    teammate: pickRandom(availableTeammates),
+    exercise,
+    amount: pickRandom(amounts),
+  };
+}
+
 // ── BuddySection component ─────────────────────────────────────────────────
 
 function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
@@ -43,6 +80,8 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
   const [formBusy, setFormBusy] = useState(false);
   const [formError, setFormError] = useState('');
   const [respondBusy, setRespondBusy] = useState('');
+  const [quickSuggestion, setQuickSuggestion] = useState(null);
+  const [quickBusy, setQuickBusy] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Split challenges by role + status
@@ -66,6 +105,12 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
 
   const teammates = allUsers.filter(u => u.alias !== user.alias);
 
+  useEffect(() => {
+    if (quickSuggestion) return;
+    const next = buildQuickChallenge({ user, teammates, buddyChallenges, activeCountByAlias });
+    if (next) setQuickSuggestion(next);
+  }, [user.alias, teammates.length, buddyChallenges.length]);
+
   async function submitChallenge() {
     if (!formTo || !formAmount || Number(formAmount) <= 0) return;
     setFormBusy(true);
@@ -85,6 +130,27 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
     setRespondBusy(challengeId + response);
     await handleRespondBuddyChallenge(challengeId, response);
     setRespondBusy('');
+  }
+
+  function refreshQuickSuggestion() {
+    setQuickSuggestion(buildQuickChallenge({ user, teammates, buddyChallenges, activeCountByAlias }));
+  }
+
+  async function submitQuickChallenge() {
+    if (!quickSuggestion) return;
+    setQuickBusy(true);
+    const result = await handleCreateBuddyChallenge(
+      quickSuggestion.teammate.alias,
+      quickSuggestion.exercise.id,
+      quickSuggestion.amount,
+    );
+    setQuickBusy(false);
+    if (result.ok) {
+      setQuickSuggestion(buildQuickChallenge({ user, teammates, buddyChallenges, activeCountByAlias }));
+    } else {
+      setFormError(result.error || 'Något gick fel');
+      refreshQuickSuggestion();
+    }
   }
 
   const selectedEx = EXERCISES.find(e => e.id === formExercise);
@@ -131,6 +197,69 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
         >
           {showForm ? '✕ Stäng' : '+ Ny utmaning'}
         </button>
+      </div>
+
+      <div
+        style={{
+          marginBottom: 14,
+          padding: '14px 14px 12px',
+          borderRadius: 16,
+          background: 'linear-gradient(135deg, rgba(240,220,0,0.16), rgba(255,255,255,0.04))',
+          border: '1px solid rgba(240,220,0,0.22)',
+        }}
+      >
+        <div style={{ color: COLORS.yellow, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1, marginBottom: 6 }}>
+          ⚡ Snabbutmaning
+        </div>
+        {quickSuggestion ? (
+          <>
+            <div style={{ color: '#fff', fontWeight: 800, fontSize: 16, lineHeight: 1.35 }}>
+              Utmana {quickSuggestion.teammate.alias} på {quickSuggestion.amount} {quickSuggestion.exercise.label.toLowerCase()}?
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 6 }}>
+              Ett klick och klart. Vi väljer kompis, övning och rimlig mängd åt dig.
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                onClick={submitQuickChallenge}
+                disabled={quickBusy}
+                style={{
+                  flex: 1,
+                  padding: '11px 0',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: COLORS.lime,
+                  color: COLORS.dark,
+                  fontFamily: "'Fredoka One', cursive",
+                  fontSize: 16,
+                  cursor: quickBusy ? 'default' : 'pointer',
+                }}
+              >
+                {quickBusy ? <><ButtonLoader color={COLORS.dark} /> Skickar...</> : 'Ja, kör!'}
+              </button>
+              <button
+                onClick={refreshQuickSuggestion}
+                disabled={quickBusy}
+                style={{
+                  padding: '11px 14px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.8)',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: quickBusy ? 'default' : 'pointer',
+                }}
+              >
+                Nej, ny
+              </button>
+            </div>
+          </>
+        ) : (
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.45 }}>
+            Alla möjliga kompisutmaningar är upptagna just nu. Testa igen lite senare eller skapa en egen.
+          </div>
+        )}
       </div>
 
       {/* Create form */}
