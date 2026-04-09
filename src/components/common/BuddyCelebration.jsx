@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { COLORS, EXERCISES, CELEBRATION_LINES } from '../../constants';
+import { COLORS, EXERCISES, getCelebrationLine } from '../../constants';
 import { Confetti } from './Confetti';
 
 export function BuddyCelebration({ challenge, user, onClose }) {
@@ -65,7 +65,7 @@ export function BuddyCelebration({ challenge, user, onClose }) {
             fontWeight: 800,
             marginBottom: 20,
           }}>
-            {CELEBRATION_LINES.hawaii}
+            {getCelebrationLine('hawaii', challenge.id)}
           </div>
           <button
             onClick={onClose}

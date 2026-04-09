@@ -1,5 +1,5 @@
 export { COLORS } from './colors';
-export { CELEBRATION_LINES } from './celebrations';
+export { CELEBRATION_LINES, getCelebrationLine } from './celebrations';
 export { LEVELS, TEAM_LEVELS } from './levels';
 export { BADGES } from './badges';
 export { STICKERS, STICKER_GROUPS } from './stickers';

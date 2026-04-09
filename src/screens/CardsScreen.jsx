@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { COLORS, CELEBRATION_LINES } from '../constants';
+import { COLORS, getCelebrationLine } from '../constants';
 import {
   PLAYER_CARDS, LEGEND_CARDS, ALL_CARDS,
   CARD_PACK_COST, LEGEND_PACK_COST,
@@ -193,7 +193,7 @@ function PackOpeningOverlay({ card, phase, onFinish }) {
             fontWeight: 800,
             marginTop: 8,
           }}>
-            {CELEBRATION_LINES.drive}
+            {getCelebrationLine('drive', card.id)}
           </div>
           <div style={{
             color: 'rgba(255,255,255,0.4)',
