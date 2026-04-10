@@ -151,6 +151,15 @@ export function UserProvider({ children }) {
     }
   }
 
+  async function refreshCurrentUser(alias = user?.alias) {
+    if (!alias) return null;
+    invalidateUsersCache();
+    const updated = await apiGet(`/users?alias=${alias}`);
+    setUser(updated);
+    fetchBuddyChallenges(alias);
+    return updated;
+  }
+
   function handleLogin(u, credentials) {
     if (credentials) {
       localStorage.setItem("hogalid_session", JSON.stringify(credentials));
@@ -172,11 +181,13 @@ export function UserProvider({ children }) {
     setLoading(true);
     try {
       await apiPost("/users?action=addlog", { alias: user.alias, log });
-      await apiPut("/users?action=update", { alias: user.alias, highscores: newHighscores, unlockedItems: user.unlockedItems, avatarConfig: user.avatarConfig });
-      invalidateUsersCache();
-      const updated = await apiGet(`/users?alias=${user.alias}`);
-      setUser(updated);
-      fetchBuddyChallenges(user.alias);
+      await apiPut("/users?action=update", {
+        alias: user.alias,
+        highscores: newHighscores,
+        unlockedItems: user.unlockedItems,
+        avatarConfig: user.avatarConfig,
+      });
+      await refreshCurrentUser(user.alias);
       setLoading(false);
       return true;
     } catch (e) {
@@ -222,8 +233,7 @@ export function UserProvider({ children }) {
     const newItems = [...(user.unlockedItems || []), itemId];
     try {
       await apiPut("/users?action=update", { alias: user.alias, unlockedItems: newItems, highscores: user.highscores, avatarConfig: user.avatarConfig });
-      const updated = await apiGet(`/users?alias=${user.alias}`);
-      setUser(updated);
+      await refreshCurrentUser(user.alias);
     } catch (e) {
       alert("Kunde inte låsa upp: " + e.message);
     }
@@ -232,7 +242,7 @@ export function UserProvider({ children }) {
   async function handleAvatarUpdate(newConfig) {
     try {
       await apiPut("/users?action=update", { alias: user.alias, avatarConfig: newConfig, highscores: user.highscores, unlockedItems: user.unlockedItems });
-      setUser({ ...user, avatarConfig: newConfig });
+      await refreshCurrentUser(user.alias);
     } catch (e) {
       alert("Kunde inte spara avatar: " + e.message);
     }
@@ -257,11 +267,28 @@ export function UserProvider({ children }) {
         alias: user.alias,
         log: { date: localToday(), exercises: [], points: bonusPoints, minutes: 0, bingo: true, bingoFootball: isFootball }
       });
-      invalidateUsersCache();
-      const updated = await apiGet(`/users?alias=${user.alias}`);
-      setUser(updated);
+      await refreshCurrentUser(user.alias);
     } catch (e) {
       alert("Kunde inte markera bingo: " + e.message);
+    }
+  }
+
+  async function handleAdultBingoDone(challengeId) {
+    if ((user.adultBingo || []).includes(challengeId)) return;
+    try {
+      await apiPost('/users?action=adultbingo', { alias: user.alias, challengeId });
+      await refreshCurrentUser(user.alias);
+    } catch (e) {
+      alert('Kunde inte markera vuxenbingo: ' + e.message);
+    }
+  }
+
+  async function handleRecordSecretProgress(patch) {
+    try {
+      await apiPost('/users?action=secretprogress', { alias: user.alias, patch });
+      await refreshCurrentUser(user.alias);
+    } catch (e) {
+      // non-critical
     }
   }
 
@@ -278,9 +305,7 @@ export function UserProvider({ children }) {
         alias: user.alias,
         log: { date: today, exercises: [], points, minutes: 0, dailyChallenge: true }
       });
-      invalidateUsersCache();
-      const updated = await apiGet(`/users?alias=${user.alias}`);
-      setUser(updated);
+      await refreshCurrentUser(user.alias);
     } catch (e) {
       alert("Kunde inte markera utmaning: " + e.message);
     }
@@ -294,10 +319,7 @@ export function UserProvider({ children }) {
       } else if (action === "edit") {
         await apiPut("/users?action=editlog", { logId, log: updatedLog });
       }
-      invalidateUsersCache();
-      const updated = await apiGet(`/users?alias=${user.alias}`);
-      setUser(updated);
-      fetchBuddyChallenges(user.alias);
+      await refreshCurrentUser(user.alias);
     } catch (e) {
       alert("Kunde inte uppdatera träning: " + e.message);
     }
@@ -320,7 +342,9 @@ export function UserProvider({ children }) {
     handleUnlock,
     handleAvatarUpdate,
     handleBingoDone,
+    handleAdultBingoDone,
     handleCompleteDaily,
+    handleRecordSecretProgress,
     handleUpdateLog,
     handleUpdateDisplayName,
     teamFeedOpen,

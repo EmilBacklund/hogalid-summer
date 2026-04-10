@@ -55,6 +55,25 @@ export const BINGO = [
   { id: "b50", cat: "☀️", label: "Ha picknick utomhus", points: 20 },
 ];
 
+export const ADULT_BINGO = [
+  { id: 'ab01', label: 'Gör frukost på sängen åt ditt barn' },
+  { id: 'ab02', label: 'Köp 2 glassar på samma dag' },
+  { id: 'ab03', label: 'Spela fotboll tillsammans i minst 30 min' },
+  { id: 'ab04', label: 'Jogga runt Långholmen tillsammans' },
+  { id: 'ab05', label: 'Laga ditt barns favoritmat' },
+  { id: 'ab06', label: 'Gör en mysig filmvisning med popcorn och dricka' },
+  { id: 'ab07', label: 'Skriv ner 5 saker som ditt barn är bra på' },
+  { id: 'ab08', label: 'Titta på en fotbollsmatch tillsammans' },
+  { id: 'ab09', label: 'Ta en sommarbild tillsammans' },
+  { id: 'ab10', label: 'Gör bomben nästa gång ni badar' },
+  { id: 'ab11', label: 'Låt barnet bestämma en utflykt' },
+  { id: 'ab12', label: 'Ta en skärgårdsbåt till Gällnö' },
+  { id: 'ab13', label: 'Spela en match, dom vuxna mot barnen' },
+  { id: 'ab14', label: 'Läs en bok för ditt barn när det regnar' },
+  { id: 'ab15', label: 'Ät godis till middag, på riktigt!' },
+  { id: 'ab16', label: 'Köp något litet överraskningsfika efter träningen' },
+];
+
 // Daily & Weekly Challenges
 export const DAILY_CHALLENGES = [
   // Bollkontroll & teknik (30 st)

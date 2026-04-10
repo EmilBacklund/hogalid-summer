@@ -36,6 +36,11 @@ export const STICKERS = [
   { id: 'photographer', label: 'Fotografen', icon: '📸', group: 'Bingo & Foto', description: 'Ladda upp din första bild i albumet' },
   { id: 'album_friend', label: 'Albumkompis', icon: '🖼️', group: 'Bingo & Foto', description: 'Ladda upp 3 bilder i albumet' },
   { id: 'master_photographer', label: 'Mästerfotograf', icon: '📷', group: 'Bingo & Foto', description: 'Ladda upp 5 bilder i albumet' },
+  { id: 'secret_adult_bingo', label: 'Hemligt vuxenbingo', icon: '🕵️', group: 'Hemligt & Bonus', description: 'Hitta Hemligt vuxenbingo' },
+  { id: 'secret_penalty_game', label: 'Hittade straffspelet', icon: '🎯', group: 'Hemligt & Bonus', description: 'Hitta det hemliga straffspelet' },
+  { id: 'secret_both_found', label: 'Båda hemligheterna', icon: '🥚', group: 'Hemligt & Bonus', description: 'Hitta båda easter eggs i appen' },
+  { id: 'secret_adult_line', label: 'Vuxenbingo!', icon: '🎉', group: 'Hemligt & Bonus', description: 'Få bingo i Hemligt vuxenbingo' },
+  { id: 'secret_penalty_eight', label: '8 mål i straffarna', icon: '🥇', group: 'Hemligt & Bonus', description: 'Gör 8 eller fler mål i straffspelet' },
 
   { id: 'buddy_first', label: 'Första kompisutmaningen', icon: '🤝', group: 'Kompis & Sommar', description: 'Klara en kompisutmaning' },
   { id: 'buddy_triple', label: 'Kompisflow', icon: '💪', group: 'Kompis & Sommar', description: 'Klara 3 kompisutmaningar' },
@@ -54,5 +59,6 @@ export const STICKER_GROUPS = [
   'Start & Vecka',
   'Övningar',
   'Bingo & Foto',
+  'Hemligt & Bonus',
   'Kompis & Sommar',
 ];

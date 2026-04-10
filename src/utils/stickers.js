@@ -1,6 +1,33 @@
 import { STICKERS } from '../constants/stickers';
 import { getWeekStart } from './date';
 
+function getAdultBingoLineCount(doneIds = []) {
+  const doneSet = new Set(doneIds);
+  let lines = 0;
+
+  for (let row = 0; row < 4; row++) {
+    const rowIds = Array.from({ length: 4 }, (_, col) => `ab${String(row * 4 + col + 1).padStart(2, '0')}`);
+    if (rowIds.every((id) => doneSet.has(id))) lines++;
+  }
+
+  for (let col = 0; col < 4; col++) {
+    const colIds = Array.from({ length: 4 }, (_, row) => `ab${String(row * 4 + col + 1).padStart(2, '0')}`);
+    if (colIds.every((id) => doneSet.has(id))) lines++;
+  }
+
+  return lines;
+}
+
+function getPenaltyBest(user) {
+  const fromFlags = Number(user.secretFlags?.penaltyBest || 0);
+  const fromLogs = (user.logs || []).reduce((best, log) => {
+    if (!log.title || !log.title.startsWith('penalty:')) return best;
+    const score = Number(log.title.slice('penalty:'.length).split(':')[0] || 0);
+    return Math.max(best, score);
+  }, 0);
+  return Math.max(fromFlags, fromLogs);
+}
+
 function getWeekday(dateStr) {
   return new Date(dateStr).getDay();
 }
@@ -84,6 +111,7 @@ export function getStickerContext(user, stats, allUsers = []) {
   const completedDailyCount = Object.keys(user.completedDaily || {}).length;
   const buddyCompletions = (user.logs || []).filter((log) => (log.title || '').startsWith('🤝buddy:')).length;
   const summerWeekCounts = Object.values(countSummerActivitiesByWeek(user.logs || []));
+  const adultBingo = user.adultBingo || [];
 
   return {
     user,
@@ -92,6 +120,11 @@ export function getStickerContext(user, stats, allUsers = []) {
     completedDailyCount,
     buddyCompletions,
     photoCount: stats.photoCount || 0,
+    adultBingoCount: adultBingo.length,
+    adultBingoLines: getAdultBingoLineCount(adultBingo),
+    foundAdultBingo: !!user.secretFlags?.foundAdultBingo,
+    foundPenaltyGame: !!user.secretFlags?.foundPenaltyGame,
+    penaltyBest: getPenaltyBest(user),
     hasFirstTeamLog: () => hasFirstTeamLog(user, allUsers),
     hasWeekday: (weekday) => realLogs.some((log) => getWeekday(log.date) === weekday),
     maxLogsInWeek: weekCounts.length ? Math.max(...weekCounts) : 0,
@@ -142,6 +175,11 @@ const STICKER_CONDITIONS = {
   photographer: (ctx) => ctx.photoCount >= 1,
   album_friend: (ctx) => ctx.photoCount >= 3,
   master_photographer: (ctx) => ctx.photoCount >= 5,
+  secret_adult_bingo: (ctx) => ctx.foundAdultBingo,
+  secret_penalty_game: (ctx) => ctx.foundPenaltyGame,
+  secret_both_found: (ctx) => ctx.foundAdultBingo && ctx.foundPenaltyGame,
+  secret_adult_line: (ctx) => ctx.adultBingoLines >= 1,
+  secret_penalty_eight: (ctx) => ctx.penaltyBest >= 8,
 
   buddy_first: (ctx) => ctx.buddyCompletions >= 1,
   buddy_triple: (ctx) => ctx.buddyCompletions >= 3,

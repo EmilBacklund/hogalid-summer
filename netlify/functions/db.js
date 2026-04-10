@@ -16,6 +16,7 @@ export async function initDb(db) {
       avatar_config TEXT DEFAULT '{}',
       unlocked_items TEXT DEFAULT '[]',
       highscores TEXT DEFAULT '{}',
+      secret_flags TEXT DEFAULT '{}',
       joined_at TEXT
     );
 
@@ -42,6 +43,12 @@ export async function initDb(db) {
       date TEXT NOT NULL,
       challenge_id TEXT NOT NULL,
       PRIMARY KEY (alias, date)
+    );
+
+    CREATE TABLE IF NOT EXISTS adult_bingo (
+      alias TEXT NOT NULL,
+      challenge_id TEXT NOT NULL,
+      PRIMARY KEY (alias, challenge_id)
     );
 
     CREATE TABLE IF NOT EXISTS config (
@@ -103,6 +110,7 @@ export async function initDb(db) {
   const migrations = [
     "ALTER TABLE users ADD COLUMN display_password TEXT DEFAULT ''",
     "ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''",
+    "ALTER TABLE users ADD COLUMN secret_flags TEXT DEFAULT '{}'",
     "ALTER TABLE logs ADD COLUMN ice_cream INTEGER DEFAULT 0",
     "ALTER TABLE logs ADD COLUMN swim INTEGER DEFAULT 0",
     "ALTER TABLE logs ADD COLUMN pages INTEGER DEFAULT 0",

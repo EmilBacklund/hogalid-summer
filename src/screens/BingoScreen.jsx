@@ -1,14 +1,34 @@
 import { useState, useMemo, useRef } from 'react';
-import { COLORS, BINGO, BADGES } from '../constants';
+import { COLORS, BINGO, ADULT_BINGO, BADGES } from '../constants';
 import { localToday } from '../utils';
 import { Card, ProgressBar, Confetti, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft } from 'lucide-react';
 
+function getAdultBingoLines(doneIds = []) {
+  const doneSet = new Set(doneIds);
+  const rows = [];
+  const cols = [];
+
+  for (let row = 0; row < 4; row++) {
+    const rowItems = ADULT_BINGO.slice(row * 4, row * 4 + 4);
+    if (rowItems.every((item) => doneSet.has(item.id))) rows.push(row);
+  }
+
+  for (let col = 0; col < 4; col++) {
+    const colItems = Array.from({ length: 4 }, (_, row) => ADULT_BINGO[row * 4 + col]);
+    if (colItems.every((item) => item && doneSet.has(item.id))) cols.push(col);
+  }
+
+  return { rows, cols };
+}
+
 export function BingoScreen() {
-  const { user, setScreen, handleBingoDone, handleSaveLog } = useUser();
+  const { user, setScreen, handleBingoDone, handleSaveLog, handleAdultBingoDone, handleRecordSecretProgress } = useUser();
 
   const done = user.bingo || [];
+  const adultDone = user.adultBingo || [];
+  const adultDiscovered = !!user.secretFlags?.foundAdultBingo;
   const remaining = BINGO.filter(b => !done.includes(b.id));
   const [filter, setFilter] = useState("all"); // all | ⚽ | ☀️
   const [randomPick, setRandomPick] = useState(null);
@@ -43,7 +63,15 @@ export function BingoScreen() {
   const completedColSet = new Set(completedCols);
 
   const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [selectedAdultChallenge, setSelectedAdultChallenge] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [adultBusy, setAdultBusy] = useState(false);
+  const [showAdultIntro, setShowAdultIntro] = useState(false);
+  const [showAdultBingo, setShowAdultBingo] = useState(false);
+  const [adultJustDone, setAdultJustDone] = useState(null);
+  const [sunTapCount, setSunTapCount] = useState(0);
+  const adultLineState = getAdultBingoLines(adultDone);
+  const adultHasBingo = adultLineState.rows.length > 0 || adultLineState.cols.length > 0;
 
   function startSpin() {
     const pool = remaining.filter(b => filter === "all" || b.cat === filter);
@@ -115,6 +143,41 @@ export function BingoScreen() {
     setTimeout(() => { setJustDone(null); setShowConfetti(false); }, 2500);
   }
 
+  async function revealAdultBingo() {
+    if (!adultDiscovered) {
+      await handleRecordSecretProgress({ foundAdultBingo: true });
+    }
+    setShowAdultIntro(true);
+  }
+
+  async function handleSunTap() {
+    const next = sunTapCount + 1;
+    if (next < 5) {
+      setSunTapCount(next);
+      return;
+    }
+
+    setSunTapCount(0);
+    if (adultDiscovered) {
+      setShowAdultBingo(true);
+      return;
+    }
+    await revealAdultBingo();
+  }
+
+  async function markAdultDone(id) {
+    if (adultBusy) return;
+    setAdultBusy(true);
+    await handleAdultBingoDone(id);
+    setAdultJustDone(id);
+    setShowConfetti(true);
+    setAdultBusy(false);
+    setTimeout(() => {
+      setAdultJustDone(null);
+      setShowConfetti(false);
+    }, 2200);
+  }
+
   // Shuffle once per screen open — undone items random, done items at bottom
   const shuffledBingo = useMemo(() => {
     const undone = BINGO.filter(b => !done.includes(b.id));
@@ -134,7 +197,24 @@ export function BingoScreen() {
       <Confetti active={showConfetti} />
       <button onClick={() => setScreen("home")} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: COLORS.lime, cursor: "pointer", fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}><ArrowLeft size={16} />Tillbaka</button>
 
-      <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: "#fff", marginBottom: 2 }}>Sommarlovsbingo 🌞</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+        <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: "#fff" }}>Sommarlovsbingo</div>
+        <button
+          onClick={handleSunTap}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            fontSize: 26,
+            lineHeight: 1,
+          }}
+          aria-label="Solen"
+          title={adultDiscovered ? 'Tryck fem gånger för att öppna Hemligt vuxenbingo' : undefined}
+        >
+          🌞
+        </button>
+      </div>
       <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 18 }}>50 utmaningar — en hel sommar att klara dem!</div>
 
       {/* Progress summary */}
@@ -160,6 +240,48 @@ export function BingoScreen() {
           +{totalPoints} poäng från bingo{lineBonus > 0 && <span style={{ color: COLORS.lime }}> + {lineBonus}p radbonus!</span>}
         </div>
       </Card>
+
+      {adultDiscovered && (
+        <Card
+          onClick={() => setShowAdultBingo(true)}
+          style={{
+            marginBottom: 16,
+            padding: '16px 18px',
+            background: 'linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(47,72,140,0.95) 60%, rgba(245,205,72,0.16) 100%)',
+            border: '1px solid rgba(255,241,140,0.3)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+            <div>
+              <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
+                Hemligt hittat
+              </div>
+              <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 20, lineHeight: 1.15, marginBottom: 6 }}>
+                Hemligt vuxenbingo
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 13, lineHeight: 1.35 }}>
+                Nu är det de vuxnas tur. {adultDone.length}/16 rutor klara{adultHasBingo ? ' · bingo fixat!' : ''}
+              </div>
+            </div>
+            <div
+              style={{
+                minWidth: 64,
+                height: 64,
+                borderRadius: 18,
+                background: 'rgba(255,255,255,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: COLORS.yellow,
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: 22,
+              }}
+            >
+              {adultDone.length}/16
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Visual bingo grid */}
       <div style={{
@@ -474,6 +596,267 @@ export function BingoScreen() {
           );
         })}
       </div>
+
+      {showAdultIntro && (
+        <div
+          onClick={() => setShowAdultIntro(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.76)',
+            zIndex: 1300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px 16px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 360,
+              borderRadius: 24,
+              padding: '22px 20px',
+              background: 'linear-gradient(160deg, rgba(14,22,50,0.98) 0%, rgba(29,78,216,0.95) 58%, rgba(250,204,21,0.18) 100%)',
+              border: '1px solid rgba(250,204,21,0.28)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
+            }}
+          >
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🕵️</div>
+            <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 28, lineHeight: 1.1, marginBottom: 10 }}>
+              Du hittade Hemligt vuxenbingo!
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, lineHeight: 1.5, marginBottom: 18 }}>
+              Här finns roliga vuxenuppdrag för sommaren.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => {
+                  setShowAdultIntro(false);
+                  setShowAdultBingo(true);
+                }}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  background: COLORS.lime,
+                  color: COLORS.dark,
+                  fontFamily: "'Fredoka One', cursive",
+                  fontSize: 17,
+                  cursor: 'pointer',
+                }}
+              >
+                Öppna bingot
+              </button>
+              <button
+                onClick={() => setShowAdultIntro(false)}
+                style={{
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.75)',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Inte nu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAdultBingo && (
+        <div
+          onClick={() => setShowAdultBingo(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.82)',
+            zIndex: 1300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '14px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 430,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              borderRadius: 28,
+              padding: '20px 16px 18px',
+              background: 'linear-gradient(180deg, #f3ead6 0%, #f7f0dd 100%)',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.45)',
+              border: '6px solid rgba(255,255,255,0.4)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
+              <div>
+                <div style={{ color: '#48608d', fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
+                  Bonusbingo
+                </div>
+                <div style={{ color: '#1d3557', fontFamily: "'Fredoka One', cursive", fontSize: 28, lineHeight: 1.08 }}>
+                  Hemligt vuxenbingo
+                </div>
+                <div style={{ color: 'rgba(29,53,87,0.72)', fontSize: 13, lineHeight: 1.4, marginTop: 6 }}>
+                  16 rutor bara för kul. Perfekt för att sätta lite skojig press på de vuxna.
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAdultBingo(false)}
+                style={{
+                  background: 'rgba(29,53,87,0.08)',
+                  border: 'none',
+                  color: '#1d3557',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 999,
+                  fontSize: 20,
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+              <div>
+                <div style={{ color: '#1d3557', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>
+                  {adultDone.length}/16 klara
+                </div>
+                <ProgressBar value={Math.round((adultDone.length / ADULT_BINGO.length) * 100)} color="#f4b400" height={10} />
+              </div>
+              <div style={{ color: adultHasBingo ? '#15803d' : '#1d3557', fontWeight: 800, fontSize: 12, textAlign: 'right' }}>
+                {adultHasBingo ? 'Bingo fixat!' : 'Jaga en rad eller kolumn'}
+              </div>
+            </div>
+
+            {(adultLineState.rows.length > 0 || adultLineState.cols.length > 0) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                {adultLineState.rows.map((row) => (
+                  <span
+                    key={`adult-row-${row}`}
+                    style={{
+                      background: 'rgba(34,197,94,0.12)',
+                      color: '#166534',
+                      borderRadius: 999,
+                      padding: '5px 10px',
+                      fontSize: 11,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Rad {row + 1} ✓
+                  </span>
+                ))}
+                {adultLineState.cols.map((col) => (
+                  <span
+                    key={`adult-col-${col}`}
+                    style={{
+                      background: 'rgba(59,130,246,0.12)',
+                      color: '#1d4ed8',
+                      borderRadius: 999,
+                      padding: '5px 10px',
+                      fontSize: 11,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Kolumn {col + 1} ✓
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
+              {ADULT_BINGO.map((challenge, index) => {
+                const isDone = adultDone.includes(challenge.id);
+                const isSelected = selectedAdultChallenge?.id === challenge.id;
+                const isJust = adultJustDone === challenge.id;
+                return (
+                  <button
+                    key={challenge.id}
+                    onClick={() => !isDone && setSelectedAdultChallenge(isSelected ? null : challenge)}
+                    style={{
+                      aspectRatio: '1 / 1.06',
+                      borderRadius: 16,
+                      border: `2px solid ${isDone ? 'rgba(34,197,94,0.35)' : isSelected ? 'rgba(59,130,246,0.35)' : 'rgba(29,53,87,0.08)'}`,
+                      background: isDone ? 'linear-gradient(180deg, #fff4b5 0%, #ffe17d 100%)' : '#fffaf0',
+                      boxShadow: isJust ? '0 0 0 3px rgba(244,180,0,0.28)' : '0 4px 14px rgba(29,53,87,0.08)',
+                      padding: '8px 6px',
+                      cursor: isDone ? 'default' : 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      transform: isJust ? 'scale(1.04)' : 'rotate(0deg)',
+                    }}
+                  >
+                    <div style={{ color: 'rgba(29,53,87,0.48)', fontSize: 10, fontWeight: 800 }}>
+                      {index + 1}
+                    </div>
+                    <div style={{ color: '#1d3557', fontSize: 10.5, fontWeight: 800, lineHeight: 1.25 }}>
+                      {challenge.label}
+                    </div>
+                    <div style={{ marginTop: 'auto', color: isDone ? '#15803d' : 'rgba(29,53,87,0.45)', fontSize: 11, fontWeight: 800 }}>
+                      {isDone ? '✓ Klar' : 'Tryck'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedAdultChallenge && !adultDone.includes(selectedAdultChallenge.id) && (
+              <div style={{ background: 'rgba(255,255,255,0.7)', borderRadius: 18, padding: '14px 14px 12px', border: '1px solid rgba(29,53,87,0.08)' }}>
+                <div style={{ color: '#1d3557', fontWeight: 900, fontSize: 14, lineHeight: 1.35, marginBottom: 10 }}>
+                  {selectedAdultChallenge.label}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => {
+                      markAdultDone(selectedAdultChallenge.id).then(() => setSelectedAdultChallenge(null));
+                    }}
+                    disabled={adultBusy}
+                    style={{
+                      flex: 1,
+                      padding: '12px 0',
+                      borderRadius: 12,
+                      border: 'none',
+                      background: adultBusy ? 'rgba(168,230,61,0.55)' : COLORS.lime,
+                      color: COLORS.dark,
+                      fontFamily: "'Fredoka One', cursive",
+                      fontSize: 16,
+                      cursor: adultBusy ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {adultBusy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '✅ Klar!'}
+                  </button>
+                  <button
+                    onClick={() => setSelectedAdultChallenge(null)}
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 12,
+                      border: '1px solid rgba(29,53,87,0.16)',
+                      background: 'transparent',
+                      color: 'rgba(29,53,87,0.7)',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Avbryt
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

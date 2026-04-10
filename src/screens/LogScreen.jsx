@@ -75,7 +75,7 @@ const RANGE_STYLE = {
 };
 
 export function LogScreen() {
-  const { user, setScreen, handleSaveLog, handleUpdateLog } = useUser();
+  const { user, setScreen, handleSaveLog, handleUpdateLog, handleRecordSecretProgress } = useUser();
 
   // === Write state ===
   const [date, setDate] = useState(localToday());
@@ -163,6 +163,11 @@ export function LogScreen() {
     setSummer((prev) => ({ ...prev, [id]: clamped }));
   }
 
+  function openPenaltyGame() {
+    handleRecordSecretProgress({ foundPenaltyGame: true });
+    setShowPenalty(true);
+  }
+
   async function handleSave() {
     if (saving) return;
     const filled = exercises.filter((e) => e.value !== '' && Number(e.value) > 0);
@@ -186,7 +191,7 @@ export function LogScreen() {
           filled[0].id === 'skott' &&
           Number(filled[0].value) === 37;
         if (skottOnly) {
-          setShowPenalty(true);
+          openPenaltyGame();
           return; // always return — 37 skott alone is never a real log
         }
         setTooLittle(true);
@@ -255,7 +260,7 @@ export function LogScreen() {
     // Easter egg: 37 skott → penalty shootout
     const skottVal = filled.find(e => e.id === 'skott');
     if (skottVal && Number(skottVal.value) === 37) {
-      setShowPenalty(true);
+      openPenaltyGame();
     }
   }
 
@@ -882,6 +887,7 @@ export function LogScreen() {
             setShowPenalty(false);
             if (typeof score === 'number') {
               try {
+                await handleRecordSecretProgress({ penaltyBest: score });
                 await handleSaveLog(
                   { date: today, exercises: [], points: score, title: `penalty:${score}:10` },
                   user.highscores || {},

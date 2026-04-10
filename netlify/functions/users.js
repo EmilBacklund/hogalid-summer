@@ -72,6 +72,7 @@ export default async (req, context) => {
         // attach logs, bingo, completedDaily
         user.logs = await getLogs(db, alias.toLowerCase());
         user.bingo = await getBingo(db, alias.toLowerCase());
+        user.adultBingo = await getAdultBingo(db, alias.toLowerCase());
         user.completedDaily = await getCompletedDaily(db, alias.toLowerCase());
         user.photoCount = await getPhotoCount(db, alias.toLowerCase());
         return new Response(JSON.stringify(user), { status: 200, headers });
@@ -83,6 +84,7 @@ export default async (req, context) => {
           const u = rowToUser(row);
           u.logs = await getLogs(db, u.alias.toLowerCase());
           u.bingo = await getBingo(db, u.alias.toLowerCase());
+          u.adultBingo = await getAdultBingo(db, u.alias.toLowerCase());
           u.completedDaily = await getCompletedDaily(db, u.alias.toLowerCase());
           u.photoCount = await getPhotoCount(db, u.alias.toLowerCase());
           u.password = row.display_password || '';
@@ -109,8 +111,8 @@ export default async (req, context) => {
       const hashed = await hashPassword(password);
       const joinedAt = new Date().toISOString();
       await db.execute({
-        sql: 'INSERT INTO users (alias, password, display_password, avatar_config, unlocked_items, highscores, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        args: [key, hashed, password, JSON.stringify(avatarConfig || {}), '[]', '{}', joinedAt],
+        sql: 'INSERT INTO users (alias, password, display_password, avatar_config, unlocked_items, highscores, secret_flags, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [key, hashed, password, JSON.stringify(avatarConfig || {}), '[]', '{}', '{}', joinedAt],
       });
 
       const user = {
@@ -120,7 +122,9 @@ export default async (req, context) => {
         highscores: {},
         logs: [],
         bingo: [],
+        adultBingo: [],
         completedDaily: {},
+        secretFlags: {},
         joinedAt,
       };
       return new Response(JSON.stringify(user), { status: 201, headers });
@@ -156,6 +160,7 @@ export default async (req, context) => {
       const user = rowToUser(result.rows[0]);
       user.logs = await getLogs(db, key);
       user.bingo = await getBingo(db, key);
+      user.adultBingo = await getAdultBingo(db, key);
       user.completedDaily = await getCompletedDaily(db, key);
       user.photoCount = await getPhotoCount(db, key);
       return new Response(JSON.stringify(user), { status: 200, headers });
@@ -164,12 +169,24 @@ export default async (req, context) => {
     // PUT - update user (highscores, unlockedItems, avatarConfig)
     if (method === 'PUT' && action === 'update') {
       const body = await req.json();
-      const { alias, highscores, unlockedItems, avatarConfig } = body;
+      const { alias, highscores, unlockedItems, avatarConfig, secretFlags } = body;
       const key = alias.toLowerCase();
 
+      const existing = await db.execute({
+        sql: 'SELECT highscores, unlocked_items, avatar_config, secret_flags FROM users WHERE alias = ?',
+        args: [key],
+      });
+      const row = existing.rows[0] || {};
+
       await db.execute({
-        sql: 'UPDATE users SET highscores = ?, unlocked_items = ?, avatar_config = ? WHERE alias = ?',
-        args: [JSON.stringify(highscores), JSON.stringify(unlockedItems), JSON.stringify(avatarConfig || {}), key],
+        sql: 'UPDATE users SET highscores = ?, unlocked_items = ?, avatar_config = ?, secret_flags = ? WHERE alias = ?',
+        args: [
+          highscores !== undefined ? JSON.stringify(highscores) : (row.highscores || '{}'),
+          unlockedItems !== undefined ? JSON.stringify(unlockedItems) : (row.unlocked_items || '[]'),
+          avatarConfig !== undefined ? JSON.stringify(avatarConfig || {}) : (row.avatar_config || '{}'),
+          secretFlags !== undefined ? JSON.stringify(secretFlags || {}) : (row.secret_flags || '{}'),
+          key,
+        ],
       });
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
@@ -278,6 +295,19 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
+    // POST - complete adult bingo
+    if (method === 'POST' && action === 'adultbingo') {
+      const body = await req.json();
+      const { alias, challengeId } = body;
+      const key = alias.toLowerCase();
+
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO adult_bingo (alias, challenge_id) VALUES (?, ?)',
+        args: [key, challengeId],
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
     // POST - complete daily
     if (method === 'POST' && action === 'daily') {
       const body = await req.json();
@@ -362,12 +392,39 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
+    // POST - update secret progress / easter egg flags
+    if (method === 'POST' && action === 'secretprogress') {
+      const body = await req.json();
+      const { alias, patch } = body;
+      const key = alias.toLowerCase();
+
+      const existing = await db.execute({
+        sql: 'SELECT secret_flags FROM users WHERE alias = ?',
+        args: [key],
+      });
+      const current = JSON.parse(existing.rows[0]?.secret_flags || '{}');
+      const next = { ...current };
+
+      if (patch?.foundAdultBingo) next.foundAdultBingo = true;
+      if (patch?.foundPenaltyGame) next.foundPenaltyGame = true;
+      if (typeof patch?.penaltyBest === 'number') {
+        next.penaltyBest = Math.max(Number(current.penaltyBest || 0), patch.penaltyBest);
+      }
+
+      await db.execute({
+        sql: 'UPDATE users SET secret_flags = ? WHERE alias = ?',
+        args: [JSON.stringify(next), key],
+      });
+      return new Response(JSON.stringify({ ok: true, secretFlags: next }), { status: 200, headers });
+    }
+
     // PUT - reset season (clear all data, set new season start)
     if (method === 'PUT' && action === 'resetseason') {
       const today = new Date().toISOString().slice(0, 10);
       await db.executeMultiple(`
         DELETE FROM logs;
         DELETE FROM bingo;
+        DELETE FROM adult_bingo;
         DELETE FROM completed_daily;
         DELETE FROM users;
         DELETE FROM weekly_results;
@@ -404,6 +461,7 @@ export default async (req, context) => {
       const tables = [
         { sql: 'DELETE FROM logs WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM bingo WHERE alias = ?', args: [key] },
+        { sql: 'DELETE FROM adult_bingo WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM completed_daily WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM buddy_challenges WHERE from_alias = ? OR to_alias = ?', args: [key, key] },
         { sql: 'DELETE FROM cheers WHERE from_alias = ? OR to_alias = ?', args: [key, key] },
@@ -471,9 +529,18 @@ function rowToUser(row) {
     avatarConfig: JSON.parse(row.avatar_config || '{}'),
     unlockedItems: JSON.parse(row.unlocked_items || '[]'),
     highscores: JSON.parse(row.highscores || '{}'),
+    secretFlags: JSON.parse(row.secret_flags || '{}'),
     joinedAt: row.joined_at,
     photoCount: 0,
   };
+}
+
+async function getAdultBingo(db, alias) {
+  const result = await db.execute({
+    sql: 'SELECT challenge_id FROM adult_bingo WHERE alias = ?',
+    args: [alias],
+  });
+  return result.rows.map((r) => r.challenge_id);
 }
 
 async function getPhotoCount(db, alias) {
