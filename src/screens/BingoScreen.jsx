@@ -691,7 +691,9 @@ export function BingoScreen() {
               maxHeight: '90vh',
               overflowY: 'auto',
               borderRadius: 28,
-              padding: '20px 16px 18px',
+              padding: selectedAdultChallenge && !adultDone.includes(selectedAdultChallenge.id)
+                ? '20px 16px 110px'
+                : '20px 16px 18px',
               background: 'linear-gradient(180deg, #f3ead6 0%, #f7f0dd 100%)',
               boxShadow: '0 24px 80px rgba(0,0,0,0.45)',
               border: '6px solid rgba(255,255,255,0.4)',
@@ -813,7 +815,20 @@ export function BingoScreen() {
             </div>
 
             {selectedAdultChallenge && !adultDone.includes(selectedAdultChallenge.id) && (
-              <div style={{ background: 'rgba(255,255,255,0.7)', borderRadius: 18, padding: '14px 14px 12px', border: '1px solid rgba(29,53,87,0.08)' }}>
+              <div
+                style={{
+                  position: 'sticky',
+                  bottom: -2,
+                  zIndex: 2,
+                  background: 'rgba(255,255,255,0.96)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: 18,
+                  padding: '14px 14px 12px',
+                  border: '1px solid rgba(29,53,87,0.08)',
+                  boxShadow: '0 -8px 24px rgba(29,53,87,0.12)',
+                  marginTop: 6,
+                }}
+              >
                 <div style={{ color: '#1d3557', fontWeight: 900, fontSize: 14, lineHeight: 1.35, marginBottom: 10 }}>
                   {selectedAdultChallenge.label}
                 </div>
