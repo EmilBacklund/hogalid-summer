@@ -370,7 +370,9 @@ export function HomeScreen() {
   const hasStreakToday = qualifyingDaySet.has(todayStr);
   const streakStatusText = hasStreakToday
     ? '✅ Du har säkrat streaken idag!'
-    : '⏳ Logga en träning idag för att behålla streaken';
+    : stats.streak > 0
+      ? '⏳ Logga en träning idag för att behålla streaken'
+      : '⏳ Logga en träning idag för att starta en streak!';
   const streakWeekDays = Array.from({ length: 7 }, (_, i) => addDaysStr(streakWeekStart, i));
 
   function openIntro() {
