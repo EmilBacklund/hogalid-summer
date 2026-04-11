@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { COLORS, STARTER_OPTIONS, randomAvatarConfig } from '../constants';
-import { apiPost } from '../utils';
+import { apiGet, apiPost } from '../utils';
 import { Card } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { AvatarBuilder } from '../components/avatar';
@@ -15,10 +15,57 @@ export function LoginScreen() {
   const [avatarConfig, setAvatarConfig] = useState(() => randomAvatarConfig());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [validatedInvite, setValidatedInvite] = useState(null);
+  const [validatingInvite, setValidatingInvite] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState('');
 
   function handleShuffle() {
     setAvatarConfig(randomAvatarConfig());
   }
+
+  async function validateInvite({ token, code }) {
+    if (!token && !code) return;
+    setValidatingInvite(true);
+    setError('');
+    setInviteMessage('');
+    try {
+      const query = token
+        ? `/users?action=invite&token=${encodeURIComponent(token)}`
+        : `/users?action=invite&code=${encodeURIComponent((code || '').trim())}`;
+      const invite = await apiGet(query);
+      if (invite.status === 'used') {
+        setValidatedInvite(null);
+        setInviteMessage(invite.usedByAlias
+          ? `Den här inbjudan är redan använd av ${invite.usedByAlias}.`
+          : 'Den här inbjudan är redan använd.');
+      } else if (invite.status === 'disabled') {
+        setValidatedInvite(null);
+        setInviteMessage('Den här inbjudan är inte aktiv längre. Be en ledare om en ny.');
+      } else {
+        setValidatedInvite(invite);
+        setInviteCode(invite.code || '');
+        setInviteMessage('Inbjudan är klar att använda.');
+        setMode('register');
+      }
+    } catch (e) {
+      setValidatedInvite(null);
+      if (e.message.includes('invite_not_found')) {
+        setInviteMessage('Den här länken eller koden funkar inte. Be en ledare om en ny.');
+      } else {
+        setInviteMessage('Kunde inte läsa in inbjudan just nu. Försök igen.');
+      }
+    }
+    setValidatingInvite(false);
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (!token) return;
+    setMode('register');
+    validateInvite({ token });
+  }, []);
 
   async function handleSubmit() {
     if (!alias.trim() || !password.trim()) {
@@ -30,9 +77,15 @@ export function LoginScreen() {
     try {
       const creds = { alias: alias.trim(), password };
       if (mode === 'register') {
+        if (!validatedInvite) {
+          setError('Du behöver en giltig länk eller kod för att skapa konto.');
+          setBusy(false);
+          return;
+        }
         const user = await apiPost('/users?action=register', {
           ...creds,
           avatarConfig,
+          inviteToken: validatedInvite.token,
         });
         handleLogin(user, creds);
       } else {
@@ -42,6 +95,12 @@ export function LoginScreen() {
     } catch (e) {
       if (e.message.includes('409') || e.message.includes('alias_taken')) {
         setError('Det aliset är taget, prova ett annat!');
+      } else if (e.message.includes('invite_required')) {
+        setError('Du behöver en giltig länk eller kod för att skapa konto.');
+      } else if (e.message.includes('invite_used')) {
+        setError('Den där inbjudan är redan använd.');
+      } else if (e.message.includes('invite_disabled')) {
+        setError('Den där inbjudan är inte aktiv längre.');
       } else if (e.message.includes('401') || e.message.includes('invalid_credentials')) {
         setError('Fel alias eller lösenord!');
       } else {
@@ -50,6 +109,8 @@ export function LoginScreen() {
     }
     setBusy(false);
   }
+
+  const submitDisabled = busy || (mode === 'register' && !validatedInvite);
 
   return (
     <div
@@ -100,6 +161,7 @@ export function LoginScreen() {
                 onClick={() => {
                   setMode(m);
                   setError('');
+                  if (m === 'login') setInviteMessage('');
                 }}
                 style={{
                   flex: 1,
@@ -122,6 +184,77 @@ export function LoginScreen() {
 
           {mode === 'register' && (
             <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  marginBottom: 14,
+                  borderRadius: 14,
+                  background: validatedInvite ? 'rgba(168,230,61,0.12)' : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${validatedInvite ? COLORS.lime + '66' : 'rgba(255,255,255,0.12)'}`,
+                  padding: '12px 14px',
+                }}
+              >
+                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, marginBottom: 6, fontWeight: 700 }}>
+                  Inbjudan krävs
+                </div>
+                {validatedInvite ? (
+                  <>
+                    <div style={{ color: COLORS.lime, fontWeight: 800, fontSize: 14, marginBottom: 4 }}>
+                      ✅ Klar för {validatedInvite.label}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.52)', fontSize: 12 }}>
+                      Kod: <span style={{ color: '#fff', fontWeight: 700 }}>{validatedInvite.code}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: inviteMessage ? 8 : 0 }}>
+                      <input
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                        placeholder="Skriv din kod, t.ex. F15-7KQ2"
+                        style={{
+                          flex: 1,
+                          padding: '11px 12px',
+                          borderRadius: 12,
+                          border: '1.5px solid rgba(255,255,255,0.18)',
+                          background: 'rgba(255,255,255,0.08)',
+                          color: '#fff',
+                          fontSize: 14,
+                          fontFamily: "'Nunito', sans-serif",
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && inviteCode.trim()) {
+                            validateInvite({ code: inviteCode });
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => validateInvite({ code: inviteCode })}
+                        disabled={!inviteCode.trim() || validatingInvite}
+                        style={{
+                          padding: '11px 14px',
+                          borderRadius: 12,
+                          border: 'none',
+                          background: !inviteCode.trim() || validatingInvite ? 'rgba(255,255,255,0.1)' : COLORS.lime,
+                          color: !inviteCode.trim() || validatingInvite ? 'rgba(255,255,255,0.35)' : COLORS.dark,
+                          fontWeight: 800,
+                          cursor: !inviteCode.trim() || validatingInvite ? 'not-allowed' : 'pointer',
+                          fontFamily: "'Nunito', sans-serif",
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {validatingInvite ? 'Kollar...' : 'Lås upp'}
+                      </button>
+                    </div>
+                    {inviteMessage && (
+                      <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, lineHeight: 1.4 }}>
+                        {inviteMessage}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
               <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 10, fontWeight: 600 }}>
                 Skapa din avatar
               </div>
@@ -207,7 +340,7 @@ export function LoginScreen() {
 
           <button
             onClick={handleSubmit}
-            disabled={busy}
+            disabled={submitDisabled}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -217,18 +350,24 @@ export function LoginScreen() {
               padding: '14px 0',
               borderRadius: 14,
               border: 'none',
-              background: busy ? 'rgba(240,220,0,0.5)' : COLORS.lime,
-              color: COLORS.dark,
+              background: submitDisabled ? 'rgba(255,255,255,0.12)' : COLORS.lime,
+              color: submitDisabled ? 'rgba(255,255,255,0.38)' : COLORS.dark,
               fontFamily: "'Fredoka One', cursive",
               fontSize: 18,
-              cursor: busy ? 'not-allowed' : 'pointer',
+              cursor: submitDisabled ? 'not-allowed' : 'pointer',
               letterSpacing: 0.5,
               transition: 'all 0.2s',
-              boxShadow: `0 4px 20px ${COLORS.lime}55`,
+              boxShadow: submitDisabled ? 'none' : `0 4px 20px ${COLORS.lime}55`,
             }}
           >
             {busy ? 'Laddar...' : mode === 'login' ? <>Spela! <ArrowRight size={18} /></> : <>Skapa konto <ArrowRight size={18} /></>}
           </button>
+
+          {mode === 'register' && !validatedInvite && (
+            <div style={{ textAlign: 'center', marginTop: 10, color: 'rgba(255,255,255,0.42)', fontSize: 12 }}>
+              Lås upp registreringen med en länk eller kod från ledarna först.
+            </div>
+          )}
 
           {mode === 'login' && (
             <div

@@ -51,6 +51,18 @@ export async function initDb(db) {
       PRIMARY KEY (alias, challenge_id)
     );
 
+    CREATE TABLE IF NOT EXISTS invites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      label TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      code TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'active',
+      clicked_at TEXT,
+      used_at TEXT,
+      used_by_alias TEXT,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS config (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL

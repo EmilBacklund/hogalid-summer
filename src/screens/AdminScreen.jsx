@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { COLORS } from '../constants';
-import { apiGet, apiPut, apiDelete, localToday, computeStats, getLevel } from '../utils';
+import { apiGet, apiPost, apiPut, apiDelete, localToday, computeStats, getLevel } from '../utils';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
@@ -8,6 +8,7 @@ export function AdminScreen() {
   const { handleLogout, setSeasonStart, setCountdownDate, countdownDate } = useUser();
 
   const [players, setPlayers] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [loadingAdmin, setLoadingAdmin] = useState(true);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
@@ -32,6 +33,12 @@ export function AdminScreen() {
   const [savingFirstLog, setSavingFirstLog] = useState({});
   const [firstLogSaved, setFirstLogSaved] = useState({});
 
+  // Invite manager
+  const [inviteLabel, setInviteLabel] = useState('');
+  const [creatingInvite, setCreatingInvite] = useState(false);
+  const [inviteActionBusy, setInviteActionBusy] = useState({});
+  const [copiedInviteId, setCopiedInviteId] = useState(null);
+
   useEffect(() => {
     apiGet("/users").then(users => {
       const mapped = users.map(u => {
@@ -43,7 +50,49 @@ export function AdminScreen() {
       }).sort((a, b) => (b.lastActivity || "").localeCompare(a.lastActivity || ""));
       setPlayers(mapped);
     }).catch(() => setPlayers([])).finally(() => setLoadingAdmin(false));
+
+    apiGet('/users?action=invites')
+      .then((data) => setInvites(data || []))
+      .catch(() => setInvites([]));
   }, []);
+
+  function formatDateTime(value) {
+    if (!value) return '—';
+    try {
+      return new Date(value).toLocaleString('sv-SE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return value;
+    }
+  }
+
+  function inviteStatusLabel(invite) {
+    if (invite.status === 'used') return 'Använd';
+    if (invite.status === 'disabled') return 'Inaktiv';
+    if (invite.status === 'clicked') return 'Öppnad';
+    return 'Ej öppnad';
+  }
+
+  function inviteStatusColor(invite) {
+    if (invite.status === 'used') return COLORS.lime;
+    if (invite.status === 'disabled') return '#f87171';
+    if (invite.status === 'clicked') return COLORS.accent;
+    return 'rgba(255,255,255,0.45)';
+  }
+
+  async function refreshInvites() {
+    try {
+      const data = await apiGet('/users?action=invites');
+      setInvites(data || []);
+    } catch {
+      // ignore
+    }
+  }
 
   async function handleResetSeason() {
     setResetLoading(true);
@@ -132,6 +181,41 @@ export function AdminScreen() {
       alert("Kunde inte uppdatera datum: " + e.message);
     }
     setSavingFirstLog(prev => ({ ...prev, [alias]: false }));
+  }
+
+  async function handleCreateInvite() {
+    if (!inviteLabel.trim()) return;
+    setCreatingInvite(true);
+    try {
+      await apiPost('/users?action=createinvite', { label: inviteLabel.trim() });
+      setInviteLabel('');
+      await refreshInvites();
+    } catch (e) {
+      alert('Kunde inte skapa inbjudan: ' + e.message);
+    }
+    setCreatingInvite(false);
+  }
+
+  async function handleInviteAction(inviteId, mode) {
+    setInviteActionBusy((prev) => ({ ...prev, [inviteId]: mode }));
+    try {
+      await apiPut('/users?action=updateinvite', { inviteId, mode });
+      await refreshInvites();
+    } catch (e) {
+      alert('Kunde inte uppdatera inbjudan: ' + e.message);
+    }
+    setInviteActionBusy((prev) => ({ ...prev, [inviteId]: '' }));
+  }
+
+  async function copyInviteLink(invite) {
+    const url = `${window.location.origin}/?invite=${invite.token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedInviteId(invite.id);
+      setTimeout(() => setCopiedInviteId(null), 2000);
+    } catch {
+      alert(url);
+    }
   }
 
   function daysSince(dateStr) {
@@ -263,6 +347,121 @@ export function AdminScreen() {
               {savingSeasonDate ? "Sparar..." : seasonDateSaved ? "✅ Sparat!" : "Spara"}
             </button>
           </div>
+        </div>
+
+        {/* Invite manager */}
+        <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: "14px 16px", marginBottom: 18 }}>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+            🔐 Inbjudningslänkar & koder
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 12, lineHeight: 1.45 }}>
+            Skapa en namngiven inbjudan per spelare så du ser vem den skickats till, om den öppnats och vem som använt den.
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <input
+              value={inviteLabel}
+              onChange={(e) => setInviteLabel(e.target.value)}
+              placeholder="Namnge länken, t.ex. Maja eller Spelare 12"
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateInvite()}
+            />
+            <button
+              onClick={handleCreateInvite}
+              disabled={!inviteLabel.trim() || creatingInvite}
+              style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: !inviteLabel.trim() || creatingInvite ? "rgba(255,255,255,0.1)" : COLORS.lime, color: !inviteLabel.trim() || creatingInvite ? "rgba(255,255,255,0.35)" : COLORS.dark, fontWeight: 700, fontSize: 13, cursor: !inviteLabel.trim() || creatingInvite ? "not-allowed" : "pointer", fontFamily: "'Nunito', sans-serif", whiteSpace: "nowrap" }}
+            >
+              {creatingInvite ? 'Skapar...' : 'Ny invite'}
+            </button>
+          </div>
+
+          {invites.length === 0 ? (
+            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, padding: '8px 0 2px' }}>
+              Inga invites skapade än.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {invites.map((invite) => {
+                const actionBusy = inviteActionBusy[invite.id];
+                const inviteUrl = `${window.location.origin}/?invite=${invite.token}`;
+                return (
+                  <div
+                    key={invite.id}
+                    style={{ background: "rgba(0,0,0,0.18)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 12px 10px" }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start', marginBottom: 8 }}>
+                      <div>
+                        <div style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{invite.label}</div>
+                        <div style={{ color: inviteStatusColor(invite), fontSize: 12, fontWeight: 700, marginTop: 2 }}>
+                          {inviteStatusLabel(invite)}
+                        </div>
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, textAlign: 'right' }}>
+                        Skapad {formatDateTime(invite.createdAt)}
+                      </div>
+                    </div>
+
+                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginBottom: 4 }}>Kod</div>
+                    <div style={{ color: COLORS.yellow, fontWeight: 800, fontSize: 14, marginBottom: 8 }}>{invite.code}</div>
+
+                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginBottom: 4 }}>Länk</div>
+                    <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 11, lineHeight: 1.35, marginBottom: 10, wordBreak: 'break-all' }}>
+                      {inviteUrl}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginBottom: 3 }}>Öppnad</div>
+                        <div style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>{formatDateTime(invite.clickedAt)}</div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginBottom: 3 }}>Använd av</div>
+                        <div style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>
+                          {invite.usedByAlias || '—'}
+                        </div>
+                        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 2 }}>
+                          {formatDateTime(invite.usedAt)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => copyInviteLink(invite)}
+                        style={{ background: copiedInviteId === invite.id ? COLORS.lime : "rgba(255,255,255,0.1)", border: "none", color: copiedInviteId === invite.id ? COLORS.dark : "rgba(255,255,255,0.7)", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+                      >
+                        {copiedInviteId === invite.id ? '✅ Kopierad' : 'Kopiera länk'}
+                      </button>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(invite.code)}
+                        style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+                      >
+                        Kopiera kod
+                      </button>
+                      <button
+                        onClick={() => handleInviteAction(invite.id, invite.status === 'disabled' ? 'enable' : 'disable')}
+                        disabled={!!actionBusy}
+                        style={{ background: "rgba(255,255,255,0.1)", border: "none", color: invite.status === 'disabled' ? COLORS.lime : "#fca5a5", borderRadius: 8, padding: "7px 10px", cursor: actionBusy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, opacity: actionBusy ? 0.6 : 1 }}
+                      >
+                        {actionBusy === 'disable' || actionBusy === 'enable'
+                          ? 'Sparar...'
+                          : invite.status === 'disabled'
+                            ? 'Aktivera'
+                            : 'Inaktivera'}
+                      </button>
+                      <button
+                        onClick={() => handleInviteAction(invite.id, 'reset')}
+                        disabled={!!actionBusy}
+                        style={{ background: "rgba(255,255,255,0.1)", border: "none", color: COLORS.accent, borderRadius: 8, padding: "7px 10px", cursor: actionBusy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, opacity: actionBusy ? 0.6 : 1 }}
+                      >
+                        {actionBusy === 'reset' ? 'Återställer...' : 'Återställ'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Player cards */}

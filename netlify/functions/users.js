@@ -2,6 +2,93 @@ import { getDb, initDb } from './db.js';
 import { hashPassword, verifyPassword } from './auth.js';
 import { updateBuddyProgress } from './buddyProgress.js';
 
+function json(data, headers, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers });
+}
+
+function randomToken() {
+  return crypto.randomUUID().replace(/-/g, '');
+}
+
+function randomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const part = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return `F15-${part()}`;
+}
+
+function normalizeInviteStatus(invite) {
+  if (!invite) return null;
+  if (invite.status === 'used') return 'used';
+  if (invite.status === 'disabled') return 'disabled';
+  if (invite.clicked_at) return 'clicked';
+  return 'active';
+}
+
+function inviteRowToClient(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    label: row.label,
+    token: row.token,
+    code: row.code,
+    status: normalizeInviteStatus(row),
+    clickedAt: row.clicked_at || null,
+    usedAt: row.used_at || null,
+    usedByAlias: row.used_by_alias || '',
+    createdAt: row.created_at,
+  };
+}
+
+async function getInviteByToken(db, token) {
+  const result = await db.execute({
+    sql: 'SELECT * FROM invites WHERE token = ?',
+    args: [token],
+  });
+  return result.rows[0] || null;
+}
+
+async function getInviteByCode(db, code) {
+  const result = await db.execute({
+    sql: 'SELECT * FROM invites WHERE UPPER(code) = ?',
+    args: [(code || '').trim().toUpperCase()],
+  });
+  return result.rows[0] || null;
+}
+
+async function markInviteClicked(db, invite) {
+  if (!invite || invite.status === 'used' || invite.status === 'disabled' || invite.clicked_at) return invite;
+  const clickedAt = new Date().toISOString();
+  await db.execute({
+    sql: 'UPDATE invites SET clicked_at = ?, status = ? WHERE id = ?',
+    args: [clickedAt, 'clicked', invite.id],
+  });
+  return {
+    ...invite,
+    clicked_at: clickedAt,
+    status: 'clicked',
+  };
+}
+
+async function generateUniqueInvite(db, label) {
+  for (let i = 0; i < 12; i++) {
+    const token = randomToken();
+    const code = randomCode();
+    const existing = await db.execute({
+      sql: 'SELECT id FROM invites WHERE token = ? OR code = ?',
+      args: [token, code],
+    });
+    if (existing.rows.length === 0) {
+      const createdAt = new Date().toISOString();
+      await db.execute({
+        sql: 'INSERT INTO invites (label, token, code, status, created_at) VALUES (?, ?, ?, ?, ?)',
+        args: [label, token, code, 'active', createdAt],
+      });
+      return getInviteByToken(db, token);
+    }
+  }
+  throw new Error('invite_generation_failed');
+}
+
 export default async (req, context) => {
   const db = getDb();
   await initDb(db);
@@ -53,11 +140,36 @@ export default async (req, context) => {
         if (!data[r.event_key]) data[r.event_key] = {};
         data[r.event_key][r.alias] = r.emoji;
       });
-      return new Response(JSON.stringify(data), { status: 200, headers });
+      return json(data, headers);
+    }
+
+    // GET - all invites for admin
+    if (method === 'GET' && action === 'invites') {
+      const result = await db.execute('SELECT * FROM invites ORDER BY created_at DESC');
+      return json(result.rows.map(inviteRowToClient), headers);
+    }
+
+    // GET - validate invite by token or code
+    if (method === 'GET' && action === 'invite') {
+      const token = url.searchParams.get('token');
+      const code = url.searchParams.get('code');
+      let invite = null;
+
+      if (token) invite = await getInviteByToken(db, token);
+      else if (code) invite = await getInviteByCode(db, code);
+      else return json({ error: 'missing_invite' }, headers, 400);
+
+      if (!invite) return json({ error: 'invite_not_found' }, headers, 404);
+
+      if (invite.status !== 'used' && invite.status !== 'disabled') {
+        invite = await markInviteClicked(db, invite);
+      }
+
+      return json(inviteRowToClient(invite), headers);
     }
 
     // GET all users (admin) or single user
-    if (method === 'GET') {
+    if (method === 'GET' && !action) {
       const alias = url.searchParams.get('alias');
 
       if (alias) {
@@ -97,15 +209,29 @@ export default async (req, context) => {
     // POST - register new user
     if (method === 'POST' && action === 'register') {
       const body = await req.json();
-      const { alias, password, avatarConfig } = body;
+      const { alias, password, avatarConfig, inviteToken, inviteCode } = body;
       const key = alias.toLowerCase();
+
+      let invite = null;
+      if (inviteToken) invite = await getInviteByToken(db, inviteToken);
+      else if (inviteCode) invite = await getInviteByCode(db, inviteCode);
+
+      if (!invite) {
+        return json({ error: 'invite_required' }, headers, 400);
+      }
+      if (invite.status === 'used') {
+        return json({ error: 'invite_used', usedByAlias: invite.used_by_alias || '' }, headers, 409);
+      }
+      if (invite.status === 'disabled') {
+        return json({ error: 'invite_disabled' }, headers, 409);
+      }
 
       const existing = await db.execute({
         sql: 'SELECT alias FROM users WHERE alias = ?',
         args: [key],
       });
       if (existing.rows.length > 0) {
-        return new Response(JSON.stringify({ error: 'alias_taken' }), { status: 409, headers });
+        return json({ error: 'alias_taken' }, headers, 409);
       }
 
       const hashed = await hashPassword(password);
@@ -113,6 +239,10 @@ export default async (req, context) => {
       await db.execute({
         sql: 'INSERT INTO users (alias, password, display_password, avatar_config, unlocked_items, highscores, secret_flags, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         args: [key, hashed, password, JSON.stringify(avatarConfig || {}), '[]', '{}', '{}', joinedAt],
+      });
+      await db.execute({
+        sql: 'UPDATE invites SET status = ?, used_at = ?, used_by_alias = ? WHERE id = ?',
+        args: ['used', joinedAt, key, invite.id],
       });
 
       const user = {
@@ -127,7 +257,7 @@ export default async (req, context) => {
         secretFlags: {},
         joinedAt,
       };
-      return new Response(JSON.stringify(user), { status: 201, headers });
+      return json(user, headers, 201);
     }
 
     // POST - login
@@ -389,7 +519,16 @@ export default async (req, context) => {
         sql: 'INSERT OR REPLACE INTO weekly_results (week_start, challenge_label, challenge_type, value, goal, level, level_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
         args: [weekStart, challengeLabel, challengeType, value, goal, level, levelName || null],
       });
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+      return json({ ok: true }, headers);
+    }
+
+    // POST - create invite
+    if (method === 'POST' && action === 'createinvite') {
+      const body = await req.json();
+      const label = (body.label || '').trim().slice(0, 50);
+      if (!label) return json({ error: 'missing_label' }, headers, 400);
+      const invite = await generateUniqueInvite(db, label);
+      return json(inviteRowToClient(invite), headers, 201);
     }
 
     // POST - update secret progress / easter egg flags
@@ -415,7 +554,46 @@ export default async (req, context) => {
         sql: 'UPDATE users SET secret_flags = ? WHERE alias = ?',
         args: [JSON.stringify(next), key],
       });
-      return new Response(JSON.stringify({ ok: true, secretFlags: next }), { status: 200, headers });
+      return json({ ok: true, secretFlags: next }, headers);
+    }
+
+    // PUT - update invite state
+    if (method === 'PUT' && action === 'updateinvite') {
+      const body = await req.json();
+      const { inviteId, mode } = body;
+      if (!inviteId || !mode) return json({ error: 'missing_fields' }, headers, 400);
+
+      const existing = await db.execute({
+        sql: 'SELECT * FROM invites WHERE id = ?',
+        args: [inviteId],
+      });
+      const invite = existing.rows[0];
+      if (!invite) return json({ error: 'invite_not_found' }, headers, 404);
+
+      if (mode === 'disable') {
+        await db.execute({
+          sql: 'UPDATE invites SET status = ? WHERE id = ?',
+          args: ['disabled', inviteId],
+        });
+      } else if (mode === 'enable') {
+        await db.execute({
+          sql: 'UPDATE invites SET status = ? WHERE id = ?',
+          args: [invite.used_at ? 'used' : (invite.clicked_at ? 'clicked' : 'active'), inviteId],
+        });
+      } else if (mode === 'reset') {
+        await db.execute({
+          sql: 'UPDATE invites SET status = ?, clicked_at = NULL, used_at = NULL, used_by_alias = NULL WHERE id = ?',
+          args: ['active', inviteId],
+        });
+      } else {
+        return json({ error: 'invalid_mode' }, headers, 400);
+      }
+
+      const updated = await db.execute({
+        sql: 'SELECT * FROM invites WHERE id = ?',
+        args: [inviteId],
+      });
+      return json(inviteRowToClient(updated.rows[0]), headers);
     }
 
     // PUT - reset season (clear all data, set new season start)
@@ -431,12 +609,13 @@ export default async (req, context) => {
         DELETE FROM feed_reactions;
         DELETE FROM cheers;
         DELETE FROM album_photos;
+        DELETE FROM invites;
       `);
       await db.execute({
         sql: "INSERT OR REPLACE INTO config (key, value) VALUES ('season_start', ?)",
         args: [today],
       });
-      return new Response(JSON.stringify({ ok: true, seasonStart: today }), { status: 200, headers });
+      return json({ ok: true, seasonStart: today }, headers);
     }
 
     // PUT - admin reset password
