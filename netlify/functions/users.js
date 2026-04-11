@@ -184,6 +184,8 @@ export default async (req, context) => {
         // attach logs, bingo, completedDaily
         user.logs = await getLogs(db, alias.toLowerCase());
         user.bingo = await getBingo(db, alias.toLowerCase());
+        user.bonusBingo = await getBonusBingo(db, alias.toLowerCase());
+        user.bingoTwo = await getBingoTwo(db, alias.toLowerCase());
         user.adultBingo = await getAdultBingo(db, alias.toLowerCase());
         user.completedDaily = await getCompletedDaily(db, alias.toLowerCase());
         user.photoCount = await getPhotoCount(db, alias.toLowerCase());
@@ -196,6 +198,8 @@ export default async (req, context) => {
           const u = rowToUser(row);
           u.logs = await getLogs(db, u.alias.toLowerCase());
           u.bingo = await getBingo(db, u.alias.toLowerCase());
+          u.bonusBingo = await getBonusBingo(db, u.alias.toLowerCase());
+          u.bingoTwo = await getBingoTwo(db, u.alias.toLowerCase());
           u.adultBingo = await getAdultBingo(db, u.alias.toLowerCase());
           u.completedDaily = await getCompletedDaily(db, u.alias.toLowerCase());
           u.photoCount = await getPhotoCount(db, u.alias.toLowerCase());
@@ -252,6 +256,8 @@ export default async (req, context) => {
         highscores: {},
         logs: [],
         bingo: [],
+        bonusBingo: [],
+        bingoTwo: [],
         adultBingo: [],
         completedDaily: {},
         secretFlags: {},
@@ -290,6 +296,8 @@ export default async (req, context) => {
       const user = rowToUser(result.rows[0]);
       user.logs = await getLogs(db, key);
       user.bingo = await getBingo(db, key);
+      user.bonusBingo = await getBonusBingo(db, key);
+      user.bingoTwo = await getBingoTwo(db, key);
       user.adultBingo = await getAdultBingo(db, key);
       user.completedDaily = await getCompletedDaily(db, key);
       user.photoCount = await getPhotoCount(db, key);
@@ -433,6 +441,32 @@ export default async (req, context) => {
 
       await db.execute({
         sql: 'INSERT OR IGNORE INTO adult_bingo (alias, challenge_id) VALUES (?, ?)',
+        args: [key, challengeId],
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
+    // POST - complete bonus bingo
+    if (method === 'POST' && action === 'bonusbingo') {
+      const body = await req.json();
+      const { alias, challengeId } = body;
+      const key = alias.toLowerCase();
+
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO bonus_bingo (alias, challenge_id) VALUES (?, ?)',
+        args: [key, challengeId],
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+
+    // POST - complete bricka 2
+    if (method === 'POST' && action === 'bingotwo') {
+      const body = await req.json();
+      const { alias, challengeId } = body;
+      const key = alias.toLowerCase();
+
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO bingo_two (alias, challenge_id) VALUES (?, ?)',
         args: [key, challengeId],
       });
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
@@ -602,6 +636,8 @@ export default async (req, context) => {
       await db.executeMultiple(`
         DELETE FROM logs;
         DELETE FROM bingo;
+        DELETE FROM bonus_bingo;
+        DELETE FROM bingo_two;
         DELETE FROM adult_bingo;
         DELETE FROM completed_daily;
         DELETE FROM users;
@@ -640,6 +676,8 @@ export default async (req, context) => {
       const tables = [
         { sql: 'DELETE FROM logs WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM bingo WHERE alias = ?', args: [key] },
+        { sql: 'DELETE FROM bonus_bingo WHERE alias = ?', args: [key] },
+        { sql: 'DELETE FROM bingo_two WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM adult_bingo WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM completed_daily WHERE alias = ?', args: [key] },
         { sql: 'DELETE FROM buddy_challenges WHERE from_alias = ? OR to_alias = ?', args: [key, key] },
@@ -717,6 +755,22 @@ function rowToUser(row) {
 async function getAdultBingo(db, alias) {
   const result = await db.execute({
     sql: 'SELECT challenge_id FROM adult_bingo WHERE alias = ?',
+    args: [alias],
+  });
+  return result.rows.map((r) => r.challenge_id);
+}
+
+async function getBonusBingo(db, alias) {
+  const result = await db.execute({
+    sql: 'SELECT challenge_id FROM bonus_bingo WHERE alias = ?',
+    args: [alias],
+  });
+  return result.rows.map((r) => r.challenge_id);
+}
+
+async function getBingoTwo(db, alias) {
+  const result = await db.execute({
+    sql: 'SELECT challenge_id FROM bingo_two WHERE alias = ?',
     args: [alias],
   });
   return result.rows.map((r) => r.challenge_id);

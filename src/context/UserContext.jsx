@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { apiGet, apiPost, apiPut, localToday, computeStats, invalidateUsersCache, getLevel } from '../utils';
-import { BINGO } from '../constants';
+import { BINGO, BONUS_BINGO, BINGO_TWO } from '../constants';
 
 const UserContext = createContext(null);
 
@@ -283,6 +283,38 @@ export function UserProvider({ children }) {
     }
   }
 
+  async function handleBonusBingoDone(challengeId, bonusPoints) {
+    if ((user.bonusBingo || []).includes(challengeId)) return;
+    try {
+      await apiPost('/users?action=bonusbingo', { alias: user.alias, challengeId });
+      const challenge = BONUS_BINGO.find((b) => b.id === challengeId);
+      const isFootball = challenge?.cat === '⚽';
+      await apiPost('/users?action=addlog', {
+        alias: user.alias,
+        log: { date: localToday(), exercises: [], points: bonusPoints, minutes: 0, bingo: true, bingoFootball: isFootball, title: `bonus-bingo:${challengeId}` },
+      });
+      await refreshCurrentUser(user.alias);
+    } catch (e) {
+      alert('Kunde inte markera bonusbingo: ' + e.message);
+    }
+  }
+
+  async function handleBingoTwoDone(challengeId, bonusPoints) {
+    if ((user.bingoTwo || []).includes(challengeId)) return;
+    try {
+      await apiPost('/users?action=bingotwo', { alias: user.alias, challengeId });
+      const challenge = BINGO_TWO.find((b) => b.id === challengeId);
+      const isFootball = challenge?.cat === '⚽';
+      await apiPost('/users?action=addlog', {
+        alias: user.alias,
+        log: { date: localToday(), exercises: [], points: bonusPoints, minutes: 0, bingo: true, bingoFootball: isFootball, title: `bricka2-bingo:${challengeId}` },
+      });
+      await refreshCurrentUser(user.alias);
+    } catch (e) {
+      alert('Kunde inte markera Bricka 2: ' + e.message);
+    }
+  }
+
   async function handleRecordSecretProgress(patch) {
     try {
       await apiPost('/users?action=secretprogress', { alias: user.alias, patch });
@@ -342,6 +374,8 @@ export function UserProvider({ children }) {
     handleUnlock,
     handleAvatarUpdate,
     handleBingoDone,
+    handleBonusBingoDone,
+    handleBingoTwoDone,
     handleAdultBingoDone,
     handleCompleteDaily,
     handleRecordSecretProgress,

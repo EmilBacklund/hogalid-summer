@@ -1,11 +1,336 @@
-import { useState, useMemo, useRef } from 'react';
-import { COLORS, BINGO, ADULT_BINGO, BADGES } from '../constants';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { COLORS, BINGO, BONUS_BINGO, BINGO_TWO, ADULT_BINGO, BADGES } from '../constants';
 import { localToday } from '../utils';
 import { Card, ProgressBar, Confetti, ButtonLoader } from '../components/common';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
 
-function getAdultBingoLines(doneIds = []) {
+const BOARD_TWO_UNLOCK_TARGET = 45;
+const MAIN_ROW_BONUS = 30;
+const MAIN_COL_BONUS = 50;
+const BONUS_ROW_BONUS = 20;
+const BONUS_COL_BONUS = 25;
+const BOARD_TWO_ROW_BONUS = 30;
+const BOARD_TWO_COL_BONUS = 50;
+
+function shuffleOpenFirst(items, doneIds) {
+  const undone = items.filter((item) => !doneIds.includes(item.id));
+  const doneItems = items.filter((item) => doneIds.includes(item.id));
+  for (let i = undone.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [undone[i], undone[j]] = [undone[j], undone[i]];
+  }
+  return [...undone, ...doneItems];
+}
+
+function getBoardLineState(items, doneIds, cols) {
+  const doneSet = new Set(doneIds);
+  const rows = [];
+  const completedCols = [];
+  const rowCount = Math.ceil(items.length / cols);
+
+  for (let row = 0; row < rowCount; row++) {
+    const rowItems = items.slice(row * cols, row * cols + cols);
+    if (rowItems.length === cols && rowItems.every((item) => doneSet.has(item.id))) {
+      rows.push(row);
+    }
+  }
+
+  for (let col = 0; col < cols; col++) {
+    const colItems = [];
+    for (let row = 0; row < rowCount; row++) {
+      const item = items[row * cols + col];
+      if (item) colItems.push(item);
+    }
+    if (colItems.length === rowCount && colItems.every((item) => doneSet.has(item.id))) {
+      completedCols.push(col);
+    }
+  }
+
+  return { rows, cols: completedCols };
+}
+
+function getBoardCounts(items, doneIds) {
+  return {
+    football: doneIds.filter((id) => items.find((item) => item.id === id)?.cat === '⚽').length,
+    summer: doneIds.filter((id) => items.find((item) => item.id === id)?.cat === '☀️').length,
+    totalPoints: doneIds.reduce((sum, id) => sum + (items.find((item) => item.id === id)?.points || 0), 0),
+  };
+}
+
+function computeLineBonus(items, doneIds, nextId, cols, rowBonus, colBonus, previousLineState) {
+  const nextDoneSet = new Set([...doneIds, nextId]);
+  const index = items.findIndex((item) => item.id === nextId);
+  if (index < 0) return { bonus: 0, labels: [] };
+
+  const rowCount = Math.ceil(items.length / cols);
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  let bonus = 0;
+  const labels = [];
+
+  const rowItems = items.slice(row * cols, row * cols + cols);
+  const rowComplete = rowItems.length === cols && rowItems.every((item) => nextDoneSet.has(item.id));
+  if (rowComplete && !previousLineState.rows.includes(row)) {
+    bonus += rowBonus;
+    labels.push(`Rad ${row + 1}`);
+  }
+
+  const colItems = [];
+  for (let r = 0; r < rowCount; r++) {
+    const item = items[r * cols + col];
+    if (item) colItems.push(item);
+  }
+  const colComplete = colItems.length === rowCount && colItems.every((item) => nextDoneSet.has(item.id));
+  if (colComplete && !previousLineState.cols.includes(col)) {
+    bonus += colBonus;
+    labels.push(`Kolumn ${col + 1}`);
+  }
+
+  return { bonus, labels };
+}
+
+function BoardGrid({ items, doneIds, justDoneId, cols, lineState }) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        gap: cols === 10 ? 3 : 8,
+        marginBottom: 6,
+        padding: cols === 10 ? '0 2px' : 0,
+      }}
+    >
+      {items.map((item, index) => {
+        const isDone = doneIds.includes(item.id);
+        const isJust = justDoneId === item.id;
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        const inCompletedLine = lineState.rows.includes(row) || lineState.cols.includes(col);
+        return (
+          <div
+            key={item.id}
+            title={item.label}
+            style={{
+              aspectRatio: cols === 10 ? '1' : '1 / 1.05',
+              borderRadius: cols === 10 ? 4 : 12,
+              background: isDone
+                ? (item.cat === '⚽' ? COLORS.lime : '#fbbf24')
+                : 'rgba(255,255,255,0.06)',
+              border: isDone ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              transition: 'all 0.25s',
+              transform: isJust ? 'scale(1.08)' : 'scale(1)',
+              boxShadow: isJust
+                ? `0 0 8px ${item.cat === '⚽' ? COLORS.lime : '#fbbf24'}`
+                : inCompletedLine && isDone
+                  ? '0 0 6px rgba(255,255,255,0.28)'
+                  : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: cols === 10 ? 7 : 10,
+              color: isDone ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.2)',
+              fontWeight: 800,
+              textAlign: 'center',
+              padding: cols === 10 ? 0 : '4px',
+            }}
+          >
+            {cols === 10 ? index + 1 : item.cat}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LineIndicators({ lineState, rowBonus, colBonus, rowColor = COLORS.lime, colColor = '#fbbf24' }) {
+  if (lineState.rows.length === 0 && lineState.cols.length === 0) return null;
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 12,
+        justifyContent: 'center',
+      }}
+    >
+      {lineState.rows.map((row) => (
+        <span
+          key={`row-${row}`}
+          style={{
+            background: `${rowColor}20`,
+            border: `1px solid ${rowColor}66`,
+            borderRadius: 999,
+            padding: '4px 9px',
+            fontSize: 11,
+            fontWeight: 800,
+            color: rowColor,
+          }}
+        >
+          Rad {row + 1} ✓ +{rowBonus}p
+        </span>
+      ))}
+      {lineState.cols.map((col) => (
+        <span
+          key={`col-${col}`}
+          style={{
+            background: `${colColor}20`,
+            border: `1px solid ${colColor}66`,
+            borderRadius: 999,
+            padding: '4px 9px',
+            fontSize: 11,
+            fontWeight: 800,
+            color: colColor,
+          }}
+        >
+          Kolumn {col + 1} ✓ +{colBonus}p
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function FilterTabs({ filter, setFilter, count }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+      {[['all', `Alla ${count}`], ['⚽', 'Fotboll & idrott'], ['☀️', 'Sommar']].map(([value, label]) => (
+        <button
+          key={value}
+          onClick={() => setFilter(value)}
+          style={{
+            flex: 1,
+            padding: '8px 0',
+            borderRadius: 10,
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: "'Nunito', sans-serif",
+            fontWeight: 700,
+            fontSize: 13,
+            transition: 'all 0.15s',
+            background: filter === value ? COLORS.lime : 'rgba(255,255,255,0.1)',
+            color: filter === value ? COLORS.dark : 'rgba(255,255,255,0.72)',
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ChallengeList({ items, doneIds, selectedChallenge, setSelectedChallenge, justDoneId, busy, onMarkDone }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {items.map((challenge) => {
+        const isDone = doneIds.includes(challenge.id);
+        const isJust = justDoneId === challenge.id;
+        return (
+          <div key={challenge.id}>
+            <div
+              onClick={() => !isDone && setSelectedChallenge(selectedChallenge?.id === challenge.id ? null : challenge)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                background: isDone ? 'rgba(168,230,61,0.1)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${isDone ? `${COLORS.lime}55` : selectedChallenge?.id === challenge.id ? COLORS.lime : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: selectedChallenge?.id === challenge.id ? '14px 14px 0 0' : 14,
+                padding: '12px 14px',
+                cursor: isDone ? 'default' : 'pointer',
+                opacity: isDone ? 0.72 : 1,
+                transition: 'all 0.2s',
+                transform: isJust ? 'scale(1.02)' : 'scale(1)',
+              }}
+            >
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  flexShrink: 0,
+                  border: `2px solid ${isDone ? COLORS.lime : 'rgba(255,255,255,0.2)'}`,
+                  background: isDone ? COLORS.lime : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 14,
+                }}
+              >
+                {isDone ? '✓' : challenge.cat}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    color: isDone ? 'rgba(255,255,255,0.5)' : '#fff',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    textDecoration: isDone ? 'line-through' : 'none',
+                  }}
+                >
+                  {challenge.label}
+                </div>
+              </div>
+              <div style={{ color: isDone ? COLORS.lime : COLORS.accent, fontWeight: 800, fontSize: 13, flexShrink: 0 }}>
+                {isDone ? '✅' : `+${challenge.points}p`}
+              </div>
+            </div>
+            {selectedChallenge?.id === challenge.id && !isDone && (
+              <div
+                style={{
+                  background: 'rgba(168,230,61,0.08)',
+                  border: `1px solid ${COLORS.lime}`,
+                  borderTop: 'none',
+                  borderRadius: '0 0 14px 14px',
+                  padding: '12px 14px',
+                }}
+              >
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => onMarkDone(challenge.id)}
+                    disabled={busy}
+                    style={{
+                      flex: 1,
+                      padding: '12px 0',
+                      borderRadius: 12,
+                      border: 'none',
+                      background: busy ? 'rgba(240,220,0,0.5)' : COLORS.lime,
+                      color: COLORS.dark,
+                      fontFamily: "'Fredoka One', cursive",
+                      fontSize: 16,
+                      cursor: busy ? 'not-allowed' : 'pointer',
+                      opacity: busy ? 0.7 : 1,
+                    }}
+                  >
+                    {busy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '✅ Klart!'}
+                  </button>
+                  <button
+                    onClick={() => setSelectedChallenge(null)}
+                    disabled={busy}
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 12,
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      background: 'transparent',
+                      color: 'rgba(255,255,255,0.6)',
+                      fontSize: 14,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AdultBingoLines(doneIds = []) {
   const doneSet = new Set(doneIds);
   const rows = [];
   const cols = [];
@@ -24,74 +349,207 @@ function getAdultBingoLines(doneIds = []) {
 }
 
 export function BingoScreen() {
-  const { user, setScreen, handleBingoDone, handleSaveLog, handleAdultBingoDone, handleRecordSecretProgress } = useUser();
+  const {
+    user,
+    setScreen,
+    handleBingoDone,
+    handleBonusBingoDone,
+    handleBingoTwoDone,
+    handleAdultBingoDone,
+    handleSaveLog,
+    handleRecordSecretProgress,
+  } = useUser();
 
   const done = user.bingo || [];
+  const bonusDone = user.bonusBingo || [];
+  const boardTwoDone = user.bingoTwo || [];
   const adultDone = user.adultBingo || [];
   const adultDiscovered = !!user.secretFlags?.foundAdultBingo;
-  const remaining = BINGO.filter(b => !done.includes(b.id));
-  const [filter, setFilter] = useState("all"); // all | ⚽ | ☀️
+
+  const [activeBoard, setActiveBoard] = useState('one');
+  const [mainFilter, setMainFilter] = useState('all');
+  const [boardTwoFilter, setBoardTwoFilter] = useState('all');
+  const [selectedMain, setSelectedMain] = useState(null);
+  const [selectedBoardTwo, setSelectedBoardTwo] = useState(null);
+  const [selectedBonus, setSelectedBonus] = useState(null);
+  const [busyMain, setBusyMain] = useState(false);
+  const [busyBoardTwo, setBusyBoardTwo] = useState(false);
+  const [busyBonus, setBusyBonus] = useState(false);
+  const [justDoneMain, setJustDoneMain] = useState(null);
+  const [justDoneBoardTwo, setJustDoneBoardTwo] = useState(null);
+  const [justDoneBonus, setJustDoneBonus] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showBonusBingo, setShowBonusBingo] = useState(false);
+  const [showAdultIntro, setShowAdultIntro] = useState(false);
+  const [showAdultBingo, setShowAdultBingo] = useState(false);
+  const [selectedAdultChallenge, setSelectedAdultChallenge] = useState(null);
+  const [adultBusy, setAdultBusy] = useState(false);
+  const [adultJustDone, setAdultJustDone] = useState(null);
+  const [sunTapCount, setSunTapCount] = useState(0);
   const [randomPick, setRandomPick] = useState(null);
   const [wheelNum, setWheelNum] = useState(null);
   const [spinning, setSpinning] = useState(false);
   const spinTimerRef = useRef(null);
-  const [justDone, setJustDone] = useState(null);
-  const [showConfetti, setShowConfetti] = useState(false);
 
-  const footballCount = done.filter(id => BINGO.find(b => b.id === id)?.cat === "⚽").length;
-  const summerCount   = done.filter(id => BINGO.find(b => b.id === id)?.cat === "☀️").length;
-  const totalPoints   = done.reduce((s, id) => s + (BINGO.find(b => b.id === id)?.points || 0), 0);
+  useEffect(() => () => {
+    if (spinTimerRef.current) clearTimeout(spinTimerRef.current);
+  }, []);
 
-  // Row/column completion (10 cols × 5 rows)
-  const doneSet = new Set(done);
-  const completedRows = [];
-  const completedCols = [];
-  for (let row = 0; row < 5; row++) {
-    const allDone = Array.from({ length: 10 }, (_, col) => BINGO[row * 10 + col])
-      .every(b => b && doneSet.has(b.id));
-    if (allDone) completedRows.push(row);
+  const mainLineState = getBoardLineState(BINGO, done, 10);
+  const bonusLineState = getBoardLineState(BONUS_BINGO, bonusDone, 4);
+  const boardTwoLineState = getBoardLineState(BINGO_TWO, boardTwoDone, 10);
+  const adultLineState = AdultBingoLines(adultDone);
+
+  const totalBeforeBoardTwo = done.length + bonusDone.length;
+  const boardTwoUnlocked = totalBeforeBoardTwo >= BOARD_TWO_UNLOCK_TARGET || boardTwoDone.length > 0;
+
+  const mainCounts = getBoardCounts(BINGO, done);
+  const bonusCounts = getBoardCounts(BONUS_BINGO, bonusDone);
+  const boardTwoCounts = getBoardCounts(BINGO_TWO, boardTwoDone);
+
+  const shuffledMain = useMemo(() => shuffleOpenFirst(BINGO, done), []);
+  const shuffledBoardTwo = useMemo(() => shuffleOpenFirst(BINGO_TWO, boardTwoDone), []);
+
+  const boardConfig = activeBoard === 'one'
+    ? {
+        key: 'one',
+        title: 'Bricka 1',
+        items: BINGO,
+        done,
+        lineState: mainLineState,
+        counts: mainCounts,
+        cols: 10,
+        rowBonus: MAIN_ROW_BONUS,
+        colBonus: MAIN_COL_BONUS,
+        filter: mainFilter,
+        setFilter: setMainFilter,
+        selected: selectedMain,
+        setSelected: setSelectedMain,
+        busy: busyMain,
+        setBusy: setBusyMain,
+        justDone: justDoneMain,
+        setJustDone: setJustDoneMain,
+        shuffled: shuffledMain,
+        action: handleBingoDone,
+        bonusTitle: '🎯 Bingobonus',
+      }
+    : {
+        key: 'two',
+        title: 'Bricka 2',
+        items: BINGO_TWO,
+        done: boardTwoDone,
+        lineState: boardTwoLineState,
+        counts: boardTwoCounts,
+        cols: 10,
+        rowBonus: BOARD_TWO_ROW_BONUS,
+        colBonus: BOARD_TWO_COL_BONUS,
+        filter: boardTwoFilter,
+        setFilter: setBoardTwoFilter,
+        selected: selectedBoardTwo,
+        setSelected: setSelectedBoardTwo,
+        busy: busyBoardTwo,
+        setBusy: setBusyBoardTwo,
+        justDone: justDoneBoardTwo,
+        setJustDone: setJustDoneBoardTwo,
+        shuffled: shuffledBoardTwo,
+        action: handleBingoTwoDone,
+        bonusTitle: '🎯 Bricka 2-bonus',
+      };
+
+  const boardDisplayList = boardConfig.shuffled.filter((item) => boardConfig.filter === 'all' || item.cat === boardConfig.filter);
+  const boardRemaining = boardConfig.items.filter((item) => !boardConfig.done.includes(item.id) && (boardConfig.filter === 'all' || item.cat === boardConfig.filter));
+  const currentRandomPick = randomPick?.board === activeBoard ? randomPick.challenge : null;
+
+  async function markBoardDone(config, id, closeAfter = true) {
+    if (config.busy) return;
+    config.setBusy(true);
+    const challenge = config.items.find((item) => item.id === id);
+    await config.action(id, challenge?.points || 0);
+
+    const { bonus, labels } = computeLineBonus(
+      config.items,
+      config.done,
+      id,
+      config.cols,
+      config.rowBonus,
+      config.colBonus,
+      config.lineState,
+    );
+
+    if (bonus > 0) {
+      await handleSaveLog(
+        {
+          date: localToday(),
+          exercises: [],
+          points: bonus,
+          minutes: 0,
+          bingo: true,
+          bingoFootball: challenge?.cat === '⚽',
+          title: `${config.bonusTitle}: ${labels.join(' + ')}`,
+        },
+        user.highscores || {},
+      );
+    }
+
+    config.setJustDone(id);
+    config.setSelected(null);
+    if (closeAfter) setRandomPick(null);
+    setShowConfetti(true);
+    config.setBusy(false);
+    setTimeout(() => {
+      config.setJustDone(null);
+      setShowConfetti(false);
+    }, 2300);
   }
-  for (let col = 0; col < 10; col++) {
-    const allDone = Array.from({ length: 5 }, (_, row) => BINGO[row * 10 + col])
-      .every(b => b && doneSet.has(b.id));
-    if (allDone) completedCols.push(col);
-  }
-  const ROW_BONUS = 30;
-  const COL_BONUS = 50;
-  const lineBonus = completedRows.length * ROW_BONUS + completedCols.length * COL_BONUS;
-  const completedRowSet = new Set(completedRows);
-  const completedColSet = new Set(completedCols);
 
-  const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [selectedAdultChallenge, setSelectedAdultChallenge] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [adultBusy, setAdultBusy] = useState(false);
-  const [showAdultIntro, setShowAdultIntro] = useState(false);
-  const [showAdultBingo, setShowAdultBingo] = useState(false);
-  const [adultJustDone, setAdultJustDone] = useState(null);
-  const [sunTapCount, setSunTapCount] = useState(0);
-  const adultLineState = getAdultBingoLines(adultDone);
-  const adultHasBingo = adultLineState.rows.length > 0 || adultLineState.cols.length > 0;
+  async function markBonusDone(id) {
+    if (busyBonus) return;
+    setBusyBonus(true);
+    const challenge = BONUS_BINGO.find((item) => item.id === id);
+    await handleBonusBingoDone(id, challenge?.points || 0);
+
+    const { bonus, labels } = computeLineBonus(BONUS_BINGO, bonusDone, id, 4, BONUS_ROW_BONUS, BONUS_COL_BONUS, bonusLineState);
+    if (bonus > 0) {
+      await handleSaveLog(
+        {
+          date: localToday(),
+          exercises: [],
+          points: bonus,
+          minutes: 0,
+          bingo: true,
+          bingoFootball: challenge?.cat === '⚽',
+          title: `🎯 Bonusbingo: ${labels.join(' + ')}`,
+        },
+        user.highscores || {},
+      );
+    }
+
+    setJustDoneBonus(id);
+    setSelectedBonus(null);
+    setShowConfetti(true);
+    setBusyBonus(false);
+    setTimeout(() => {
+      setJustDoneBonus(null);
+      setShowConfetti(false);
+    }, 2200);
+  }
 
   function startSpin() {
-    const pool = remaining.filter(b => filter === "all" || b.cat === filter);
-    if (pool.length === 0 || spinning) return;
-
-    const target = pool[Math.floor(Math.random() * pool.length)];
-    const targetNum = BINGO.findIndex(b => b.id === target.id) + 1;
+    if (spinning || boardRemaining.length === 0) return;
+    const target = boardRemaining[Math.floor(Math.random() * boardRemaining.length)];
+    const targetNum = boardConfig.items.findIndex((item) => item.id === target.id) + 1;
 
     setSpinning(true);
     setRandomPick(null);
 
     const totalSteps = 28;
-    // Pre-calculate start so sequential scrolling naturally lands on targetNum
-    const startNum = ((targetNum - totalSteps - 1) % 50 + 50) % 50 + 1;
+    const startNum = ((targetNum - totalSteps - 1 + boardConfig.items.length * 2) % boardConfig.items.length) + 1;
     let current = startNum;
     let step = 0;
 
     function tick() {
       step++;
-      current = (current % 50) + 1;
+      current = (current % boardConfig.items.length) + 1;
       setWheelNum(current);
 
       if (step < totalSteps) {
@@ -100,47 +558,13 @@ export function BingoScreen() {
         spinTimerRef.current = setTimeout(tick, delay);
       } else {
         setSpinning(false);
-        spinTimerRef.current = setTimeout(() => setRandomPick(target), 500);
+        spinTimerRef.current = setTimeout(() => {
+          setRandomPick({ board: activeBoard, challenge: target });
+        }, 450);
       }
     }
 
     spinTimerRef.current = setTimeout(tick, 50);
-  }
-
-  async function markDone(id) {
-    if (busy) return;
-    setBusy(true);
-    const challenge = BINGO.find(b => b.id === id);
-    await handleBingoDone(id, challenge?.points || 0);
-
-    // Check if this completion fills a new row or column
-    const newDone = new Set([...done, id]);
-    const idx = BINGO.findIndex(b => b.id === id);
-    let bonus = 0;
-    const bonusLabels = [];
-    if (idx >= 0) {
-      const row = Math.floor(idx / 10);
-      const col = idx % 10;
-      const rowComplete = Array.from({ length: 10 }, (_, c) => BINGO[row * 10 + c])
-        .every(b => b && newDone.has(b.id));
-      const colComplete = Array.from({ length: 5 }, (_, r) => BINGO[r * 10 + col])
-        .every(b => b && newDone.has(b.id));
-      // Only award if not already completed before
-      if (rowComplete && !completedRowSet.has(row)) { bonus += ROW_BONUS; bonusLabels.push(`Rad ${row + 1}`); }
-      if (colComplete && !completedColSet.has(col)) { bonus += COL_BONUS; bonusLabels.push(`Kolumn ${col + 1}`); }
-    }
-    if (bonus > 0) {
-      await handleSaveLog(
-        { date: localToday(), exercises: [], points: bonus, minutes: 0, bingo: true, title: `🎯 Bingobonus: ${bonusLabels.join(' + ')}` },
-        user.highscores || {},
-      );
-    }
-
-    setJustDone(id);
-    setRandomPick(null);
-    setShowConfetti(true);
-    setBusy(false);
-    setTimeout(() => { setJustDone(null); setShowConfetti(false); }, 2500);
   }
 
   async function revealAdultBingo() {
@@ -156,7 +580,6 @@ export function BingoScreen() {
       setSunTapCount(next);
       return;
     }
-
     setSunTapCount(0);
     if (adultDiscovered) {
       setShowAdultBingo(true);
@@ -178,66 +601,124 @@ export function BingoScreen() {
     }, 2200);
   }
 
-  // Shuffle once per screen open — undone items random, done items at bottom
-  const shuffledBingo = useMemo(() => {
-    const undone = BINGO.filter(b => !done.includes(b.id));
-    const doneItems = BINGO.filter(b => done.includes(b.id));
-    for (let i = undone.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [undone[i], undone[j]] = [undone[j], undone[i]];
-    }
-    return [...undone, ...doneItems];
-  }, []); // empty deps = only runs once on mount
-
-  const displayList = shuffledBingo
-    .filter(b => filter === "all" || b.cat === filter);
-
   return (
-    <div style={{ padding: "20px 16px 32px", fontFamily: "'Nunito', sans-serif" }}>
+    <div style={{ padding: '20px 16px 32px', fontFamily: "'Nunito', sans-serif" }}>
       <Confetti active={showConfetti} />
-      <button onClick={() => setScreen("home")} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: COLORS.lime, cursor: "pointer", fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}><ArrowLeft size={16} />Tillbaka</button>
+
+      <button
+        onClick={() => setScreen('home')}
+        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: COLORS.lime, cursor: 'pointer', fontSize: 15, fontWeight: 700, marginBottom: 16, padding: 0 }}
+      >
+        <ArrowLeft size={16} />Tillbaka
+      </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-        <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: "#fff" }}>Sommarlovsbingo</div>
+        <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: '#fff' }}>Sommarlovsbingo</div>
         <button
           onClick={handleSunTap}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            fontSize: 26,
-            lineHeight: 1,
-          }}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 26, lineHeight: 1 }}
           aria-label="Solen"
           title={adultDiscovered ? 'Tryck fem gånger för att öppna Hemligt vuxenbingo' : undefined}
         >
           🌞
         </button>
       </div>
-      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 18 }}>50 utmaningar — en hel sommar att klara dem!</div>
+      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 18 }}>
+        Fyll brickor, jaga rader och lås upp ännu mer.
+      </div>
 
-      {/* Progress summary */}
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, textAlign: "center" }}>
-          <div>
-            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: COLORS.lime }}>{done.length}</div>
-            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>av 50 klara</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+        <Card
+          onClick={() => {
+            setActiveBoard('one');
+            setRandomPick(null);
+          }}
+          style={{
+            padding: '14px 16px',
+            border: activeBoard === 'one' ? `2px solid ${COLORS.lime}` : '1px solid rgba(255,255,255,0.15)',
+            background: activeBoard === 'one' ? 'rgba(168,230,61,0.12)' : undefined,
+          }}
+        >
+          <div style={{ color: activeBoard === 'one' ? COLORS.lime : 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5 }}>
+            Aktiv bricka
           </div>
-          <div>
-            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: "#60a5fa" }}>{footballCount}</div>
-            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>⚽ idrott</div>
+          <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 24, marginBottom: 4 }}>Bricka 1</div>
+          <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>{done.length}/50 klara</div>
+        </Card>
+
+        <Card
+          onClick={() => {
+            if (!boardTwoUnlocked) return;
+            setActiveBoard('two');
+            setRandomPick(null);
+          }}
+          style={{
+            padding: '14px 16px',
+            cursor: boardTwoUnlocked ? 'pointer' : 'default',
+            border: activeBoard === 'two' ? `2px solid ${COLORS.yellow}` : '1px solid rgba(255,255,255,0.15)',
+            background: boardTwoUnlocked
+              ? (activeBoard === 'two' ? 'rgba(251,191,36,0.12)' : undefined)
+              : 'rgba(255,255,255,0.04)',
+            opacity: boardTwoUnlocked ? 1 : 0.82,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+            {!boardTwoUnlocked && <Lock size={13} color="rgba(255,255,255,0.5)" />}
+            <div style={{ color: boardTwoUnlocked ? COLORS.yellow : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
+              {boardTwoUnlocked ? 'Upplåst' : 'Låst'}
+            </div>
           </div>
+          <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 24, marginBottom: 6 }}>Bricka 2</div>
+          {boardTwoUnlocked ? (
+            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>{boardTwoDone.length}/50 klara</div>
+          ) : (
+            <>
+              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginBottom: 6 }}>
+                {totalBeforeBoardTwo}/{BOARD_TWO_UNLOCK_TARGET} uppdrag till upplåsning
+              </div>
+              <ProgressBar value={Math.min(100, Math.round((totalBeforeBoardTwo / BOARD_TWO_UNLOCK_TARGET) * 100))} color={COLORS.yellow} height={8} />
+            </>
+          )}
+        </Card>
+      </div>
+
+      <Card
+        onClick={() => setShowBonusBingo(true)}
+        style={{
+          marginBottom: 16,
+          padding: '16px 18px',
+          background: 'linear-gradient(135deg, rgba(10,32,74,0.96) 0%, rgba(22,73,170,0.96) 58%, rgba(255,215,92,0.18) 100%)',
+          border: '1px solid rgba(255,215,92,0.24)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
           <div>
-            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: "#fbbf24" }}>{summerCount}</div>
-            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>☀️ sommar</div>
+            <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              Extra uppdrag
+            </div>
+            <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 22, marginBottom: 6 }}>
+              Bonusbingo
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.35 }}>
+              {bonusDone.length}/12 klara. Räknas in när du låser upp Bricka 2.
+            </div>
           </div>
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <ProgressBar value={Math.round((done.length / 50) * 100)} color={COLORS.lime} height={10} />
-        </div>
-        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 5 }}>
-          +{totalPoints} poäng från bingo{lineBonus > 0 && <span style={{ color: COLORS.lime }}> + {lineBonus}p radbonus!</span>}
+          <div
+            style={{
+              minWidth: 68,
+              height: 68,
+              borderRadius: 18,
+              background: 'rgba(255,255,255,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: COLORS.yellow,
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: 22,
+            }}
+          >
+            {bonusDone.length}/12
+          </div>
         </div>
       </Card>
 
@@ -260,7 +741,7 @@ export function BingoScreen() {
                 Hemligt vuxenbingo
               </div>
               <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 13, lineHeight: 1.35 }}>
-                Nu är det de vuxnas tur. {adultDone.length}/16 rutor klara{adultHasBingo ? ' · bingo fixat!' : ''}
+                Nu är det de vuxnas tur. {adultDone.length}/16 rutor klara{adultLineState.rows.length || adultLineState.cols.length ? ' · bingo fixat!' : ''}
               </div>
             </div>
             <div
@@ -283,117 +764,75 @@ export function BingoScreen() {
         </Card>
       )}
 
-      {/* Visual bingo grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(10, 1fr)',
-        gap: 3,
-        marginBottom: 6,
-        padding: '0 2px',
-      }}>
-        {BINGO.map((b, i) => {
-          const isDone = done.includes(b.id);
-          const isJust = justDone === b.id;
-          const isFootball = b.cat === '⚽';
-          const row = Math.floor(i / 10);
-          const col = i % 10;
-          const inCompletedLine = completedRowSet.has(row) || completedColSet.has(col);
-          return (
-            <div
-              key={b.id}
-              title={b.label}
-              style={{
-                aspectRatio: '1',
-                borderRadius: 4,
-                background: isDone
-                  ? (isFootball ? COLORS.lime : '#fbbf24')
-                  : 'rgba(255,255,255,0.06)',
-                border: isDone
-                  ? 'none'
-                  : '1px solid rgba(255,255,255,0.08)',
-                transition: 'all 0.3s',
-                transform: isJust ? 'scale(1.3)' : 'scale(1)',
-                boxShadow: isJust
-                  ? `0 0 8px ${COLORS.lime}`
-                  : inCompletedLine && isDone
-                    ? '0 0 6px rgba(255,255,255,0.3)'
-                    : 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 7,
-                color: isDone ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.15)',
-                fontWeight: 700,
-                opacity: inCompletedLine && isDone ? 1 : undefined,
-              }}
-            >
-              {i + 1}
-            </div>
-          );
-        })}
-      </div>
-      {/* Line bonus indicators */}
-      {(completedRows.length > 0 || completedCols.length > 0) && (
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 6,
-          marginBottom: 10,
-          justifyContent: 'center',
-        }}>
-          {completedRows.map(row => (
-            <span key={`row-${row}`} style={{
-              background: 'rgba(168,230,61,0.15)',
-              border: `1px solid ${COLORS.lime}55`,
-              borderRadius: 8,
-              padding: '3px 8px',
-              fontSize: 11,
-              fontWeight: 700,
-              color: COLORS.lime,
-            }}>
-              Rad {row + 1} ✓ +{ROW_BONUS}p
-            </span>
-          ))}
-          {completedCols.map(col => (
-            <span key={`col-${col}`} style={{
-              background: 'rgba(251,191,36,0.15)',
-              border: '1px solid rgba(251,191,36,0.4)',
-              borderRadius: 8,
-              padding: '3px 8px',
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#fbbf24',
-            }}>
-              Kolumn {col + 1} ✓ +{COL_BONUS}p
-            </span>
-          ))}
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
+          <div>
+            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: COLORS.lime }}>{boardConfig.done.length}</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>av {boardConfig.items.length} klara</div>
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: '#60a5fa' }}>{boardConfig.counts.football}</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>⚽ idrott</div>
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: '#fbbf24' }}>{boardConfig.counts.summer}</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>☀️ sommar</div>
+          </div>
         </div>
-      )}
+        <div style={{ marginTop: 12 }}>
+          <ProgressBar value={Math.round((boardConfig.done.length / boardConfig.items.length) * 100)} color={activeBoard === 'one' ? COLORS.lime : COLORS.yellow} height={10} />
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 12, marginTop: 5 }}>
+          +{boardConfig.counts.totalPoints} poäng från {boardConfig.title.toLowerCase()}
+        </div>
+      </Card>
 
-      {/* Bingo milestone badges */}
-      {[10, 20, 35, 50].map(milestone => {
+      <BoardGrid
+        items={boardConfig.items}
+        doneIds={boardConfig.done}
+        justDoneId={boardConfig.justDone}
+        cols={boardConfig.cols}
+        lineState={boardConfig.lineState}
+      />
+
+      <LineIndicators
+        lineState={boardConfig.lineState}
+        rowBonus={boardConfig.rowBonus}
+        colBonus={boardConfig.colBonus}
+        rowColor={activeBoard === 'one' ? COLORS.lime : COLORS.yellow}
+        colColor={activeBoard === 'one' ? '#fbbf24' : '#60a5fa'}
+      />
+
+      {activeBoard === 'one' && [10, 20, 35, 50].map((milestone) => {
         const reached = done.length >= milestone;
-        const badge = BADGES.find(b => b.id === `bingo${milestone}`);
+        const badge = BADGES.find((b) => b.id === `bingo${milestone}`);
         return (
-          <div key={milestone} style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            background: reached ? "rgba(168,230,61,0.15)" : "rgba(255,255,255,0.05)",
-            border: `1px solid ${reached ? COLORS.lime : "rgba(255,255,255,0.1)"}`,
-            borderRadius: 10, padding: "4px 10px", marginRight: 6, marginBottom: 12,
-            opacity: reached ? 1 : 0.45,
-          }}>
+          <div
+            key={milestone}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              background: reached ? 'rgba(168,230,61,0.15)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${reached ? COLORS.lime : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: 10,
+              padding: '4px 10px',
+              marginRight: 6,
+              marginBottom: 12,
+              opacity: reached ? 1 : 0.45,
+            }}
+          >
             <span style={{ fontSize: 14 }}>{badge?.icon}</span>
-            <span style={{ color: reached ? COLORS.lime : "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700 }}>{milestone} klara</span>
+            <span style={{ color: reached ? COLORS.lime : 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700 }}>{milestone} klara</span>
           </div>
         );
       })}
 
-      {/* Slot machine wheel */}
       {(() => {
-        const canSpin = !spinning && remaining.filter(b => filter === "all" || b.cat === filter).length > 0;
+        const canSpin = !spinning && boardRemaining.length > 0;
         const isYellow = wheelNum !== null && wheelNum % 2 === 1;
-        const prevNum = wheelNum !== null ? ((wheelNum - 2 + 50) % 50) + 1 : null;
-        const nextNum = wheelNum !== null ? (wheelNum % 50) + 1 : null;
+        const prevNum = wheelNum !== null ? ((wheelNum - 2 + boardConfig.items.length) % boardConfig.items.length) + 1 : null;
+        const nextNum = wheelNum !== null ? (wheelNum % boardConfig.items.length) + 1 : null;
 
         return (
           <div
@@ -408,87 +847,39 @@ export function BingoScreen() {
               boxShadow: spinning
                 ? `0 0 32px ${isYellow ? COLORS.yellow : COLORS.red}88`
                 : wheelNum !== null
-                ? `0 0 20px ${isYellow ? COLORS.yellow : COLORS.red}55`
-                : '0 4px 20px rgba(220,40,40,0.35)',
+                  ? `0 0 20px ${isYellow ? COLORS.yellow : COLORS.red}55`
+                  : '0 4px 20px rgba(220,40,40,0.35)',
               transition: 'box-shadow 0.15s',
               userSelect: 'none',
             }}
           >
             {wheelNum === null ? (
-              /* Idle state */
-              <div style={{
-                width: '100%', height: '100%',
-                background: `linear-gradient(135deg, ${COLORS.red}, ${COLORS.navy})`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              }}>
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: `linear-gradient(135deg, ${COLORS.red}, ${COLORS.navy})`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                }}
+              >
                 <span style={{ fontSize: 26 }}>🎰</span>
                 <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: '#fff', letterSpacing: 0.5 }}>
                   Slumpa ett uppdrag
                 </span>
               </div>
             ) : (
-              /* Spinning / result state */
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {/* Top cell — previous number, dimmed, half-visible */}
-                <div style={{
-                  height: 28,
-                  background: prevNum % 2 === 1 ? COLORS.yellow : COLORS.red,
-                  opacity: 0.22,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden',
-                }}>
-                  <span style={{
-                    fontFamily: "'Fredoka One', cursive",
-                    fontSize: 20,
-                    color: prevNum % 2 === 1 ? COLORS.dark : '#fff',
-                  }}>{prevNum}</span>
+                <div style={{ height: 28, background: prevNum % 2 === 1 ? COLORS.yellow : COLORS.red, opacity: 0.22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: prevNum % 2 === 1 ? COLORS.dark : '#fff' }}>{prevNum}</span>
                 </div>
-
-                {/* Center cell — current number */}
-                <div style={{
-                  height: 70,
-                  background: isYellow ? COLORS.yellow : COLORS.red,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative',
-                }}>
-                  {/* Side gradient shadows for depth */}
-                  <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: 8,
-                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)',
-                    pointerEvents: 'none',
-                  }} />
-                  <div style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0, height: 8,
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)',
-                    pointerEvents: 'none',
-                  }} />
-                  <span
-                    key={wheelNum}
-                    style={{
-                      fontFamily: "'Fredoka One', cursive",
-                      fontSize: 52,
-                      lineHeight: 1,
-                      color: isYellow ? COLORS.dark : '#fff',
-                      animation: !spinning ? 'none' : undefined,
-                    }}
-                  >
-                    {wheelNum}
-                  </span>
+                <div style={{ height: 70, background: isYellow ? COLORS.yellow : COLORS.red, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 52, lineHeight: 1, color: isYellow ? COLORS.dark : '#fff' }}>{wheelNum}</span>
                 </div>
-
-                {/* Bottom cell — next number, dimmed, half-visible */}
-                <div style={{
-                  height: 28,
-                  background: nextNum % 2 === 1 ? COLORS.yellow : COLORS.red,
-                  opacity: 0.22,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden',
-                }}>
-                  <span style={{
-                    fontFamily: "'Fredoka One', cursive",
-                    fontSize: 20,
-                    color: nextNum % 2 === 1 ? COLORS.dark : '#fff',
-                  }}>{nextNum}</span>
+                <div style={{ height: 28, background: nextNum % 2 === 1 ? COLORS.yellow : COLORS.red, opacity: 0.22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: nextNum % 2 === 1 ? COLORS.dark : '#fff' }}>{nextNum}</span>
                 </div>
               </div>
             )}
@@ -496,132 +887,117 @@ export function BingoScreen() {
         );
       })()}
 
-      {/* Random pick card */}
-      {randomPick && (
-        <Card style={{ marginBottom: 16, border: `2px solid ${COLORS.red}`, background: "rgba(220,40,40,0.1)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-            <div style={{ fontSize: 28 }}>{randomPick.cat}</div>
-            <div style={{ background: COLORS.accent, color: COLORS.dark, borderRadius: 8, padding: "3px 10px", fontWeight: 700, fontSize: 13 }}>+{randomPick.points} p</div>
+      {currentRandomPick && (
+        <Card style={{ marginBottom: 16, border: `2px solid ${COLORS.red}`, background: 'rgba(220,40,40,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <div style={{ fontSize: 28 }}>{currentRandomPick.cat}</div>
+            <div style={{ background: COLORS.accent, color: COLORS.dark, borderRadius: 8, padding: '3px 10px', fontWeight: 700, fontSize: 13 }}>+{currentRandomPick.points} p</div>
           </div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 14, lineHeight: 1.3 }}>{randomPick.label}</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => markDone(randomPick.id)}
-              disabled={busy}
-              style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
-                background: busy ? 'rgba(240,220,0,0.5)' : COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive",
-                fontSize: 16, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, transition: 'all 0.2s' }}>
-              {busy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '✅ Klart!'}
+          <div style={{ color: '#fff', fontWeight: 700, fontSize: 17, marginBottom: 14, lineHeight: 1.3 }}>{currentRandomPick.label}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => markBoardDone(boardConfig, currentRandomPick.id)}
+              disabled={boardConfig.busy}
+              style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', background: boardConfig.busy ? 'rgba(240,220,0,0.5)' : COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive", fontSize: 16, cursor: boardConfig.busy ? 'not-allowed' : 'pointer', opacity: boardConfig.busy ? 0.7 : 1 }}
+            >
+              {boardConfig.busy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '✅ Klart!'}
             </button>
-            <button onClick={() => setRandomPick(null)}
-              disabled={busy}
-              style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)",
-                background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>
+            <button
+              onClick={() => setRandomPick(null)}
+              disabled={boardConfig.busy}
+              style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 14, cursor: 'pointer' }}
+            >
               ✕
             </button>
           </div>
         </Card>
       )}
 
-      {/* Filter tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        {[["all", "Alla 50"], ["⚽", "Fotboll & idrott"], ["☀️", "Sommar"]].map(([val, lbl]) => (
-          <button key={val} onClick={() => setFilter(val)}
-            style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer",
-              fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 13, transition: "all 0.15s",
-              background: filter === val ? COLORS.lime : "rgba(255,255,255,0.1)",
-              color: filter === val ? COLORS.dark : "rgba(255,255,255,0.7)" }}>
-            {lbl}
-          </button>
-        ))}
-      </div>
+      <FilterTabs filter={boardConfig.filter} setFilter={boardConfig.setFilter} count={boardConfig.items.length} />
 
-      {/* Challenge list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {displayList.map(challenge => {
-          const isDone = done.includes(challenge.id);
-          const isJust = justDone === challenge.id;
-          return (
-            <div key={challenge.id}>
-              <div
-                onClick={() => !isDone && setSelectedChallenge(selectedChallenge?.id === challenge.id ? null : challenge)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  background: isDone ? "rgba(168,230,61,0.1)" : "rgba(255,255,255,0.06)",
-                  border: `1px solid ${isDone ? COLORS.lime + "55" : selectedChallenge?.id === challenge.id ? COLORS.lime : "rgba(255,255,255,0.08)"}`,
-                  borderRadius: selectedChallenge?.id === challenge.id ? "14px 14px 0 0" : 14,
-                  padding: "12px 14px",
-                  cursor: isDone ? "default" : "pointer",
-                  opacity: isDone ? 0.7 : 1,
-                  transition: "all 0.2s",
-                  transform: isJust ? "scale(1.02)" : "scale(1)",
-                }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-                  border: `2px solid ${isDone ? COLORS.lime : "rgba(255,255,255,0.2)"}`,
-                  background: isDone ? COLORS.lime : "transparent",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14,
-                }}>
-                  {isDone ? "✓" : challenge.cat}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: isDone ? "rgba(255,255,255,0.5)" : "#fff", fontSize: 14, fontWeight: 600, lineHeight: 1.3, textDecoration: isDone ? "line-through" : "none" }}>
-                    {challenge.label}
-                  </div>
-                </div>
-                <div style={{ color: isDone ? COLORS.lime : COLORS.accent, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                  {isDone ? "✅" : `+${challenge.points}p`}
-                </div>
-              </div>
-              {selectedChallenge?.id === challenge.id && (
-                <div style={{ background: "rgba(168,230,61,0.08)", border: `1px solid ${COLORS.lime}`, borderTop: "none", borderRadius: "0 0 14px 14px", padding: "12px 14px" }}>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => { markDone(challenge.id).then(() => setSelectedChallenge(null)); }}
-                      disabled={busy}
-                      style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
-                        background: busy ? 'rgba(240,220,0,0.5)' : COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive",
-                        fontSize: 16, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, transition: 'all 0.2s' }}>
-                      {busy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '✅ Klart!'}
-                    </button>
-                    <button onClick={() => setSelectedChallenge(null)}
-                      disabled={busy}
-                      style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)",
-                        background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <ChallengeList
+        items={boardDisplayList}
+        doneIds={boardConfig.done}
+        selectedChallenge={boardConfig.selected}
+        setSelectedChallenge={boardConfig.setSelected}
+        justDoneId={boardConfig.justDone}
+        busy={boardConfig.busy}
+        onMarkDone={(id) => markBoardDone(boardConfig, id)}
+      />
 
-      {showAdultIntro && (
+      {showBonusBingo && (
         <div
-          onClick={() => setShowAdultIntro(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.76)',
-            zIndex: 1300,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px 16px',
-          }}
+          onClick={() => setShowBonusBingo(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px' }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: 360,
-              borderRadius: 24,
-              padding: '22px 20px',
-              background: 'linear-gradient(160deg, rgba(14,22,50,0.98) 0%, rgba(29,78,216,0.95) 58%, rgba(250,204,21,0.18) 100%)',
-              border: '1px solid rgba(250,204,21,0.28)',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
+              maxWidth: 430,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              borderRadius: 28,
+              padding: selectedBonus && !bonusDone.includes(selectedBonus.id) ? '20px 16px 110px' : '20px 16px 18px',
+              background: 'linear-gradient(180deg, rgba(10,32,74,0.99) 0%, rgba(20,55,120,0.98) 100%)',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.45)',
+              border: '6px solid rgba(255,255,255,0.18)',
             }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
+              <div>
+                <div style={{ color: COLORS.yellow, fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
+                  Extra innehåll
+                </div>
+                <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 28, lineHeight: 1.08 }}>
+                  Bonusbingo
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, lineHeight: 1.4, marginTop: 6 }}>
+                  12 extra rutor som räknas in när du låser upp Bricka 2.
+                </div>
+              </div>
+              <button
+                onClick={() => setShowBonusBingo(false)}
+                style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: 999, fontSize: 20, cursor: 'pointer', lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+              <div>
+                <div style={{ color: '#fff', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>{bonusDone.length}/12 klara</div>
+                <ProgressBar value={Math.round((bonusDone.length / BONUS_BINGO.length) * 100)} color={COLORS.yellow} height={10} />
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 800, fontSize: 12, textAlign: 'right' }}>
+                {totalBeforeBoardTwo}/{BOARD_TWO_UNLOCK_TARGET} till Bricka 2
+              </div>
+            </div>
+
+            <BoardGrid items={BONUS_BINGO} doneIds={bonusDone} justDoneId={justDoneBonus} cols={4} lineState={bonusLineState} />
+            <LineIndicators lineState={bonusLineState} rowBonus={BONUS_ROW_BONUS} colBonus={BONUS_COL_BONUS} rowColor={COLORS.yellow} colColor="#60a5fa" />
+
+            <ChallengeList
+              items={BONUS_BINGO}
+              doneIds={bonusDone}
+              selectedChallenge={selectedBonus}
+              setSelectedChallenge={setSelectedBonus}
+              justDoneId={justDoneBonus}
+              busy={busyBonus}
+              onMarkDone={markBonusDone}
+            />
+          </div>
+        </div>
+      )}
+
+      {showAdultIntro && (
+        <div
+          onClick={() => setShowAdultIntro(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.76)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 360, borderRadius: 24, padding: '22px 20px', background: 'linear-gradient(160deg, rgba(14,22,50,0.98) 0%, rgba(29,78,216,0.95) 58%, rgba(250,204,21,0.18) 100%)', border: '1px solid rgba(250,204,21,0.28)', boxShadow: '0 20px 60px rgba(0,0,0,0.45)' }}
           >
             <div style={{ fontSize: 48, marginBottom: 12 }}>🕵️</div>
             <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 28, lineHeight: 1.1, marginBottom: 10 }}>
@@ -636,31 +1012,13 @@ export function BingoScreen() {
                   setShowAdultIntro(false);
                   setShowAdultBingo(true);
                 }}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  borderRadius: 14,
-                  padding: '14px 16px',
-                  background: COLORS.lime,
-                  color: COLORS.dark,
-                  fontFamily: "'Fredoka One', cursive",
-                  fontSize: 17,
-                  cursor: 'pointer',
-                }}
+                style={{ flex: 1, border: 'none', borderRadius: 14, padding: '14px 16px', background: COLORS.lime, color: COLORS.dark, fontFamily: "'Fredoka One', cursive", fontSize: 17, cursor: 'pointer' }}
               >
                 Öppna bingot
               </button>
               <button
                 onClick={() => setShowAdultIntro(false)}
-                style={{
-                  border: '1px solid rgba(255,255,255,0.18)',
-                  borderRadius: 14,
-                  padding: '14px 16px',
-                  background: 'rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.75)',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
+                style={{ border: '1px solid rgba(255,255,255,0.18)', borderRadius: 14, padding: '14px 16px', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.75)', fontWeight: 700, cursor: 'pointer' }}
               >
                 Inte nu
               </button>
@@ -672,16 +1030,7 @@ export function BingoScreen() {
       {showAdultBingo && (
         <div
           onClick={() => setShowAdultBingo(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.82)',
-            zIndex: 1300,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '14px',
-          }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px' }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -691,9 +1040,7 @@ export function BingoScreen() {
               maxHeight: '90vh',
               overflowY: 'auto',
               borderRadius: 28,
-              padding: selectedAdultChallenge && !adultDone.includes(selectedAdultChallenge.id)
-                ? '20px 16px 110px'
-                : '20px 16px 18px',
+              padding: selectedAdultChallenge && !adultDone.includes(selectedAdultChallenge.id) ? '20px 16px 110px' : '20px 16px 18px',
               background: 'linear-gradient(180deg, #f3ead6 0%, #f7f0dd 100%)',
               boxShadow: '0 24px 80px rgba(0,0,0,0.45)',
               border: '6px solid rgba(255,255,255,0.4)',
@@ -713,17 +1060,7 @@ export function BingoScreen() {
               </div>
               <button
                 onClick={() => setShowAdultBingo(false)}
-                style={{
-                  background: 'rgba(29,53,87,0.08)',
-                  border: 'none',
-                  color: '#1d3557',
-                  width: 36,
-                  height: 36,
-                  borderRadius: 999,
-                  fontSize: 20,
-                  cursor: 'pointer',
-                  lineHeight: 1,
-                }}
+                style={{ background: 'rgba(29,53,87,0.08)', border: 'none', color: '#1d3557', width: 36, height: 36, borderRadius: 999, fontSize: 20, cursor: 'pointer', lineHeight: 1 }}
               >
                 ×
               </button>
@@ -731,144 +1068,52 @@ export function BingoScreen() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', marginBottom: 14 }}>
               <div>
-                <div style={{ color: '#1d3557', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>
-                  {adultDone.length}/16 klara
-                </div>
+                <div style={{ color: '#1d3557', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>{adultDone.length}/16 klara</div>
                 <ProgressBar value={Math.round((adultDone.length / ADULT_BINGO.length) * 100)} color="#f4b400" height={10} />
               </div>
-              <div style={{ color: adultHasBingo ? '#15803d' : '#1d3557', fontWeight: 800, fontSize: 12, textAlign: 'right' }}>
-                {adultHasBingo ? 'Bingo fixat!' : 'Jaga en rad eller kolumn'}
+              <div style={{ color: adultLineState.rows.length || adultLineState.cols.length ? '#15803d' : '#1d3557', fontWeight: 800, fontSize: 12, textAlign: 'right' }}>
+                {adultLineState.rows.length || adultLineState.cols.length ? 'Bingo fixat!' : 'Jaga en rad eller kolumn'}
               </div>
             </div>
+
+            <BoardGrid items={ADULT_BINGO} doneIds={adultDone} justDoneId={adultJustDone} cols={4} lineState={adultLineState} />
 
             {(adultLineState.rows.length > 0 || adultLineState.cols.length > 0) && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
                 {adultLineState.rows.map((row) => (
-                  <span
-                    key={`adult-row-${row}`}
-                    style={{
-                      background: 'rgba(34,197,94,0.12)',
-                      color: '#166534',
-                      borderRadius: 999,
-                      padding: '5px 10px',
-                      fontSize: 11,
-                      fontWeight: 800,
-                    }}
-                  >
+                  <span key={`adult-row-${row}`} style={{ background: 'rgba(34,197,94,0.12)', color: '#166534', borderRadius: 999, padding: '5px 10px', fontSize: 11, fontWeight: 800 }}>
                     Rad {row + 1} ✓
                   </span>
                 ))}
                 {adultLineState.cols.map((col) => (
-                  <span
-                    key={`adult-col-${col}`}
-                    style={{
-                      background: 'rgba(59,130,246,0.12)',
-                      color: '#1d4ed8',
-                      borderRadius: 999,
-                      padding: '5px 10px',
-                      fontSize: 11,
-                      fontWeight: 800,
-                    }}
-                  >
+                  <span key={`adult-col-${col}`} style={{ background: 'rgba(59,130,246,0.12)', color: '#1d4ed8', borderRadius: 999, padding: '5px 10px', fontSize: 11, fontWeight: 800 }}>
                     Kolumn {col + 1} ✓
                   </span>
                 ))}
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
-              {ADULT_BINGO.map((challenge, index) => {
-                const isDone = adultDone.includes(challenge.id);
-                const isSelected = selectedAdultChallenge?.id === challenge.id;
-                const isJust = adultJustDone === challenge.id;
-                return (
-                  <button
-                    key={challenge.id}
-                    onClick={() => !isDone && setSelectedAdultChallenge(isSelected ? null : challenge)}
-                    style={{
-                      aspectRatio: '1 / 1.06',
-                      borderRadius: 16,
-                      border: `2px solid ${isDone ? 'rgba(34,197,94,0.35)' : isSelected ? 'rgba(59,130,246,0.35)' : 'rgba(29,53,87,0.08)'}`,
-                      background: isDone ? 'linear-gradient(180deg, #fff4b5 0%, #ffe17d 100%)' : '#fffaf0',
-                      boxShadow: isJust ? '0 0 0 3px rgba(244,180,0,0.28)' : '0 4px 14px rgba(29,53,87,0.08)',
-                      padding: '8px 6px',
-                      cursor: isDone ? 'default' : 'pointer',
-                      textAlign: 'left',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4,
-                      transform: isJust ? 'scale(1.04)' : 'rotate(0deg)',
-                    }}
-                  >
-                    <div style={{ color: 'rgba(29,53,87,0.48)', fontSize: 10, fontWeight: 800 }}>
-                      {index + 1}
-                    </div>
-                    <div style={{ color: '#1d3557', fontSize: 10.5, fontWeight: 800, lineHeight: 1.25 }}>
-                      {challenge.label}
-                    </div>
-                    <div style={{ marginTop: 'auto', color: isDone ? '#15803d' : 'rgba(29,53,87,0.45)', fontSize: 11, fontWeight: 800 }}>
-                      {isDone ? '✓ Klar' : 'Tryck'}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {selectedAdultChallenge && !adultDone.includes(selectedAdultChallenge.id) && (
-              <div
-                style={{
-                  position: 'sticky',
-                  bottom: -2,
-                  zIndex: 2,
-                  background: 'rgba(255,255,255,0.96)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: 18,
-                  padding: '14px 14px 12px',
-                  border: '1px solid rgba(29,53,87,0.08)',
-                  boxShadow: '0 -8px 24px rgba(29,53,87,0.12)',
-                  marginTop: 6,
-                }}
-              >
-                <div style={{ color: '#1d3557', fontWeight: 900, fontSize: 14, lineHeight: 1.35, marginBottom: 10 }}>
-                  {selectedAdultChallenge.label}
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => {
-                      markAdultDone(selectedAdultChallenge.id).then(() => setSelectedAdultChallenge(null));
-                    }}
-                    disabled={adultBusy}
-                    style={{
-                      flex: 1,
-                      padding: '12px 0',
-                      borderRadius: 12,
-                      border: 'none',
-                      background: adultBusy ? 'rgba(168,230,61,0.55)' : COLORS.lime,
-                      color: COLORS.dark,
-                      fontFamily: "'Fredoka One', cursive",
-                      fontSize: 16,
-                      cursor: adultBusy ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {adultBusy ? <><ButtonLoader color={COLORS.dark} /> Sparar...</> : '✅ Klar!'}
-                  </button>
-                  <button
-                    onClick={() => setSelectedAdultChallenge(null)}
-                    style={{
-                      padding: '12px 16px',
-                      borderRadius: 12,
-                      border: '1px solid rgba(29,53,87,0.16)',
-                      background: 'transparent',
-                      color: 'rgba(29,53,87,0.7)',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Avbryt
-                  </button>
-                </div>
-              </div>
-            )}
+            <ChallengeList
+              items={ADULT_BINGO.map((item) => ({ ...item, cat: '⭐', points: 0 }))}
+              doneIds={adultDone}
+              selectedChallenge={selectedAdultChallenge}
+              setSelectedChallenge={setSelectedAdultChallenge}
+              justDoneId={adultJustDone}
+              busy={adultBusy}
+              onMarkDone={async (id) => {
+                if (adultBusy) return;
+                setAdultBusy(true);
+                await handleAdultBingoDone(id);
+                setAdultJustDone(id);
+                setSelectedAdultChallenge(null);
+                setShowConfetti(true);
+                setAdultBusy(false);
+                setTimeout(() => {
+                  setAdultJustDone(null);
+                  setShowConfetti(false);
+                }, 2200);
+              }}
+            />
           </div>
         </div>
       )}

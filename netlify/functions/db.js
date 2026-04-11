@@ -51,6 +51,18 @@ export async function initDb(db) {
       PRIMARY KEY (alias, challenge_id)
     );
 
+    CREATE TABLE IF NOT EXISTS bonus_bingo (
+      alias TEXT NOT NULL,
+      challenge_id TEXT NOT NULL,
+      PRIMARY KEY (alias, challenge_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS bingo_two (
+      alias TEXT NOT NULL,
+      challenge_id TEXT NOT NULL,
+      PRIMARY KEY (alias, challenge_id)
+    );
+
     CREATE TABLE IF NOT EXISTS invites (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       label TEXT NOT NULL,
