@@ -219,7 +219,27 @@ function FilterTabs({ filter, setFilter, count }) {
   );
 }
 
-function ChallengeList({ items, doneIds, selectedChallenge, setSelectedChallenge, justDoneId, busy, onMarkDone }) {
+function ChallengeList({
+  items,
+  doneIds,
+  selectedChallenge,
+  setSelectedChallenge,
+  justDoneId,
+  busy,
+  onMarkDone,
+  theme = 'dark',
+}) {
+  const isLight = theme === 'light';
+  const cardBg = isLight ? 'rgba(29,53,87,0.06)' : 'rgba(255,255,255,0.06)';
+  const doneBg = isLight ? 'rgba(168,230,61,0.18)' : 'rgba(168,230,61,0.1)';
+  const baseBorder = isLight ? 'rgba(29,53,87,0.12)' : 'rgba(255,255,255,0.08)';
+  const iconBorder = isLight ? 'rgba(29,53,87,0.25)' : 'rgba(255,255,255,0.2)';
+  const textColor = isLight ? '#1d3557' : '#fff';
+  const doneTextColor = isLight ? 'rgba(29,53,87,0.55)' : 'rgba(255,255,255,0.5)';
+  const secondaryColor = isLight ? 'rgba(29,53,87,0.68)' : 'rgba(255,255,255,0.6)';
+  const closeBorder = isLight ? 'rgba(29,53,87,0.18)' : 'rgba(255,255,255,0.2)';
+  const selectedBg = isLight ? 'rgba(168,230,61,0.16)' : 'rgba(168,230,61,0.08)';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {items.map((challenge) => {
@@ -233,8 +253,8 @@ function ChallengeList({ items, doneIds, selectedChallenge, setSelectedChallenge
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                background: isDone ? 'rgba(168,230,61,0.1)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${isDone ? `${COLORS.lime}55` : selectedChallenge?.id === challenge.id ? COLORS.lime : 'rgba(255,255,255,0.08)'}`,
+                background: isDone ? doneBg : cardBg,
+                border: `1px solid ${isDone ? `${COLORS.lime}55` : selectedChallenge?.id === challenge.id ? COLORS.lime : baseBorder}`,
                 borderRadius: selectedChallenge?.id === challenge.id ? '14px 14px 0 0' : 14,
                 padding: '12px 14px',
                 cursor: isDone ? 'default' : 'pointer',
@@ -249,12 +269,13 @@ function ChallengeList({ items, doneIds, selectedChallenge, setSelectedChallenge
                   height: 28,
                   borderRadius: '50%',
                   flexShrink: 0,
-                  border: `2px solid ${isDone ? COLORS.lime : 'rgba(255,255,255,0.2)'}`,
+                  border: `2px solid ${isDone ? COLORS.lime : iconBorder}`,
                   background: isDone ? COLORS.lime : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 14,
+                  color: isLight && !isDone ? '#1d3557' : undefined,
                 }}
               >
                 {isDone ? '✓' : challenge.cat}
@@ -262,7 +283,7 @@ function ChallengeList({ items, doneIds, selectedChallenge, setSelectedChallenge
               <div style={{ flex: 1 }}>
                 <div
                   style={{
-                    color: isDone ? 'rgba(255,255,255,0.5)' : '#fff',
+                    color: isDone ? doneTextColor : textColor,
                     fontSize: 14,
                     fontWeight: 600,
                     lineHeight: 1.3,
@@ -279,7 +300,7 @@ function ChallengeList({ items, doneIds, selectedChallenge, setSelectedChallenge
             {selectedChallenge?.id === challenge.id && !isDone && (
               <div
                 style={{
-                  background: 'rgba(168,230,61,0.08)',
+                  background: selectedBg,
                   border: `1px solid ${COLORS.lime}`,
                   borderTop: 'none',
                   borderRadius: '0 0 14px 14px',
@@ -311,9 +332,9 @@ function ChallengeList({ items, doneIds, selectedChallenge, setSelectedChallenge
                     style={{
                       padding: '12px 16px',
                       borderRadius: 12,
-                      border: '1px solid rgba(255,255,255,0.2)',
+                      border: `1px solid ${closeBorder}`,
                       background: 'transparent',
-                      color: 'rgba(255,255,255,0.6)',
+                      color: secondaryColor,
                       fontSize: 14,
                       cursor: 'pointer',
                     }}
@@ -1126,6 +1147,7 @@ export function BingoScreen() {
               setSelectedChallenge={setSelectedAdultChallenge}
               justDoneId={adultJustDone}
               busy={adultBusy}
+              theme="light"
               onMarkDone={async (id) => {
                 if (adultBusy) return;
                 setAdultBusy(true);
