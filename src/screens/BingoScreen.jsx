@@ -400,6 +400,11 @@ export function BingoScreen() {
   const boardTwoLineState = getBoardLineState(BINGO_TWO, boardTwoDone, 10);
   const adultLineState = AdultBingoLines(adultDone);
 
+  const bonusUnlocked =
+    bonusDone.length > 0 ||
+    done.length >= 10 ||
+    mainLineState.rows.length > 0 ||
+    mainLineState.cols.length > 0;
   const totalBeforeBoardTwo = done.length + bonusDone.length;
   const boardTwoUnlocked = totalBeforeBoardTwo >= BOARD_TWO_UNLOCK_TARGET || boardTwoDone.length > 0;
 
@@ -683,25 +688,46 @@ export function BingoScreen() {
       </div>
 
       <Card
-        onClick={() => setShowBonusBingo(true)}
+        onClick={() => {
+          if (!bonusUnlocked) return;
+          setShowBonusBingo(true);
+        }}
         style={{
           marginBottom: 16,
           padding: '16px 18px',
           background: 'linear-gradient(135deg, rgba(10,32,74,0.96) 0%, rgba(22,73,170,0.96) 58%, rgba(255,215,92,0.18) 100%)',
           border: '1px solid rgba(255,215,92,0.24)',
+          cursor: bonusUnlocked ? 'pointer' : 'default',
+          opacity: bonusUnlocked ? 1 : 0.82,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
           <div>
-            <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-              Extra uppdrag
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              {!bonusUnlocked && <Lock size={13} color="rgba(255,255,255,0.5)" />}
+              <div style={{ color: COLORS.yellow, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
+                {bonusUnlocked ? 'Extra uppdrag' : 'Låst bonus'}
+              </div>
             </div>
             <div style={{ color: '#fff', fontFamily: "'Fredoka One', cursive", fontSize: 22, marginBottom: 6 }}>
               Bonusbingo
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.35 }}>
-              {bonusDone.length}/12 klara. Räknas in när du låser upp Bricka 2.
-            </div>
+            {bonusUnlocked ? (
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.35 }}>
+                {bonusDone.length}/12 klara. Räknas in när du låser upp Bricka 2.
+              </div>
+            ) : (
+              <>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.35, marginBottom: 8 }}>
+                  Lås upp genom att klara en bingorad eller 10 uppdrag på Bricka 1.
+                </div>
+                <ProgressBar
+                  value={Math.min(100, Math.round((done.length / 10) * 100))}
+                  color={COLORS.yellow}
+                  height={8}
+                />
+              </>
+            )}
           </div>
           <div
             style={{
@@ -717,7 +743,7 @@ export function BingoScreen() {
               fontSize: 22,
             }}
           >
-            {bonusDone.length}/12
+            {bonusUnlocked ? `${bonusDone.length}/12` : `${Math.min(done.length, 10)}/10`}
           </div>
         </div>
       </Card>
