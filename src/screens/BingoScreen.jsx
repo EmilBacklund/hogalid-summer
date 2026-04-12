@@ -90,7 +90,13 @@ function computeLineBonus(items, doneIds, nextId, cols, rowBonus, colBonus, prev
   return { bonus, labels };
 }
 
-function BoardGrid({ items, doneIds, justDoneId, cols, lineState }) {
+function BoardGrid({ items, doneIds, justDoneId, cols, lineState, theme = 'dark' }) {
+  const isLight = theme === 'light';
+  const emptyBg = isLight ? 'rgba(29,53,87,0.08)' : 'rgba(255,255,255,0.06)';
+  const emptyBorder = isLight ? 'rgba(29,53,87,0.16)' : 'rgba(255,255,255,0.08)';
+  const emptyText = isLight ? 'rgba(29,53,87,0.35)' : 'rgba(255,255,255,0.2)';
+  const lineGlow = isLight ? '0 0 6px rgba(29,53,87,0.18)' : '0 0 6px rgba(255,255,255,0.28)';
+
   return (
     <div
       style={{
@@ -116,20 +122,20 @@ function BoardGrid({ items, doneIds, justDoneId, cols, lineState }) {
               borderRadius: cols === 10 ? 4 : 12,
               background: isDone
                 ? (item.cat === '⚽' ? COLORS.lime : '#fbbf24')
-                : 'rgba(255,255,255,0.06)',
-              border: isDone ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                : emptyBg,
+              border: isDone ? 'none' : `1px solid ${emptyBorder}`,
               transition: 'all 0.25s',
               transform: isJust ? 'scale(1.08)' : 'scale(1)',
               boxShadow: isJust
                 ? `0 0 8px ${item.cat === '⚽' ? COLORS.lime : '#fbbf24'}`
                 : inCompletedLine && isDone
-                  ? '0 0 6px rgba(255,255,255,0.28)'
+                  ? lineGlow
                   : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: cols === 10 ? 7 : 10,
-              color: isDone ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.2)',
+              color: isDone ? 'rgba(0,0,0,0.45)' : emptyText,
               fontWeight: 800,
               textAlign: 'center',
               padding: cols === 10 ? 0 : '4px',
@@ -1123,7 +1129,7 @@ export function BingoScreen() {
               </div>
             </div>
 
-            <BoardGrid items={ADULT_BINGO} doneIds={adultDone} justDoneId={adultJustDone} cols={4} lineState={adultLineState} />
+            <BoardGrid items={ADULT_BINGO} doneIds={adultDone} justDoneId={adultJustDone} cols={4} lineState={adultLineState} theme="light" />
 
             {(adultLineState.rows.length > 0 || adultLineState.cols.length > 0) && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
