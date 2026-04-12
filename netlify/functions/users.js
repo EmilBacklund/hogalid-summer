@@ -34,8 +34,22 @@ function inviteRowToClient(row) {
     status: normalizeInviteStatus(row),
     clickedAt: row.clicked_at || null,
     usedAt: row.used_at || null,
-    usedByAlias: row.used_by_alias || '',
+    usedByAlias: row.used_by_label || row.used_by_alias || '',
     createdAt: row.created_at,
+  };
+}
+
+async function hydrateInviteDisplay(db, invite) {
+  if (!invite?.used_by_alias) return invite;
+  const result = await db.execute({
+    sql: 'SELECT display_name, display_alias, alias FROM users WHERE alias = ?',
+    args: [invite.used_by_alias],
+  });
+  const user = result.rows[0];
+  if (!user) return invite;
+  return {
+    ...invite,
+    used_by_label: user.display_name || user.display_alias || user.alias,
   };
 }
 
@@ -146,7 +160,11 @@ export default async (req, context) => {
     // GET - all invites for admin
     if (method === 'GET' && action === 'invites') {
       const result = await db.execute('SELECT * FROM invites ORDER BY created_at DESC');
-      return json(result.rows.map(inviteRowToClient), headers);
+      const invites = [];
+      for (const row of result.rows) {
+        invites.push(inviteRowToClient(await hydrateInviteDisplay(db, row)));
+      }
+      return json(invites, headers);
     }
 
     // GET - validate invite by token or code
@@ -165,7 +183,7 @@ export default async (req, context) => {
         invite = await markInviteClicked(db, invite);
       }
 
-      return json(inviteRowToClient(invite), headers);
+      return json(inviteRowToClient(await hydrateInviteDisplay(db, invite)), headers);
     }
 
     // GET all users (admin) or single user
@@ -214,7 +232,8 @@ export default async (req, context) => {
     if (method === 'POST' && action === 'register') {
       const body = await req.json();
       const { alias, password, avatarConfig, inviteToken, inviteCode } = body;
-      const key = alias.toLowerCase();
+      const aliasInput = (alias || '').trim();
+      const key = aliasInput.toLowerCase();
 
       let invite = null;
       if (inviteToken) invite = await getInviteByToken(db, inviteToken);
@@ -224,7 +243,8 @@ export default async (req, context) => {
         return json({ error: 'invite_required' }, headers, 400);
       }
       if (invite.status === 'used') {
-        return json({ error: 'invite_used', usedByAlias: invite.used_by_alias || '' }, headers, 409);
+        const hydratedInvite = await hydrateInviteDisplay(db, invite);
+        return json({ error: 'invite_used', usedByAlias: hydratedInvite.used_by_label || hydratedInvite.used_by_alias || '' }, headers, 409);
       }
       if (invite.status === 'disabled') {
         return json({ error: 'invite_disabled' }, headers, 409);
@@ -241,8 +261,8 @@ export default async (req, context) => {
       const hashed = await hashPassword(password);
       const joinedAt = new Date().toISOString();
       await db.execute({
-        sql: 'INSERT INTO users (alias, password, display_password, avatar_config, unlocked_items, highscores, secret_flags, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        args: [key, hashed, password, JSON.stringify(avatarConfig || {}), '[]', '{}', '{}', joinedAt],
+        sql: 'INSERT INTO users (alias, display_alias, password, display_password, avatar_config, unlocked_items, highscores, secret_flags, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [key, aliasInput || key, hashed, password, JSON.stringify(avatarConfig || {}), '[]', '{}', '{}', joinedAt],
       });
       await db.execute({
         sql: 'UPDATE invites SET status = ?, used_at = ?, used_by_alias = ? WHERE id = ?',
@@ -251,6 +271,7 @@ export default async (req, context) => {
 
       const user = {
         alias: key,
+        displayAlias: aliasInput || key,
         avatarConfig: avatarConfig || {},
         unlockedItems: [],
         highscores: {},
@@ -742,6 +763,7 @@ export default async (req, context) => {
 function rowToUser(row) {
   return {
     alias: row.alias,
+    displayAlias: row.display_alias || row.alias,
     displayName: row.display_name || '',
     avatarConfig: JSON.parse(row.avatar_config || '{}'),
     unlockedItems: JSON.parse(row.unlocked_items || '[]'),

@@ -19,9 +19,13 @@ function addDays(dateStr, days) {
 export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
   const events = [];
   const today = localToday();
+  const nameByAlias = Object.fromEntries(
+    allUsers.map((u) => [u.alias, u.displayName || u.displayAlias || u.alias]),
+  );
 
   allUsers.forEach(u => {
     const isMe = u.alias === myAlias;
+    const displayAlias = u.displayName || u.displayAlias || u.alias;
     const logs = [...(u.logs || [])].sort((a, b) => a.date.localeCompare(b.date));
 
     // Joined team
@@ -30,7 +34,7 @@ export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
       events.push({
         date: joinDate,
         type: 'joined',
-        alias: u.alias,
+        alias: displayAlias,
         isMe,
         text: `har just gått med i HögalidF15! 🎉`,
         icon: '🆕',
@@ -43,7 +47,7 @@ export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
       events.push({
         date,
         type: 'daily',
-        alias: u.alias,
+        alias: displayAlias,
         isMe,
         text: `klarade dagsuppdraget "${challenge?.label || challengeId}"`,
         icon: challenge?.icon || '✅',
@@ -62,7 +66,7 @@ export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
           date: l.date,
           createdAt: l.createdAt || '',
           type: 'levelup',
-          alias: u.alias,
+          alias: displayAlias,
           isMe,
           text: `gick upp till nivå ${after.icon} ${after.name}`,
           icon: after.icon,
@@ -79,7 +83,7 @@ export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
         date: l.date,
         createdAt: l.createdAt || '',
         type: 'penalty',
-        alias: u.alias,
+        alias: displayAlias,
         isMe,
         text: `satte ${goals} av ${total} straffar och fick ${goals} poäng! ${icon}`,
         icon,
@@ -92,7 +96,7 @@ export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
         date: l.date,
         createdAt: l.createdAt || '',
         type: 'bingoline',
-        alias: u.alias,
+        alias: displayAlias,
         isMe,
         text: `klarade en bingorad! ${l.title}`,
         icon: '🎯',
@@ -108,7 +112,7 @@ export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
       events.push({
         date: lastLog?.date || today,
         type: 'badge',
-        alias: u.alias,
+        alias: displayAlias,
         isMe,
         text: `fick medaljen "${b.label}"`,
         icon: b.icon,
@@ -134,7 +138,7 @@ export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
           date: lastQualifyingLog.date,
           createdAt: lastQualifyingLog.createdAt || '',
           type: 'streak',
-          alias: u.alias,
+          alias: displayAlias,
           isMe,
           text: `har ${stats.streak} dagars streak i rad! 🔥`,
           icon: '🔥',
@@ -265,13 +269,14 @@ export function generateFeed(allUsers, myAlias, seasonStart, photos = []) {
       if (buddyEventKeys.has(pairKey)) return;
       buddyEventKeys.add(pairKey);
       const isMe = u.alias === myAlias || partner === myAlias;
+      const partnerLabel = nameByAlias[partner] || partner;
       events.push({
         date: l.date,
         createdAt: l.createdAt || '',
         type: 'buddy',
-        alias: u.alias,
+        alias: displayAlias,
         isMe,
-        text: `& ${partner} klarade kompisutmaningen: ${amount} ${ex?.label || exerciseId}! 🤝`,
+        text: `& ${partnerLabel} klarade kompisutmaningen: ${amount} ${ex?.label || exerciseId}! 🤝`,
         icon: '🤝',
       });
     });

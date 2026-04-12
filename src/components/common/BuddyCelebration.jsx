@@ -2,8 +2,8 @@ import { createPortal } from 'react-dom';
 import { COLORS, EXERCISES, getCelebrationLine } from '../../constants';
 import { Confetti } from './Confetti';
 
-export function BuddyCelebration({ challenge, user, onClose }) {
-  const partner = challenge.fromAlias === user.alias ? challenge.toAlias : challenge.fromAlias;
+export function BuddyCelebration({ challenge, user, onClose, partnerLabel }) {
+  const partner = partnerLabel || (challenge.fromAlias === user.alias ? challenge.toAlias : challenge.fromAlias);
   const ex = EXERCISES.find(e => e.id === challenge.exerciseId);
   return createPortal(
     <>

@@ -11,6 +11,7 @@ export async function initDb(db) {
   await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS users (
       alias TEXT PRIMARY KEY,
+      display_alias TEXT DEFAULT '',
       password TEXT NOT NULL,
       display_password TEXT DEFAULT '',
       avatar_config TEXT DEFAULT '{}',
@@ -132,6 +133,7 @@ export async function initDb(db) {
 
   // Migrations
   const migrations = [
+    "ALTER TABLE users ADD COLUMN display_alias TEXT DEFAULT ''",
     "ALTER TABLE users ADD COLUMN display_password TEXT DEFAULT ''",
     "ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''",
     "ALTER TABLE users ADD COLUMN secret_flags TEXT DEFAULT '{}'",

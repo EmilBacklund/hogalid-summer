@@ -55,12 +55,14 @@ const TABS = [
 
 export function ProfileScreen() {
   const { user, stats, setScreen, handleUnlock, handleAvatarUpdate, handleUpdateDisplayName } = useUser();
+  const displayAlias = user.displayAlias || user.alias;
+  const shownName = user.displayName || displayAlias;
   const [activeTab, setActiveTab] = useState('avatar');
   const [localConfig, setLocalConfig] = useState(() => user.avatarConfig || {});
   const [saving, setSaving] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState(user.displayName || user.alias);
+  const [nameInput, setNameInput] = useState(shownName);
   const [savingName, setSavingName] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
 
@@ -145,7 +147,7 @@ export function ProfileScreen() {
                   setSavingName(false);
                   setEditingName(false);
                 } else if (e.key === 'Escape') {
-                  setNameInput(user.displayName || user.alias);
+                  setNameInput(shownName);
                   setEditingName(false);
                 }
               }}
@@ -185,7 +187,7 @@ export function ProfileScreen() {
               {savingName ? '...' : 'Spara'}
             </button>
             <button
-              onClick={() => { setNameInput(user.displayName || user.alias); setEditingName(false); }}
+              onClick={() => { setNameInput(shownName); setEditingName(false); }}
               style={{
                 background: 'rgba(255,255,255,0.1)',
                 border: 'none',
@@ -207,10 +209,10 @@ export function ProfileScreen() {
               fontFamily: "'Fredoka One', cursive",
               fontSize: 22,
             }}>
-              {user.displayName || user.alias}
+              {shownName}
             </span>
             <button
-              onClick={() => { setNameInput(user.displayName || user.alias); setEditingName(true); }}
+              onClick={() => { setNameInput(shownName); setEditingName(true); }}
               title="Redigera smeknamn"
               style={{
                 background: 'none',
@@ -228,7 +230,7 @@ export function ProfileScreen() {
         )}
         {editingName && (
           <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 6 }}>
-            Du loggar fortfarande in med <span style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700 }}>{user.alias}</span>
+            Du loggar fortfarande in med <span style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700 }}>{displayAlias}</span>
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 6 }}>

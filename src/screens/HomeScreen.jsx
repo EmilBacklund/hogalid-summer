@@ -302,6 +302,7 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
 
 export function HomeScreen() {
   const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget, pendingCheers, markCheersSeen } = useUser();
+  const displayName = user.displayName || user.displayAlias || user.alias;
 
   function goTo(target) {
     setChallengeScrollTarget(target);
@@ -350,7 +351,7 @@ export function HomeScreen() {
   // Show cheer toast when there are pending cheers
   useEffect(() => {
     if (!pendingCheers || pendingCheers.length === 0 || cheerToast) return;
-    const names = [...new Set(pendingCheers.map(c => c.fromAlias))];
+    const names = [...new Set(pendingCheers.map(c => nameByAlias[c.fromAlias] || c.fromAlias))];
     setCheerToast({ names });
     const ids = pendingCheers.map(c => c.id);
     markCheersSeen(ids);
@@ -358,7 +359,7 @@ export function HomeScreen() {
     const t1 = setTimeout(() => setCheerFading(true), 4500);
     const t2 = setTimeout(() => { setCheerToast(null); setCheerFading(false); }, 5200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [pendingCheers]);
+  }, [pendingCheers, cheerToast, markCheersSeen, nameByAlias]);
 
   const level = getLevel(stats.totalPoints);
   const nextLevel = getNextLevel(stats.totalPoints);
@@ -384,6 +385,10 @@ export function HomeScreen() {
     if (!allUsers.length) return [];
     return generateFeed(allUsers, user.alias, seasonStart, teamPhotos).slice(0, 5);
   }, [allUsers, user.alias, seasonStart, teamPhotos]);
+  const nameByAlias = useMemo(
+    () => Object.fromEntries(allUsers.map((u) => [u.alias, u.displayName || u.displayAlias || u.alias])),
+    [allUsers],
+  );
 
   // "Gör-det-nu" logic
   const hasLogToday = (user.logs || []).some(l => l.date === todayStr && !l.bingo && !l.dailyChallenge);
@@ -500,7 +505,7 @@ export function HomeScreen() {
               lineHeight: 1.1,
             }}
           >
-            Hej, {user.alias}! 👋
+            Hej, {displayName}! 👋
           </div>
           <div style={{ color: COLORS.lime, fontSize: 14, fontWeight: 600 }}>
             {level.icon} {level.name}
@@ -876,12 +881,13 @@ export function HomeScreen() {
               const h = Math.floor(ms / 3_600_000);
               const m = Math.floor((ms % 3_600_000) / 60_000);
               const partner = c.fromAlias === user.alias ? c.toAlias : c.fromAlias;
+              const partnerLabel = nameByAlias[partner] || partner;
               return (
                 <div key={c.id} style={{
                   background: 'rgba(220,40,40,0.15)', borderRadius: 10, padding: '8px 11px', marginBottom: 4,
                 }}>
                   <span style={{ color: COLORS.red, fontWeight: 700, fontSize: 13 }}>
-                    ⏰ Du & {partner} — {h}h {m}m kvar!
+                    ⏰ Du & {partnerLabel} — {h}h {m}m kvar!
                   </span>
                 </div>
               );

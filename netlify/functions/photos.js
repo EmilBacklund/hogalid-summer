@@ -39,7 +39,7 @@ function rowToPhoto(row) {
   return {
     id: row.id,
     alias: row.alias,
-    uploaderName: row.display_name || row.alias,
+    uploaderName: row.display_name || row.display_alias || row.alias,
     imageData: row.image_data,
     mimeType: row.mime_type || 'image/jpeg',
     weekStart: row.week_start,
@@ -66,7 +66,7 @@ export default async (req) => {
   try {
     if (req.method === 'GET') {
       const result = await db.execute(`
-        SELECT p.id, p.alias, p.image_data, p.mime_type, p.week_start, p.uploaded_at, u.display_name
+        SELECT p.id, p.alias, p.image_data, p.mime_type, p.week_start, p.uploaded_at, u.display_name, u.display_alias
         FROM album_photos p
         LEFT JOIN users u ON u.alias = p.alias
         ORDER BY p.uploaded_at DESC
@@ -110,7 +110,7 @@ export default async (req) => {
 
       const result = await db.execute({
         sql: `
-          SELECT p.id, p.alias, p.image_data, p.mime_type, p.week_start, p.uploaded_at, u.display_name
+          SELECT p.id, p.alias, p.image_data, p.mime_type, p.week_start, p.uploaded_at, u.display_name, u.display_alias
           FROM album_photos p
           LEFT JOIN users u ON u.alias = p.alias
           WHERE p.id = ?

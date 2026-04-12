@@ -79,6 +79,8 @@ function buildQuickChallenge({ user, teammates, buddyChallenges, activeCountByAl
 
 function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
   const { handleCreateBuddyChallenge, handleRespondBuddyChallenge, handleCancelBuddyChallenge } = handlers;
+  const getUserLabel = (u) => u.displayName || u.displayAlias || u.alias;
+  const labelByAlias = Object.fromEntries(allUsers.map((u) => [u.alias, getUserLabel(u)]));
 
   const [showForm, setShowForm] = useState(false);
   const [celebrateChallenge, setCelebrateChallenge] = useState(null);
@@ -180,6 +182,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
         <BuddyCelebration
           challenge={celebrateChallenge}
           user={user}
+          partnerLabel={labelByAlias[celebrateChallenge.fromAlias === user.alias ? celebrateChallenge.toAlias : celebrateChallenge.fromAlias]}
           onClose={() => setCelebrateChallenge(null)}
         />
       )}
@@ -222,7 +225,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
         {quickSuggestion ? (
           <>
             <div style={{ color: '#fff', fontWeight: 800, fontSize: 16, lineHeight: 1.35 }}>
-              Utmana {quickSuggestion.teammate.alias} på {quickSuggestion.amount} {quickSuggestion.exercise.label.toLowerCase()}?
+              Utmana {getUserLabel(quickSuggestion.teammate)} på {quickSuggestion.amount} {quickSuggestion.exercise.label.toLowerCase()}?
             </div>
             <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 6 }}>
               Ett klick och klart. Vi väljer kompis, övning och rimlig mängd åt dig.
@@ -300,7 +303,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
                       position: 'relative',
                     }}
                   >
-                    {tm.alias}
+                    {getUserLabel(tm)}
                     {full && <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.6 }}>full</span>}
                     {hasPair && <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.6 }}>aktiv</span>}
                   </button>
@@ -398,12 +401,13 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
           {incoming.map(c => {
             const ex = EXERCISES.find(e => e.id === c.exerciseId);
             const waitH = Math.floor(hoursAgo(c.createdAt));
+            const challengerLabel = labelByAlias[c.fromAlias] || c.fromAlias;
             return (
               <Card key={c.id} style={{ marginBottom: 10, border: `1.5px solid ${COLORS.yellow}55` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div>
                     <div style={{ color: COLORS.yellow, fontWeight: 700, fontSize: 14 }}>
-                      {c.fromAlias} utmanar dig!
+                      {challengerLabel} utmanar dig!
                     </div>
                     <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, marginTop: 3 }}>
                       {c.amount} {ex?.label} ({ex?.unit})
@@ -493,6 +497,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
             const myDone    = isFrom ? !!c.fromCompletedAt : !!c.toCompletedAt;
             const theirDone = isFrom ? !!c.toCompletedAt   : !!c.fromCompletedAt;
             const partner   = isFrom ? c.toAlias : c.fromAlias;
+            const partnerLabel = labelByAlias[partner] || partner;
             const pct = Math.min(100, Math.round((myProgress / c.amount) * 100));
             const theirPct = Math.min(100, Math.round((theirProgress / c.amount) * 100));
             const countdown = formatCountdown(c.acceptedAt);
@@ -502,7 +507,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div>
                     <div style={{ color: COLORS.lime, fontWeight: 700, fontSize: 13 }}>
-                      Du & {partner}
+                      Du & {partnerLabel}
                     </div>
                     <div style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginTop: 2 }}>
                       {c.amount} {ex?.label}
@@ -528,7 +533,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 700 }}>
-                      {theirDone ? `✅ ${partner} — klar!` : `${partner} — ${theirProgress}/${c.amount} ${ex?.unit}`}
+                      {theirDone ? `✅ ${partnerLabel} — klar!` : `${partnerLabel} — ${theirProgress}/${c.amount} ${ex?.unit}`}
                     </span>
                     <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>{theirPct}%</span>
                   </div>
@@ -537,7 +542,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
 
                 {theirDone && !myDone && (
                   <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, background: `${COLORS.yellow}22`, color: COLORS.yellow, fontSize: 13, fontWeight: 700 }}>
-                    🔥 {partner} är klar — nu är det din tur!
+                    🔥 {partnerLabel} är klar — nu är det din tur!
                   </div>
                 )}
               </Card>
@@ -553,6 +558,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
           {finished.map(c => {
             const ex = EXERCISES.find(e => e.id === c.exerciseId);
             const partner = c.fromAlias === user.alias ? c.toAlias : c.fromAlias;
+            const partnerLabel = labelByAlias[partner] || partner;
             const icon = c.status === 'completed' ? '🎉' : c.status === 'failed' ? '❌' : c.status === 'declined' ? '🚫' : '↩️';
             const label = c.status === 'completed' ? 'Klarad!' : c.status === 'failed' ? 'Missad' : c.status === 'declined' ? 'Nekad' : 'Avbruten';
             const isCompleted = c.status === 'completed';
@@ -575,7 +581,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
                   <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>
                     {c.amount} {ex?.label}
                   </span>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}> med {partner}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}> med {partnerLabel}</span>
                 </div>
                 <span style={{ color: isCompleted ? COLORS.lime : 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 700 }}>
                   {label}

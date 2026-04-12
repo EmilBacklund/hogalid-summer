@@ -47,6 +47,7 @@ export function TeamScreen() {
     }
   }, []);
   const FEED_PAGE_SIZE = 20;
+  const getUserLabel = (u) => u.displayName || u.displayAlias || u.alias;
 
   useEffect(() => {
     const stale = fetchAllUsersStale(fresh => {
@@ -484,7 +485,7 @@ export function TeamScreen() {
                   <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '50%', padding: 4, border: isMe ? `2px solid ${COLORS.lime}` : '2px solid transparent' }}>
                     <AvatarSVG avatarConfig={u.avatarConfig} size={52} />
                   </div>
-                  <div style={{ color: isMe ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{u.displayName || u.alias}</div>
+                  <div style={{ color: isMe ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{getUserLabel(u)}</div>
                   {isMe ? (
                     <div style={{ color: COLORS.lime, fontSize: 10 }}>Du</div>
                   ) : (
