@@ -25,13 +25,13 @@ export const AVATAR_REWARDS = [
   {
     id: 'midsommarkrans',
     label: 'Midsommarkrans',
-    cost: 100,
+    cost: 80,
     unlocks: { hair: ['long08'] },
   },
   {
     id: 'nya_munnar',
     label: 'Nya munnar',
-    cost: 200,
+    cost: 220,
     unlocks: {
       mouth: [
         'variant01',
@@ -65,13 +65,13 @@ export const AVATAR_REWARDS = [
   {
     id: 'bakgrundsfarg',
     label: 'Bakgrundsfärg',
-    cost: 300,
+    cost: 400,
     unlocks: { backgroundColor: ['dba3be', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf'] },
   },
   {
     id: 'nya_ogonbryn',
     label: 'Nya ögonbryn',
-    cost: 450,
+    cost: 700,
     unlocks: {
       eyebrows: [
         'variant01',
@@ -91,7 +91,7 @@ export const AVATAR_REWARDS = [
   {
     id: 'nya_frisyrer',
     label: 'Nya frisyrer',
-    cost: 600,
+    cost: 1100,
     unlocks: {
       hair: [
         'long03',
@@ -116,7 +116,7 @@ export const AVATAR_REWARDS = [
   {
     id: 'nya_ogon',
     label: 'Nya ögon',
-    cost: 800,
+    cost: 1700,
     unlocks: {
       eyes: [
         'variant02',
@@ -146,13 +146,13 @@ export const AVATAR_REWARDS = [
   {
     id: 'nya_harfarger',
     label: 'Nya hårfärger',
-    cost: 1000,
+    cost: 2500,
     unlocks: { hairColor: ['3eac2c', '85c2c6', '592454', 'ab2a18', 'afafaf', 'dba3be'] },
   },
   {
     id: 'orhangen',
     label: 'Örhängen',
-    cost: 1300,
+    cost: 3600,
     unlocks: {
       earrings: ['variant01', 'variant02', 'variant03', 'variant04', 'variant05', 'variant06'],
     },
@@ -160,13 +160,13 @@ export const AVATAR_REWARDS = [
   {
     id: 'ansiktsdrag',
     label: 'Ansiktsdrag',
-    cost: 1600,
+    cost: 4700,
     unlocks: { features: ['birthmark', 'blush', 'freckles', 'mustache'] },
   },
   {
     id: 'solglasogon',
     label: 'Solglasögon',
-    cost: 2000,
+    cost: 6000,
     unlocks: { glasses: ['variant01'] },
   },
 ];
