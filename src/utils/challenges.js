@@ -3,6 +3,18 @@ import { localToday } from './date';
 
 export const WEEKLY_LEVEL_NAMES = ["Brons", "Silver", "Guld", "Platina", "Diamant", "Mästare", "Elite", "Legend", "Odödlig", "Gudarnas nivå"];
 
+function parseDateKey(dateKey) {
+  const [year, month, day] = (dateKey || '').split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return { year, month, day };
+}
+
+function dateKeyToDayNumber(dateKey) {
+  const parsed = parseDateKey(dateKey);
+  if (!parsed) return 0;
+  return Math.floor(Date.UTC(parsed.year, parsed.month - 1, parsed.day) / 86400000);
+}
+
 export function getWeeklyLevelInfo(value, goal) {
   // Build thresholds for all 10 levels: goal, goal*1.2, goal*1.2², ...
   const thresholds = [];
@@ -50,8 +62,9 @@ export function getWeeklyLevelInfo(value, goal) {
 // If seasonStart is provided, day 0 = first day of season
 export function getDailyChallenge(seasonStart) {
   const today = localToday();
-  const base = seasonStart || today;
-  const dayNum = Math.floor((new Date(today).getTime() - new Date(base).getTime()) / 86400000);
+  const dayNum = seasonStart
+    ? dateKeyToDayNumber(today) - dateKeyToDayNumber(seasonStart)
+    : dateKeyToDayNumber(today);
   const index = ((dayNum % DAILY_CHALLENGES.length) + DAILY_CHALLENGES.length) % DAILY_CHALLENGES.length;
   return DAILY_CHALLENGES[index];
 }
@@ -60,8 +73,10 @@ export function getDailyChallenge(seasonStart) {
 // If seasonStart is provided, week 0 = first week of season
 export function getWeeklyChallenge(seasonStart) {
   const today = localToday();
-  const base = seasonStart || today;
-  const weekNum = Math.floor((new Date(today).getTime() - new Date(base).getTime()) / (86400000 * 7));
+  const dayNum = seasonStart
+    ? dateKeyToDayNumber(today) - dateKeyToDayNumber(seasonStart)
+    : dateKeyToDayNumber(today);
+  const weekNum = Math.floor(dayNum / 7);
   const index = ((weekNum % WEEKLY_CHALLENGES.length) + WEEKLY_CHALLENGES.length) % WEEKLY_CHALLENGES.length;
   return WEEKLY_CHALLENGES[index];
 }
