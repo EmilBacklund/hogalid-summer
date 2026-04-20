@@ -348,6 +348,11 @@ export function HomeScreen() {
     }
   }, [user?.alias]);
 
+  const nameByAlias = useMemo(
+    () => Object.fromEntries(allUsers.map((u) => [u.alias, u.displayName || u.displayAlias || u.alias])),
+    [allUsers],
+  );
+
   // Show cheer toast when there are pending cheers
   useEffect(() => {
     if (!pendingCheers || pendingCheers.length === 0 || cheerToast) return;
@@ -385,10 +390,6 @@ export function HomeScreen() {
     if (!allUsers.length) return [];
     return generateFeed(allUsers, user.alias, seasonStart, teamPhotos).slice(0, 5);
   }, [allUsers, user.alias, seasonStart, teamPhotos]);
-  const nameByAlias = useMemo(
-    () => Object.fromEntries(allUsers.map((u) => [u.alias, u.displayName || u.displayAlias || u.alias])),
-    [allUsers],
-  );
 
   // "Gör-det-nu" logic
   const hasLogToday = (user.logs || []).some(l => l.date === todayStr && !l.bingo && !l.dailyChallenge);
