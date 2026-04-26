@@ -1,0 +1,105 @@
+name: Claude responds to Copilot reviews
+
+# When GitHub Copilot submits a code review on a PR, Claude reads the comments
+# and either:
+#   1. AGREE AND FIX  — edits files and pushes a fix(copilot): ... commit to the PR branch
+#   2. DISAGREE       — replies to the comment explaining why no change is being made
+#   3. NEEDS HUMAN    — tags @EmilBacklund for anything requiring architectural judgment
+#
+# Only fires for Copilot's reviews (filter below). Human reviews are ignored —
+# Emil reviews PRs himself.
+#
+# Cost controls:
+#   - Concurrency group cancels overlapping runs on the same PR
+#   - --max-turns caps the conversation length per run
+#   - Console balance is the hard ceiling: when it hits $0, the action fails
+#     with 402 Payment Required and stops costing money
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+concurrency:
+  group: claude-copilot-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  respond:
+    # Only run when the reviewer was Copilot. Both forms appear in the wild
+    # depending on how the review was triggered.
+    if: >
+      github.event.review.user.login == 'Copilot' ||
+      github.event.review.user.login == 'copilot-pull-request-reviewer[bot]'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write       # to push fix commits to the PR branch
+      pull-requests: write  # to reply to Copilot's comments
+      issues: write         # claude-code-action requires this for tracking comments
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Run Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --max-turns 25
+          prompt: |
+            GitHub Copilot just submitted a code review on PR #${{ github.event.pull_request.number }}
+            in repo ${{ github.repository }}.
+
+            ## Your task
+
+            Read every comment Copilot left on this PR. For each one, decide ONE of:
+
+            1. **AGREE AND FIX** — the comment is correct and worth acting on.
+               - Edit the relevant file(s).
+               - Run `git add` on the changes.
+               - Commit with a Conventional Commits message starting with `fix(copilot):`
+                 followed by a short description.
+               - Push to the PR's head branch (the branch is already checked out).
+
+            2. **DISAGREE** — the comment is wrong, irrelevant, or low-value.
+               - Reply to that specific Copilot comment via the GitHub API explaining
+                 *briefly* why you're not acting on it. One or two sentences.
+
+            3. **NEEDS HUMAN** — the comment touches architecture, product decisions,
+               or anything requiring Emil's judgment.
+               - Reply to the comment, tag `@EmilBacklund`, and explain in one sentence
+                 why human input is needed.
+
+            If Copilot's review has zero comments worth acting on, post a single top-level
+            PR comment saying `No actionable feedback from this Copilot review.` and exit.
+
+            ## Project conventions you must follow
+
+            - **Branch protection**: NEVER force-push. NEVER push to `master` directly.
+              Only push to the PR's head branch.
+            - **Commit style**: Conventional Commits (`fix:`, `feat:`, `chore:`, `refactor:`, `docs:`).
+            - **Co-author trailer**: end every commit message with
+              `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`
+            - **No new inline styles** in JSX. Tailwind classes only. (Legacy code is
+              being migrated — see PLAN.md on this branch.)
+            - **No new JavaScript files** in `src/`. The repo is migrating to TypeScript.
+              Only edit existing `.js`/`.jsx` if Copilot's comment is about an existing one.
+            - **UI strings are Swedish, code/comments are English.** Match the surrounding style.
+            - **Read PLAN.md** before making any non-trivial change — it contains the
+              architectural decisions for the ongoing rewrite.
+            - **Cap yourself**: do at most 3 fix-and-push iterations on a given PR to
+              avoid ping-ponging with Copilot. If after 3 you still disagree with Copilot,
+              escalate to Emil.
+
+            ## What "small and reversible" means here
+
+            This is a hobby project, not production-critical. Prefer making the small
+            change Copilot suggested over arguing about it. But if Copilot's suggestion
+            would break a working pattern, contradict PLAN.md, or introduce inline styles,
+            push back instead of complying.
+
+            Begin.
