@@ -118,12 +118,24 @@ This is not being built now, but **several decisions change shape** if we don't 
 
 # Sessions
 
-## Session 1 — Planning & foundation **(this session)**
+## Session 1 — Planning & foundation
 
 **Goal**: lock in decisions, scaffold the new project, wire up tooling so every future commit is linted/formatted/tested.
 
+### Already done (out of session, before main S1 work begins)
+
 - [x] Plan written, open questions resolved (Netlify, `rewrite/next` branch, custom cookie auth)
-- [ ] Create branch `rewrite/next`
+- [x] Branch `rewrite/next` created and pushed to origin
+- [x] README rewritten — removed leaked admin password and real Turso URL, expanded with proper sections (commit `3c95e7d` on `master`)
+- [x] `.claude/` directory untracked from git, added to `.gitignore` (commit `b6f1bd1` on `master`)
+- [x] Repo made **public** on GitHub (was private; needed for ruleset enforcement on free plan)
+- [x] Two GitHub rulesets created and now enforcing:
+  - `Protect master`: requires PR + 1 approval, Emil bypasses, Copilot auto-review on PRs into master
+  - `Auto Copilot review on rewrite/next`: Copilot auto-review on PRs into `rewrite/next`
+- [x] GitHub Action wired up at `.github/workflows/claude-respond-to-copilot.yml` — when Copilot reviews a PR, Claude reads the comments and either pushes a `fix(copilot):` commit, replies disagreeing, or escalates to `@EmilBacklund`. Uses `ANTHROPIC_API_KEY` repo secret. (commit `6724ba7` on `master`, merged into `rewrite/next` as `8e4fb4d`)
+
+### Main session 1 work — still to do
+
 - [ ] Scaffold Next.js 15 in place (preserving `public/`, `README.md`, `.git/`)
 - [ ] `tsconfig.json` with strict settings
 - [ ] Tailwind v4 config (theme tokens for Högalid brand colors from `constants/colors.js`)
@@ -360,3 +372,15 @@ This is not being built now, but **several decisions change shape** if we don't 
 _Add a line here at the end of every session._
 
 - **2026-04-22** — Plan written. Open questions resolved (Netlify, `rewrite/next`, custom cookie auth). Multi-tenant forward-compat folded into Sessions 1 & 3.
+- **2026-04-26** — Pre-S1 cleanup pass: README rewrite (removed leaked admin pw + real Turso URL), `.claude/` untracked, repo flipped to public, two rulesets enforcing (master needs PR+approval, both branches get Copilot auto-review), `claude-respond-to-copilot.yml` workflow wired up using `ANTHROPIC_API_KEY` secret. Ready to start main S1 work.
+
+---
+
+## How to resume work between sessions
+
+Each new Claude Code session starts with **zero memory** of prior conversations. To pick up cleanly:
+
+1. **Be on the right branch**: most session work happens on `rewrite/next-sN-<topic>` branched off `rewrite/next`. Check `git branch` first.
+2. **Tell Claude**: `"Read PLAN.md and continue from where we left off. Use the conventions in the plan exactly."` That's enough — PLAN.md is the source of truth.
+3. **For a fresh session at the start of a new session number**: `"Read PLAN.md and start Session N. Follow the branching convention (branch off rewrite/next as rewrite/next-sN-<topic>)."`
+4. **Update the Progress log** at the end of every session before stopping. Future-you needs to know where you left off.
