@@ -5,3 +5,6 @@ dist
 
 # Local Netlify folder
 .netlify
+
+# Claude Code session memory and local settings
+.claude/

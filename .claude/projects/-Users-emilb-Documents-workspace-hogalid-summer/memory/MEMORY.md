@@ -1,2 +1,0 @@
-- [Project Context](project_context.md) — React+Netlify+Turso youth football training app, brother vibed-coded it
-- [Emil Backlund](user_emil.md) — Developer cleaning up the vibed-coded app
