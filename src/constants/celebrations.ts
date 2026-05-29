@@ -1,4 +1,4 @@
-export const CELEBRATION_LINES = {
+export const CELEBRATION_LINES: Record<string, string[]> = {
   drive: [
     'Högalid F15 kör bara kör!',
     'Full fart framåt!',
@@ -31,7 +31,7 @@ export const CELEBRATION_LINES = {
   ],
 };
 
-export function getCelebrationLine(group, seed = '') {
+export function getCelebrationLine(group: string, seed = ''): string {
   const lines = CELEBRATION_LINES[group] || [];
   if (lines.length === 0) return '';
 
@@ -41,5 +41,5 @@ export function getCelebrationLine(group, seed = '') {
     hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
   }
 
-  return lines[hash % lines.length];
+  return lines[hash % lines.length] ?? '';
 }

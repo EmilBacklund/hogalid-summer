@@ -1,5 +1,3 @@
-// Barrel for the ported (TypeScript) utils. Remaining files (feed, stickers,
-// usersCache, photosCache) are ported in a follow-up Session 2 pass.
 export { API, apiGet, apiPost, apiPut, apiDelete } from './api';
 export { localToday, getWeekStart } from './date';
 export {
@@ -18,4 +16,8 @@ export {
   getWeeklyLevelInfo,
   WEEKLY_LEVEL_NAMES,
 } from './challenges';
+export { fetchAllUsers, fetchAllUsersStale, invalidateUsersCache } from './usersCache';
+export { fetchTeamPhotos, fetchTeamPhotosStale, invalidatePhotosCache } from './photosCache';
 export { computeWeeklyHistory, saveWeeklyResult, getWeeklyChallengeForDate } from './weeklyHistory';
+export { generateFeed } from './feed';
+export { getEarnedStickers, getStickerContext } from './stickers';

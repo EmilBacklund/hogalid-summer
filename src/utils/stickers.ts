@@ -1,24 +1,33 @@
 import { STICKERS } from '../constants/stickers';
 import { getWeekStart } from './date';
+import type { Log, Sticker, Stats, User } from '../types';
 
-function getAdultBingoLineCount(doneIds = []) {
+type SummerField = 'iceCream' | 'swim' | 'pages';
+
+function getAdultBingoLineCount(doneIds: string[] = []): number {
   const doneSet = new Set(doneIds);
   let lines = 0;
 
   for (let row = 0; row < 4; row++) {
-    const rowIds = Array.from({ length: 4 }, (_, col) => `ab${String(row * 4 + col + 1).padStart(2, '0')}`);
+    const rowIds = Array.from(
+      { length: 4 },
+      (_, col) => `ab${String(row * 4 + col + 1).padStart(2, '0')}`,
+    );
     if (rowIds.every((id) => doneSet.has(id))) lines++;
   }
 
   for (let col = 0; col < 4; col++) {
-    const colIds = Array.from({ length: 4 }, (_, row) => `ab${String(row * 4 + col + 1).padStart(2, '0')}`);
+    const colIds = Array.from(
+      { length: 4 },
+      (_, row) => `ab${String(row * 4 + col + 1).padStart(2, '0')}`,
+    );
     if (colIds.every((id) => doneSet.has(id))) lines++;
   }
 
   return lines;
 }
 
-function getPenaltyBest(user) {
+function getPenaltyBest(user: User): number {
   const fromFlags = Number(user.secretFlags?.penaltyBest || 0);
   const fromLogs = (user.logs || []).reduce((best, log) => {
     if (!log.title || !log.title.startsWith('penalty:')) return best;
@@ -28,18 +37,20 @@ function getPenaltyBest(user) {
   return Math.max(fromFlags, fromLogs);
 }
 
-function getWeekday(dateStr) {
+function getWeekday(dateStr: string): number {
   return new Date(dateStr).getDay();
 }
 
-function getRealTrainingLogs(user) {
-  return (user.logs || []).filter((log) => !log.bingo && !log.dailyChallenge && !(log.title || '').startsWith('🤝buddy:'));
+function getRealTrainingLogs(user: User): Log[] {
+  return (user.logs || []).filter(
+    (log) => !log.bingo && !log.dailyChallenge && !(log.title || '').startsWith('🤝buddy:'),
+  );
 }
 
-function hasFirstTeamLog(user, allUsers) {
+function hasFirstTeamLog(user: User, allUsers: User[]): boolean {
   if (!user?.alias || !Array.isArray(allUsers) || allUsers.length === 0) return false;
 
-  const earliestByDate = new Map();
+  const earliestByDate = new Map<string, { alias: string; createdAt: string }>();
 
   allUsers.forEach((teamUser) => {
     getRealTrainingLogs(teamUser).forEach((log) => {
@@ -68,34 +79,32 @@ function hasFirstTeamLog(user, allUsers) {
   return Array.from(earliestByDate.values()).some((entry) => entry.alias === user.alias);
 }
 
-function countByWeek(logs) {
-  const byWeek = {};
+function countByWeek(logs: Log[]): Record<string, number> {
+  const byWeek: Record<string, Set<string>> = {};
   logs.forEach((log) => {
     const week = getWeekStart(log.date);
     if (!byWeek[week]) byWeek[week] = new Set();
-    byWeek[week].add(log.date);
+    byWeek[week]!.add(log.date);
   });
-  return Object.fromEntries(
-    Object.entries(byWeek).map(([week, dates]) => [week, dates.size]),
-  );
+  return Object.fromEntries(Object.entries(byWeek).map(([week, dates]) => [week, dates.size]));
 }
 
-function getExerciseDayCount(logs, exerciseId) {
+function getExerciseDayCount(logs: Log[], exerciseId: string): number {
   return new Set(
     logs
-      .filter((log) => (log.exercises || []).some((exercise) => exercise.id === exerciseId && (exercise.value || 0) > 0))
+      .filter((log) => (log.exercises || []).some((e) => e.id === exerciseId && (e.value || 0) > 0))
       .map((log) => log.date),
   ).size;
 }
 
-function hasSingleExerciseValue(logs, exerciseId, minValue) {
+function hasSingleExerciseValue(logs: Log[], exerciseId: string, minValue: number): boolean {
   return logs.some((log) =>
-    (log.exercises || []).some((exercise) => exercise.id === exerciseId && (exercise.value || 0) >= minValue),
+    (log.exercises || []).some((e) => e.id === exerciseId && (e.value || 0) >= minValue),
   );
 }
 
-function countSummerActivitiesByWeek(logs) {
-  const byWeek = {};
+function countSummerActivitiesByWeek(logs: Log[]): Record<string, number> {
+  const byWeek: Record<string, number> = {};
   logs.forEach((log) => {
     const total = (log.iceCream || 0) + (log.swim || 0) + (log.pages || 0 ? 1 : 0);
     if (total <= 0) return;
@@ -105,11 +114,13 @@ function countSummerActivitiesByWeek(logs) {
   return byWeek;
 }
 
-export function getStickerContext(user, stats, allUsers = []) {
+export function getStickerContext(user: User, stats: Stats, allUsers: User[] = []) {
   const realLogs = getRealTrainingLogs(user);
   const weekCounts = Object.values(countByWeek(realLogs));
   const completedDailyCount = Object.keys(user.completedDaily || {}).length;
-  const buddyCompletions = (user.logs || []).filter((log) => (log.title || '').startsWith('🤝buddy:')).length;
+  const buddyCompletions = (user.logs || []).filter((log) =>
+    (log.title || '').startsWith('🤝buddy:'),
+  ).length;
   const summerWeekCounts = Object.values(countSummerActivitiesByWeek(user.logs || []));
   const adultBingo = user.adultBingo || [];
 
@@ -126,18 +137,28 @@ export function getStickerContext(user, stats, allUsers = []) {
     foundPenaltyGame: !!user.secretFlags?.foundPenaltyGame,
     penaltyBest: getPenaltyBest(user),
     hasFirstTeamLog: () => hasFirstTeamLog(user, allUsers),
-    hasWeekday: (weekday) => realLogs.some((log) => getWeekday(log.date) === weekday),
+    hasWeekday: (weekday: number) => realLogs.some((log) => getWeekday(log.date) === weekday),
     maxLogsInWeek: weekCounts.length ? Math.max(...weekCounts) : 0,
-    hasExercise: (exerciseId) => realLogs.some((log) => (log.exercises || []).some((exercise) => exercise.id === exerciseId && (exercise.value || 0) > 0)),
-    exerciseDayCount: (exerciseId) => getExerciseDayCount(realLogs, exerciseId),
-    hasSingleExerciseValue: (exerciseId, minValue) => hasSingleExerciseValue(realLogs, exerciseId, minValue),
-    hasSummerActivity: (field) => (user.logs || []).some((log) => (log[field] || 0) >= 1),
-    hasAnySummerActivity: () => (user.logs || []).some((log) => (log.iceCream || 0) + (log.swim || 0) + (log.pages || 0 ? 1 : 0) > 0),
+    hasExercise: (exerciseId: string) =>
+      realLogs.some((log) =>
+        (log.exercises || []).some((e) => e.id === exerciseId && (e.value || 0) > 0),
+      ),
+    exerciseDayCount: (exerciseId: string) => getExerciseDayCount(realLogs, exerciseId),
+    hasSingleExerciseValue: (exerciseId: string, minValue: number) =>
+      hasSingleExerciseValue(realLogs, exerciseId, minValue),
+    hasSummerActivity: (field: SummerField) =>
+      (user.logs || []).some((log) => (log[field] || 0) >= 1),
+    hasAnySummerActivity: () =>
+      (user.logs || []).some(
+        (log) => (log.iceCream || 0) + (log.swim || 0) + (log.pages || 0 ? 1 : 0) > 0,
+      ),
     maxSummerActivitiesInWeek: summerWeekCounts.length ? Math.max(...summerWeekCounts) : 0,
   };
 }
 
-const STICKER_CONDITIONS = {
+type StickerContext = ReturnType<typeof getStickerContext>;
+
+const STICKER_CONDITIONS: Record<string, (ctx: StickerContext) => boolean> = {
   start_shot: (ctx) => ctx.realLogs.length >= 1,
   monday_starter: (ctx) => ctx.hasWeekday(1),
   tuesday_touch: (ctx) => ctx.hasWeekday(2),
@@ -191,10 +212,13 @@ const STICKER_CONDITIONS = {
   swim_three: (ctx) => (ctx.stats.totalSwim || 0) >= 3,
   reading_thirty: (ctx) => (ctx.stats.totalPages || 0) >= 30,
   summer_triple_week: (ctx) => ctx.maxSummerActivitiesInWeek >= 3,
-  summer_allrounder: (ctx) => ctx.hasSummerActivity('iceCream') && ctx.hasSummerActivity('swim') && ctx.hasSummerActivity('pages'),
+  summer_allrounder: (ctx) =>
+    ctx.hasSummerActivity('iceCream') &&
+    ctx.hasSummerActivity('swim') &&
+    ctx.hasSummerActivity('pages'),
 };
 
-export function getEarnedStickers(user, stats, allUsers = []) {
+export function getEarnedStickers(user: User, stats: Stats, allUsers: User[] = []): Sticker[] {
   const ctx = getStickerContext(user, stats, allUsers);
   return STICKERS.filter((sticker) => STICKER_CONDITIONS[sticker.id]?.(ctx));
 }

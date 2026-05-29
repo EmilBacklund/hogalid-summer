@@ -1,48 +1,49 @@
 import { apiGet } from './api';
+import type { Photo } from '../types';
 
 const CACHE_TTL = 120 * 1000;
 const LS_KEY = 'hogalid_photos_cache';
 
-let cachedPhotos = null;
+let cachedPhotos: Photo[] | null = null;
 let cacheTime = 0;
-let inflightPromise = null;
+let inflightPromise: Promise<Photo[]> | null = null;
 
 try {
   const stored = localStorage.getItem(LS_KEY);
   if (stored) {
-    const { photos, time } = JSON.parse(stored);
-    if (photos && time && Date.now() - time < CACHE_TTL) {
-      cachedPhotos = photos;
-      cacheTime = time;
+    const parsed = JSON.parse(stored) as { photos?: Photo[]; time?: number };
+    if (parsed.photos && parsed.time && Date.now() - parsed.time < CACHE_TTL) {
+      cachedPhotos = parsed.photos;
+      cacheTime = parsed.time;
     }
   }
-} catch (e) {
-  // Ignore cache parse issues
+} catch {
+  /* ignore corrupt storage / no localStorage (SSR) */
 }
 
-function persist(photos, time) {
+function persist(photos: Photo[], time: number): void {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({ photos, time }));
-  } catch (e) {
-    // Ignore quota issues
+  } catch {
+    /* ignore quota issues */
   }
 }
 
-export function invalidatePhotosCache() {
+export function invalidatePhotosCache(): void {
   cachedPhotos = null;
   cacheTime = 0;
   try {
     localStorage.removeItem(LS_KEY);
-  } catch (e) {
-    // ignore
+  } catch {
+    /* ignore */
   }
 }
 
-export function fetchTeamPhotosStale(onChange) {
+export function fetchTeamPhotosStale(onChange: (photos: Photo[]) => void): Photo[] | null {
   const cacheIsFresh = cachedPhotos && Date.now() - cacheTime < CACHE_TTL;
 
   if (!cacheIsFresh && !inflightPromise) {
-    inflightPromise = apiGet('/photos')
+    inflightPromise = apiGet<Photo[]>('/photos')
       .then((photos) => {
         const changed = JSON.stringify(photos) !== JSON.stringify(cachedPhotos);
         cachedPhotos = photos;
@@ -51,7 +52,7 @@ export function fetchTeamPhotosStale(onChange) {
         if (changed) onChange(photos);
         return photos;
       })
-      .catch(() => {})
+      .catch(() => [] as Photo[])
       .finally(() => {
         inflightPromise = null;
       });
@@ -60,13 +61,13 @@ export function fetchTeamPhotosStale(onChange) {
   return cachedPhotos;
 }
 
-export async function fetchTeamPhotos() {
+export async function fetchTeamPhotos(): Promise<Photo[]> {
   const now = Date.now();
   if (cachedPhotos && now - cacheTime < CACHE_TTL) {
     return cachedPhotos;
   }
   if (inflightPromise) return inflightPromise;
-  inflightPromise = apiGet('/photos')
+  inflightPromise = apiGet<Photo[]>('/photos')
     .then((photos) => {
       cachedPhotos = photos;
       cacheTime = Date.now();

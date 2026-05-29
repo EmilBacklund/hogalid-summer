@@ -167,3 +167,66 @@ export interface WeeklyHistoryEntry {
   value: number;
   levelInfo: WeeklyLevelInfo;
 }
+
+/** An achievement badge; `condition` is evaluated against computed Stats. */
+export interface Badge {
+  id: string;
+  label: string;
+  icon: string;
+  condition: (s: Stats) => boolean;
+}
+
+/** An avatar reward tier that unlocks options in one or more categories. */
+export interface AvatarReward {
+  id: string;
+  label: string;
+  cost: number;
+  unlocks: Record<string, string[]>;
+}
+
+/** Avatar customization category metadata (for UI rendering). */
+export interface AvatarCategory {
+  key: string;
+  label: string;
+  type: 'variant' | 'color';
+  alwaysVisible: boolean;
+}
+
+/** A collector card (player or legend). */
+export interface Card {
+  id: string;
+  name: string;
+  image: string;
+  type: 'player' | 'legend';
+  number: number;
+  position: string | null;
+  club: string | null;
+  youthClub: string | null;
+  blurb: string | null;
+  emoji?: string;
+}
+
+/** Profile data backing a collector card. */
+export interface PlayerCardProfile {
+  id: string;
+  imageFile: string;
+  name: string;
+  position?: string;
+  youthClub?: string;
+  currentClub?: string;
+  blurb?: string;
+  sourceUrl?: string;
+}
+
+/** A single activity-feed event. */
+export interface FeedEvent {
+  date: string;
+  type: string;
+  alias: string;
+  isMe: boolean;
+  text: string;
+  icon: string;
+  createdAt?: string;
+  target?: string;
+  photoId?: number;
+}

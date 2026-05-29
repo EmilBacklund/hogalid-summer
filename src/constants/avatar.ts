@@ -1,5 +1,7 @@
+import type { AvatarCategory, AvatarConfig, AvatarReward } from '../types';
+
 // Options available to all players from registration
-export const STARTER_OPTIONS = {
+export const STARTER_OPTIONS: Record<string, string[]> = {
   hair: [
     'long01',
     'long02',
@@ -21,13 +23,8 @@ export const STARTER_OPTIONS = {
 };
 
 // Reward tiers — each unlocks new options in one or more categories
-export const AVATAR_REWARDS = [
-  {
-    id: 'midsommarkrans',
-    label: 'Midsommarkrans',
-    cost: 80,
-    unlocks: { hair: ['long08'] },
-  },
+export const AVATAR_REWARDS: AvatarReward[] = [
+  { id: 'midsommarkrans', label: 'Midsommarkrans', cost: 80, unlocks: { hair: ['long08'] } },
   {
     id: 'nya_munnar',
     label: 'Nya munnar',
@@ -163,16 +160,11 @@ export const AVATAR_REWARDS = [
     cost: 4700,
     unlocks: { features: ['birthmark', 'blush', 'freckles', 'mustache'] },
   },
-  {
-    id: 'solglasogon',
-    label: 'Solglasögon',
-    cost: 6000,
-    unlocks: { glasses: ['variant01'] },
-  },
+  { id: 'solglasogon', label: 'Solglasögon', cost: 6000, unlocks: { glasses: ['variant01'] } },
 ];
 
 // Category display names and types (for UI rendering)
-export const CATEGORIES = [
+export const CATEGORIES: AvatarCategory[] = [
   { key: 'hair', label: 'Frisyr', type: 'variant', alwaysVisible: true },
   { key: 'hairColor', label: 'Hårfärg', type: 'color', alwaysVisible: true },
   { key: 'eyes', label: 'Ögon', type: 'variant', alwaysVisible: true },
@@ -186,15 +178,16 @@ export const CATEGORIES = [
 ];
 
 // Generate a random avatar config from starter options
-export function randomAvatarConfig() {
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+export function randomAvatarConfig(): AvatarConfig {
+  const pick = (arr: string[]): string => arr[Math.floor(Math.random() * arr.length)]!;
+  const opt = (k: string): string[] => STARTER_OPTIONS[k] ?? [];
   return {
-    skinColor: pick(STARTER_OPTIONS.skinColor),
-    hair: pick(STARTER_OPTIONS.hair),
-    hairColor: pick(STARTER_OPTIONS.hairColor),
-    eyes: pick(STARTER_OPTIONS.eyes),
-    eyebrows: pick(STARTER_OPTIONS.eyebrows),
-    mouth: pick(STARTER_OPTIONS.mouth),
+    skinColor: pick(opt('skinColor')),
+    hair: pick(opt('hair')),
+    hairColor: pick(opt('hairColor')),
+    eyes: pick(opt('eyes')),
+    eyebrows: pick(opt('eyebrows')),
+    mouth: pick(opt('mouth')),
     glasses: null,
     earrings: null,
     features: null,
@@ -203,13 +196,17 @@ export function randomAvatarConfig() {
 }
 
 // Get available options for a category: { starter: [...], unlocked: [...] }
-export function getAvailableOptions(categoryKey, unlockedItems = []) {
-  const starter = STARTER_OPTIONS[categoryKey] || [];
-  const unlocked = [];
+export function getAvailableOptions(
+  categoryKey: string,
+  unlockedItems: string[] = [],
+): { starter: string[]; unlocked: string[] } {
+  const starter = STARTER_OPTIONS[categoryKey] ?? [];
+  const unlocked: string[] = [];
 
   for (const reward of AVATAR_REWARDS) {
-    if (unlockedItems.includes(reward.id) && reward.unlocks[categoryKey]) {
-      unlocked.push(...reward.unlocks[categoryKey]);
+    const options = reward.unlocks[categoryKey];
+    if (unlockedItems.includes(reward.id) && options) {
+      unlocked.push(...options);
     }
   }
 
@@ -217,7 +214,7 @@ export function getAvailableOptions(categoryKey, unlockedItems = []) {
 }
 
 // Check if a category has any available options (starter or unlocked)
-export function isCategoryAvailable(categoryKey, unlockedItems = []) {
+export function isCategoryAvailable(categoryKey: string, unlockedItems: string[] = []): boolean {
   const { starter, unlocked } = getAvailableOptions(categoryKey, unlockedItems);
   return starter.length > 0 || unlocked.length > 0;
 }

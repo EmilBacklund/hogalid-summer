@@ -4,7 +4,9 @@
 // public football sources were used because no dedicated Wikipedia page
 // appeared in search results.
 
-export const PLAYER_CARD_PROFILES = [
+import type { PlayerCardProfile } from '../types';
+
+export const PLAYER_CARD_PROFILES: PlayerCardProfile[] = [
   {
     id: 'amanda_ilestedt',
     imageFile: 'Amanda_Ilestedt.jpg',
@@ -260,7 +262,7 @@ export const PLAYER_CARD_PROFILES = [
   },
 ];
 
-export const LEGEND_CARD_PROFILES = [
+export const LEGEND_CARD_PROFILES: PlayerCardProfile[] = [
   {
     id: 'legend_therese_sjogran',
     imageFile: 'legend/Therese_Sjogran.jpg',
