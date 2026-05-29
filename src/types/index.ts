@@ -1,0 +1,169 @@
+// Shared domain types for the Högalid F15 app.
+
+/** A single exercise entry inside a log (e.g. { id: 'toetaps', value: 100 }). */
+export interface ExerciseEntry {
+  id: string;
+  value: number;
+}
+
+/** A training/activity log row. */
+export interface Log {
+  id: number;
+  date: string; // YYYY-MM-DD
+  exercises: ExerciseEntry[];
+  points: number;
+  minutes: number;
+  bingo: boolean;
+  bingoFootball: boolean;
+  dailyChallenge: boolean;
+  iceCream: number;
+  swim: number;
+  pages: number;
+  title: string;
+  createdAt: string;
+}
+
+/** DiceBear avatar configuration — a map of category → selected option (or null). */
+export type AvatarConfig = Record<string, string | null>;
+
+/** Easter-egg / secret progress flags stored per user. */
+export interface SecretFlags {
+  foundAdultBingo?: boolean;
+  foundPenaltyGame?: boolean;
+  penaltyBest?: number;
+}
+
+/** A player account, as returned by the API and consumed by the UI. */
+export interface User {
+  alias: string;
+  displayAlias: string;
+  displayName?: string;
+  avatarConfig: AvatarConfig;
+  unlockedItems: string[];
+  highscores: Record<string, number>;
+  secretFlags: SecretFlags;
+  joinedAt: string | null;
+  photoCount: number;
+  logs: Log[];
+  bingo: string[];
+  bonusBingo: string[];
+  bingoTwo: string[];
+  adultBingo: string[];
+  completedDaily: Record<string, string>; // date → challengeId
+  isAdmin?: boolean;
+}
+
+/** A photo in the team album. */
+export interface Photo {
+  id: number;
+  alias: string;
+  uploaderName: string;
+  imageData: string;
+  mimeType: string;
+  weekStart: string;
+  uploadedAt: string;
+  date: string;
+}
+
+// ── Static data shapes (constants) ──────────────────────────────────────────
+
+export interface Exercise {
+  id: string;
+  label: string;
+  unit: string;
+  color: string;
+  max: number;
+  hasHighscore?: boolean;
+  isTime?: boolean;
+}
+
+export interface SummerActivity {
+  id: string;
+  label: string;
+  icon: string;
+  unit: string;
+  color: string;
+  max: number;
+}
+
+export interface Level {
+  name: string;
+  min: number;
+  icon: string;
+}
+
+export interface TeamLevel extends Level {
+  color: string;
+}
+
+export interface BingoTile {
+  id: string;
+  label: string;
+  cat?: string;
+  points?: number;
+}
+
+export interface DailyChallenge {
+  id: string;
+  label: string;
+  points: number;
+  icon: string;
+}
+
+export type WeeklyChallengeType = 'touch' | 'minutes';
+
+export interface WeeklyChallenge {
+  id: string;
+  label: string;
+  type: WeeklyChallengeType;
+  goal: number;
+  points: number;
+}
+
+export interface Sticker {
+  id: string;
+  label: string;
+  icon: string;
+  group: string;
+  description: string;
+}
+
+// ── Derived shapes (computed by utils) ───────────────────────────────────────
+
+export interface Stats {
+  totalPoints: number;
+  totalMinutes: number;
+  totalLogs: number;
+  totalTouch: number;
+  exerciseCounts: Record<string, number>;
+  exerciseHighscores: Record<string, number>;
+  streak: number;
+  maxStreak: number;
+  bingoCount: number;
+  bingoLines: number;
+  totalIceCream: number;
+  totalSwim: number;
+  totalPages: number;
+  photoCount: number;
+  iceCreamStreak: number;
+  swimStreak: number;
+  readStreak: number;
+}
+
+export interface WeeklyLevelInfo {
+  level: number;
+  levelName: string | null;
+  nextLevelName: string | null;
+  isMaxLevel: boolean;
+  progress: number;
+  nextThreshold: number;
+  thresholds: number[];
+}
+
+export interface WeeklyHistoryEntry {
+  weekStart: string;
+  weekEnd: string;
+  challenge: WeeklyChallenge;
+  value: number;
+  levelInfo: WeeklyLevelInfo;
+}

@@ -12,6 +12,7 @@ export default tseslint.config(
     ignores: [
       '.next/**',
       '.netlify/**',
+      'next-env.d.ts',
       'dist/**',
       'coverage/**',
       'playwright-report/**',
