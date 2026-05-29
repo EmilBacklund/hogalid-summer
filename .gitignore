@@ -2,6 +2,21 @@ node_modules
 dist
 .env
 .env.local
+.env*.local
+
+# Next.js
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Test / coverage artifacts
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Sentry
+.sentryclirc
 
 # Local Netlify folder
 .netlify

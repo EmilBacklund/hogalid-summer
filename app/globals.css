@@ -1,0 +1,20 @@
+@import 'tailwindcss';
+
+/* Högalid IF brand tokens (from src/constants/colors.js).
+   Exposes Tailwind utilities like bg-hogalid-navy, text-hogalid-yellow, etc. */
+@theme {
+  --color-hogalid-red: #dc2828;
+  --color-hogalid-navy: #002864;
+  --color-hogalid-navy-light: #003a8c;
+  --color-hogalid-yellow: #f0dc00;
+  --color-hogalid-yellow-glow: #ffe533;
+  --color-hogalid-dark: #001540;
+  --color-hogalid-sky: #e8eef8;
+  --color-hogalid-accent-pink: #ff6b6b;
+}
+
+html,
+body {
+  background-color: var(--color-hogalid-dark);
+  color: #fff;
+}

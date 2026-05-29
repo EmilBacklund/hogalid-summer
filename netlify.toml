@@ -1,20 +1,10 @@
 [build]
-  command = "npm install && npm run build"
-  publish = "dist"
-  functions = "netlify/functions"
+  command = "npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-[functions]
-  node_bundler = "esbuild"
-
-[dev]
-  command = "vite"
-  targetPort = 5173
-  port = 8888
+# Next.js on Netlify (App Router + Route Handlers) is handled by the official plugin.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
