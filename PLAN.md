@@ -2,11 +2,28 @@
 
 Full rewrite from **React + Vite + JS + inline styles + Netlify Functions**
 to **Next.js 15 (App Router) + TypeScript + Tailwind v4 + Route Handlers**, with
-modern tooling, tests, and a polished commit workflow.
+modern tooling and tests.
 
 Each session below is scoped to roughly one working session. Check off items as we go.
 Keep this file updated at the end of every session — it is the source of truth for
 where we are.
+
+---
+
+## 🎯 Launch scope & deadline
+
+**Target: live, working, no known issues by 2026-06-07 (8 days).**
+
+Scope is deliberately tight: **upgrade the stack + fix all security issues + fix bugs.**
+**No new features.** Anything that isn't part of porting the existing app, hardening it,
+or fixing a bug is explicitly out of scope for this launch (see "Out of scope" below).
+
+### Out of scope for launch (do NOT build)
+- Multi-tenant / "any team can apply" (teams table, memberships, per-team config, email-based accounts)
+- Sentry / external error monitoring
+- Commitizen + custom commit-banner script (keep plain commitlint only)
+- Framer Motion / animation rewrites — keep the existing CSS/canvas animations as-is
+- Server-component optimization, Lighthouse-90 chase, Storybook, dark mode
 
 ---
 
@@ -25,32 +42,31 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 ---
 
-## Target stack (to be confirmed — see "Open questions" below)
+## Target stack
 
-| Area | Pick | Why |
-|---|---|---|
-| Framework | **Next.js 15, App Router** | Modern default, SSR + route handlers, file-based routing |
-| Language | **TypeScript (strict)** | Catch bugs at compile time, self-documenting code |
-| Styling | **Tailwind v4** | Already in use, great with Next.js |
-| Class helpers | **clsx + tailwind-merge** (via `cn()`) | Standard pattern for conditional classes |
-| Component variants | **cva** (class-variance-authority) | Typed variants for Card, Button, etc. |
-| Server state / cache | **TanStack Query v5** | Replaces ad-hoc `fetch` + manual caches |
-| Forms | **React Hook Form + Zod** | Best-in-class, shared schemas with API |
-| Validation (runtime) | **Zod** | Request/response validation on API routes, single source of truth |
-| Animations | **Framer Motion** | Replaces `@keyframes` inline + manual transitions |
-| Icons | **lucide-react** (keep) | Already used |
-| Avatar | **@dicebear** (keep) | Already used |
-| DB client | **@libsql/client** (keep) | Already used, Turso-compatible |
-| Auth | **httpOnly cookies + PBKDF2** | Replace `localStorage` — fixes XSS risk |
-| Linting | **ESLint 9 (flat config) + typescript-eslint + eslint-plugin-react** | Modern flat config |
-| Formatting | **Prettier 3 + prettier-plugin-tailwindcss** | Auto-sorts Tailwind classes |
-| Git hooks | **Husky + lint-staged + commitlint** | Conventional Commits enforced |
-| Commit UX | **Commitizen + custom Node script** | Interactive prompts + colorful commit summary |
-| Unit/component tests | **Vitest + React Testing Library** | Fast, Vite-compatible |
-| E2E tests | **Playwright** | Standard for Next.js |
-| CI | **GitHub Actions** | Typecheck, lint, test, build on PR |
-| Errors | **Sentry** | Cheap now, painful to retrofit across tenants later |
-| Deployment | **Netlify** (via `@netlify/plugin-nextjs`) | Confirmed |
+| Area                 | Pick                                                                 | Why                                                               |
+| -------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Framework            | **Next.js 15, App Router**                                           | Modern default, SSR + route handlers, file-based routing          |
+| Language             | **TypeScript (strict)**                                              | Catch bugs at compile time, self-documenting code                 |
+| Styling              | **Tailwind v4**                                                      | Already in use, great with Next.js                                |
+| Class helpers        | **clsx + tailwind-merge** (via `cn()`)                               | Standard pattern for conditional classes                          |
+| Component variants   | **cva** (class-variance-authority)                                   | Typed variants for Card, Button, etc.                             |
+| Server state / cache | **TanStack Query v5**                                                | Replaces ad-hoc `fetch` + manual caches                           |
+| Forms                | **React Hook Form + Zod**                                            | Best-in-class, shared schemas with API                            |
+| Validation (runtime) | **Zod**                                                              | Request/response validation on API routes, single source of truth |
+| Animations           | **Keep existing CSS `@keyframes` + canvas**                          | Already work; rewriting them adds risk and no value before launch |
+| Icons                | **lucide-react** (keep)                                              | Already used                                                      |
+| Avatar               | **@dicebear** (keep)                                                 | Already used                                                      |
+| DB client            | **@libsql/client** (keep)                                            | Already used, Turso-compatible                                    |
+| Photo storage        | **Netlify Blobs** (`@netlify/blobs`)                                 | Move image bytes out of the DB (see [SEC M1])                     |
+| Auth                 | **httpOnly signed cookie + PBKDF2**                                  | Replace `localStorage` — fixes XSS risk and the no-auth API       |
+| Linting              | **ESLint 9 (flat config) + typescript-eslint + eslint-plugin-react** | Modern flat config                                                |
+| Formatting           | **Prettier 3 + prettier-plugin-tailwindcss**                         | Auto-sorts Tailwind classes                                       |
+| Git hooks            | **Husky + lint-staged + commitlint**                                 | Conventional Commits enforced                                     |
+| Unit/component tests | **Vitest + React Testing Library**                                   | Fast, Vite-compatible                                             |
+| E2E tests            | **Playwright**                                                       | Standard for Next.js; one focused happy-path suite                |
+| CI                   | **GitHub Actions**                                                   | Typecheck, lint, test, build on PR                                |
+| Deployment           | **Netlify** (via `@netlify/plugin-nextjs`)                           | Confirmed                                                         |
 
 ---
 
@@ -58,96 +74,54 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 1. **Deployment**: **Netlify** (keep). Next.js runs via `@netlify/plugin-nextjs`.
 2. **Rewrite strategy**: **in-place on branch `rewrite/next`**. Git history is our safety net.
-3. **Auth**: **custom httpOnly signed cookie + PBKDF2**. Not `next-auth` / Auth.js yet — the current alias+password scheme doesn't map cleanly to it, and custom cookie auth is ~100 lines. We keep the option to migrate to Auth.js later when OAuth / magic links become a requirement (see "Future: multi-tenant" below).
+3. **Auth**: **custom httpOnly signed cookie + PBKDF2**. Not `next-auth` / Auth.js — the alias+password scheme doesn't map cleanly to it, and custom cookie auth is ~100 lines.
 4. **API**: Next.js **Route Handlers** (`app/api/*/route.ts`) replace Netlify Functions. Netlify still deploys them.
 5. **Screen splitting**: extract sub-components where it's natural (`<ChallengeCard>`, `<StatTile>`). No over-engineering.
-6. **Server vs Client Components**: start everything client-side during migration. Move static pieces to server components in the Session 11 polish pass.
-7. **Security hardening (2026-05-29 review of `master`)**: a review of the live `master`
-   app + production DB found critical issues. The rewrite must fix them by design — tasks
-   are tagged `[SEC …]` in the sessions below:
-   - **C1** no API auth/authz → cookie+PBKDF2 sessions + `team_memberships.role` server-side
-     checks on every mutation (S3/S4/S10). *Already core to this plan.*
-   - **C2** passwords stored/served in plaintext (`display_password`) → drop the column and
-     the admin show-password UI (S3 + S10).
+6. **Server vs Client Components**: keep everything **client-side** for this launch. Server-component optimization is out of scope.
+7. **Admin model**: keep the **single admin** (credentials in env vars — `ADMIN_ALIAS` / `ADMIN_PASSWORD`). No roles table, no multi-tenant. On admin login, issue a signed cookie carrying an `admin` claim; every admin Route Handler verifies that claim server-side.
+8. **Security hardening (from the 2026-05-29 review of `master`)** — the rewrite must fix these by design; tasks are tagged `[SEC …]` in the sessions below:
+   - **C1** no API auth/authz → signed cookie sessions; every mutation derives the acting user from the cookie (not the body); admin actions verify the `admin` claim server-side (S3/S4/S10).
+   - **C2** passwords stored/served in plaintext (`display_password`) → drop the column and the admin show-password UI (S3 + S10).
    - **C3** wide-open CORS → eliminated naturally by same-origin Route Handlers.
    - **H1** client-supplied points → recompute server-side from exercises (S3).
    - **M1** base64 photos in DB → Netlify Blobs + metadata-only rows (S3).
    - **M3/M4** no rate limiting / leaked error messages → add in S3.
-   - **C4** (operational, outside the rewrite): rotate the Turso token; it was shared
-     out-of-band. Not in git history.
-
----
-
-## Future: multi-tenant ("any football team can apply")
-
-This is not being built now, but **several decisions change shape** if we don't think about it today:
-
-### What we change now (cheap future-proofing)
-
-- **DB schema in Session 3**: add a `teams` table and a `team_id` foreign key on every domain table (`users`, `logs`, `buddy_challenges`, `album_photos`, `invites`, `config`, `bingo`, `weekly_results`, `cheers`). Seed it with one row (`hogalid-f15`) and hardcode that ID via env var `DEFAULT_TEAM_ID` for now. When we add team-signup later, we just remove the hardcode.
-- **`isAdmin` → `team_memberships.role`**: replace the global admin flag with a join table `team_memberships (user_id, team_id, role)` where role ∈ `player | coach | admin`. Single-team today, multi-team tomorrow, same schema.
-- **No hardcoded "hogalid" in code**: move team name, logo path, brand colors to a `TeamConfig` record loaded from DB. The app reads it at boot. Today there's one record; tomorrow there are many.
-- **Env var naming**: `TURSO_URL` stays generic (good). Avoid anything named `HOGALID_*`.
-- **Users keyed by email (not alias)**: current auth is `alias + password`. For multi-tenant we need email for password reset / invite flow. Add `email` as a nullable column in Session 3, keep `alias` as display handle, and make email required in a future migration. Log in still works by alias for now.
-- **File storage**: photos are stored as base64 blobs in SQLite today. That breaks fast at multi-team scale (~10 MB per photo × N teams) and currently dumps minors' photos to any unauthenticated caller. **Decision (2026-05-29): fix it in Session 3** — implement a `PhotoStorage` interface with a Netlify Blobs adapter (see Session 3 [SEC M1]). The interface keeps the future swap to R2 / UploadThing / S3 a one-file change. No data migration needed: `master` isn't live and the season resets, so the existing base64 photos are throwaway.
-- **Sentry from day one**: errors across many tenants are painful to debug without it. Cheap to add now.
-
-### What we don't build now
-
-- Team-signup flow, team-admin UI, onboarding wizard
-- Subdomain / path-based tenant routing (`/[teamSlug]/...`)
-- i18n (app stays Swedish; `next-intl` when the time comes)
-- Email (password reset, invite emails) — **Resend** is the pick when we need it
-- Billing — **Stripe** when we need it
-- Per-team theming beyond `TeamConfig` (brand color + logo is enough for now)
-- Turso's multi-DB-per-tenant pattern. Start with one DB, all teams inside. Revisit if scale demands.
-
-### Stack additions for multi-tenant future (not installed yet)
-
-| Need | Pick (future) |
-|---|---|
-| Email | Resend |
-| Object storage | Cloudflare R2 or UploadThing |
-| OAuth / magic links | Auth.js (migrate from custom cookie auth) |
-| i18n | next-intl |
-| Billing | Stripe |
-| Errors | **Sentry (install in Session 1)** |
-| Analytics | PostHog (when we care) |
+   - **C4** (operational, outside the rewrite): rotate the Turso token; it was shared out-of-band. Not in git history.
 
 ---
 
 ## Conventions & ground rules
 
 - **Commit style**: Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:`, `style:`, `ci:`). Enforced by commitlint.
-- **Branch**: all migration work on `rewrite/next`. Merge to `main` only when Session 12 passes.
-- **No patches on old code**: we're rewriting, not porting. If a component needs a different shape to be idiomatic in Next + TS + Tailwind, change the shape.
+- **Branch**: all migration work on `rewrite/next`. Merge to `master` only when Session 12 passes.
+- **No patches on old code**: we're rewriting, not porting line-for-line. If a component needs a different shape to be idiomatic in Next + TS + Tailwind, change the shape.
 - **Delete, don't comment out**. Git remembers.
 - **No back-compat shims**. The old app goes away.
 - **Type strictness**: `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`. No `any` without a comment explaining why.
 - **Styling**: zero inline `style={{...}}` objects in the final code, except for truly dynamic values (computed transforms, animated positions). Everything else is Tailwind.
-- **Tests**: every utility function gets unit tests; every API route gets a handler test; critical user flows get Playwright E2E.
+- **Tests**: every utility function gets unit tests; every API route gets a handler test; the critical user flows get one Playwright E2E pass.
 
 ---
 
 # Sessions
 
-## Session 1 — Planning & foundation
+## Session 1 — Foundation & tooling
 
-**Goal**: lock in decisions, scaffold the new project, wire up tooling so every future commit is linted/formatted/tested.
+**Goal**: scaffold the new project and wire up tooling so every future commit is linted/formatted/typechecked/tested.
 
-### Already done (out of session, before main S1 work begins)
+### Already done (before main S1 work)
 
-- [x] Plan written, open questions resolved (Netlify, `rewrite/next` branch, custom cookie auth)
+- [x] Plan written, decisions resolved (Netlify, `rewrite/next` branch, custom cookie auth)
 - [x] Branch `rewrite/next` created and pushed to origin
-- [x] README rewritten — removed leaked admin password and real Turso URL, expanded with proper sections (commit `3c95e7d` on `master`)
-- [x] `.claude/` directory untracked from git, added to `.gitignore` (commit `b6f1bd1` on `master`)
-- [x] Repo made **public** on GitHub (was private; needed for ruleset enforcement on free plan)
-- [x] Two GitHub rulesets created and now enforcing:
-  - `Protect master`: requires PR + 1 approval, Emil bypasses, Copilot auto-review on PRs into master
+- [x] README rewritten — removed leaked admin password and real Turso URL (commit `3c95e7d`)
+- [x] `.claude/` untracked from git, added to `.gitignore` (commit `b6f1bd1`)
+- [x] Repo made **public** on GitHub (needed for ruleset enforcement on free plan)
+- [x] Two GitHub rulesets enforcing:
+  - `Protect master`: requires PR + 1 approval, Emil bypasses, Copilot auto-review
   - `Auto Copilot review on rewrite/next`: Copilot auto-review on PRs into `rewrite/next`
-- [x] GitHub Action wired up at `.github/workflows/claude-respond-to-copilot.yml` — when Copilot reviews a PR, Claude reads the comments and either pushes a `fix(copilot):` commit, replies disagreeing, or escalates to `@EmilBacklund`. Uses `ANTHROPIC_API_KEY` repo secret. (commit `6724ba7` on `master`, merged into `rewrite/next` as `8e4fb4d`)
+- [x] GitHub Action `.github/workflows/claude-respond-to-copilot.yml` — Claude responds to Copilot PR reviews. Uses `ANTHROPIC_API_KEY` secret. (commit `6724ba7`, merged as `8e4fb4d`)
 
-### Main session 1 work — still to do
+### Main session 1 work
 
 - [ ] Scaffold Next.js 15 in place (preserving `public/`, `README.md`, `.git/`)
 - [ ] `tsconfig.json` with strict settings
@@ -158,19 +132,9 @@ This is not being built now, but **several decisions change shape** if we don't 
   - `pre-commit`: lint-staged (ESLint fix + Prettier write on staged files)
   - `commit-msg`: commitlint
   - `pre-push`: `tsc --noEmit && vitest run`
-- [ ] Commitizen config (conventional-changelog)
-- [ ] **Fancy commit script** (`scripts/commit-banner.mjs`):
-  - Runs on `post-commit`
-  - Prints colored ASCII banner with:
-    - Commit hash + conventional-commit type
-    - Files changed / lines +/−
-    - Test coverage delta (if tests ran)
-    - Branch + ahead/behind remote
-    - Random Högalid-themed emoji based on commit type
 - [ ] Vitest + React Testing Library + jsdom config
 - [ ] Playwright installed but skipped until Session 12
 - [ ] GitHub Actions workflow (`.github/workflows/ci.yml`): typecheck, lint, test, build
-- [ ] Sentry SDK wired up (client + server), DSN from env, disabled locally
 - [ ] Sanity-check commit: empty Next.js "Hello Högalid" page renders
 
 **End of session**: `npm run dev` shows a blank Next.js page. Hooks fire. CI is green.
@@ -183,11 +147,11 @@ This is not being built now, but **several decisions change shape** if we don't 
 
 - [ ] Migrate `src/constants/*.js` → `src/constants/*.ts`
   - `colors.ts` → also generate Tailwind theme tokens
-  - `exercises.ts` → typed `Exercise` union
+  - `exercises.ts` → typed `Exercise` union (also the source of truth for server-side point recompute — see [SEC H1])
   - `challenges.ts` → typed `BingoTile`, `DailyChallenge`, `WeeklyChallenge`
   - `avatar.ts`, `badges.ts`, `cards.ts`, `celebrations.ts`, `levels.ts`, `playerCards.ts`, `stickers.ts`
 - [ ] Migrate `src/utils/*.js` → `src/utils/*.ts` (all pure — no UI):
-  - `api.ts` (will be replaced in S3, placeholder for now)
+  - `api.ts` (replaced in S3, placeholder for now)
   - `date.ts`, `levels.ts`, `stats.ts`, `challenges.ts`, `feed.ts`, `weeklyHistory.ts`, `stickers.ts`
   - `photosCache.ts`, `usersCache.ts` (may become TanStack Query hooks in S4)
 - [ ] Define shared domain types in `src/types/`: `User`, `Log`, `BuddyChallenge`, `Photo`, `Invite`, `Config`
@@ -199,42 +163,28 @@ This is not being built now, but **several decisions change shape** if we don't 
 
 ---
 
-## Session 3 — API routes (server side)
+## Session 3 — API routes (server side) — **security-critical session**
 
-**Goal**: move backend off Netlify Functions onto Next.js Route Handlers, with Zod validation and tests.
+**Goal**: move the backend off Netlify Functions onto Next.js Route Handlers, with Zod validation, real auth, and tests. This session lands most of the security fixes.
 
-- [ ] **Multi-tenant-aware schema migration**: add `teams` table + `team_memberships (user_id, team_id, role)` + `team_id` FK on all domain tables. Seed one row for Högalid F15, hardcode its ID behind `DEFAULT_TEAM_ID` env var. Move the global `isAdmin` flag onto `team_memberships.role`.
-- [ ] Add nullable `email` column on `users` (for future password-reset / multi-team invites)
-- [ ] **[SEC C2] Drop plaintext passwords**: remove the `display_password` column and stop
-      returning any cleartext password from the API. PBKDF2 hash only. Admins *reset*
-      passwords, never view them. (See Session 10 for the matching UI removal.)
-- [ ] **[SEC H1] Server-authoritative points**: the logs Route Handler **recomputes**
-      `points` from the submitted exercises using `constants/exercises` rules and ignores
-      any client-sent points/score. Clamp minutes/reps to sane maxima. Never trust the client.
-- [ ] **[SEC M1] Photo storage = Netlify Blobs now** (not deferred). Define the
-      `PhotoStorage` interface AND ship a `NetlifyBlobsStorage` implementation in this
-      session: store image *bytes* in Netlify Blobs (`@netlify/blobs`), keep only metadata
-      in the DB (`alias/team_id, week_start, uploaded_at, mime_type, blob_key`). Client
-      downscales before upload (canvas → ~1280px, WebP/JPEG q≈0.8); list endpoint is
-      paginated and returns URLs, not bytes; bytes are served through an **auth-gated**
-      route with cache headers (photos of minors must not be publicly fetchable).
-- [ ] **[SEC M3/M4]** Add basic rate limiting (login attempts + invite redemption) and
-      return generic error messages to clients (log details server-side; Sentry captures them).
-- [ ] Port `netlify/functions/db.js` → `src/server/db.ts` (singleton getter)
-- [ ] Port `netlify/functions/auth.js` → `src/server/auth.ts` (PBKDF2 via Node `crypto`)
-- [ ] Port `netlify/functions/buddyProgress.js` → `src/server/buddyProgress.ts`
+- [ ] Keep the existing Turso schema (no multi-tenant). Port `netlify/functions/db.js` → `src/server/db.ts` (singleton getter).
+- [ ] Port `netlify/functions/auth.js` → `src/server/auth.ts` (PBKDF2 via Node `crypto`).
+- [ ] Port `netlify/functions/buddyProgress.js` → `src/server/buddyProgress.ts`.
+- [ ] **[SEC C1] Real auth**: signed httpOnly session cookie helpers (`setSessionCookie`, `getSession`, `clearSessionCookie`; SameSite=Lax, Secure in prod). Every mutating handler derives the acting alias from the cookie — never from the request body. Admin handlers verify the signed `admin` claim server-side.
+- [ ] **[SEC C2] Drop plaintext passwords**: remove the `display_password` column; never return a cleartext password from the API. PBKDF2 hash only. Admins _reset_ passwords, never view them. (Matching UI removal in S10.)
+- [ ] **[SEC H1] Server-authoritative points**: the logs handler **recomputes** `points` from the submitted exercises using `constants/exercises` rules and ignores any client-sent score. Clamp minutes/reps to sane maxima.
+- [ ] **[SEC M1] Photo storage = Netlify Blobs**: define a `PhotoStorage` interface and ship a `NetlifyBlobsStorage` impl. Store image _bytes_ in Netlify Blobs; keep only metadata in the DB (`alias, week_start, uploaded_at, mime_type, blob_key`). Client downscales before upload (canvas → ~1280px, WebP/JPEG q≈0.8); list endpoint is paginated and returns URLs, not bytes; bytes served through an **auth-gated** route with cache headers (minors' photos must not be publicly fetchable).
+- [ ] **[SEC M3/M4]** Basic rate limiting (login attempts + invite redemption); return generic error messages to clients and log details server-side.
 - [ ] Create Route Handlers:
-  - `app/api/users/route.ts` (split into sub-routes where cleaner: `app/api/users/login/route.ts`, `.../register/route.ts`, `.../config/route.ts`, `.../cheer/route.ts`)
+  - `app/api/users/route.ts` (+ sub-routes: `login`, `register`, `me`, `config`, `cheer`)
   - `app/api/logs/route.ts`
   - `app/api/buddy-challenges/route.ts` (+ `/accept`, `/complete`)
   - `app/api/photos/route.ts`
-- [ ] All request bodies validated with Zod schemas from Session 2
-- [ ] Session cookie helpers: `setSessionCookie`, `getSession`, `clearSessionCookie` (httpOnly, SameSite=Lax, Secure in prod)
-- [ ] Handler tests with Vitest (mock DB, assert status codes + response shape)
-- [ ] Delete `netlify/functions/` directory
-- [ ] Update `netlify.toml` — drop the functions block
+- [ ] All request bodies validated with Zod schemas from Session 2.
+- [ ] Handler tests with Vitest (mock DB; assert status codes, response shape, **and authz** — unauthenticated and non-admin callers are rejected).
+- [ ] Delete `netlify/functions/`; update `netlify.toml` (drop the functions block).
 
-**End of session**: all API endpoints respond correctly via `curl`/Vitest. Old app still deployable from `main`; new API only works on `rewrite/next`.
+**End of session**: all API endpoints respond correctly via Vitest/`curl`; auth and admin gating verified by tests.
 
 ---
 
@@ -253,7 +203,7 @@ This is not being built now, but **several decisions change shape** if we don't 
   - `app/cards/page.tsx`
   - `app/team/page.tsx`, `app/team/photos/page.tsx`
   - `app/admin/page.tsx`
-- [ ] `middleware.ts` — redirect unauthed users to `/login` (except `/login` itself)
+- [ ] `middleware.ts` — redirect unauthed users to `/login` (except `/login`); the admin route additionally requires the `admin` claim.
 - [ ] Providers (`src/providers/`):
   - `QueryProvider` (TanStack Query client)
   - `UserProvider` — rebuilt from `UserContext.jsx`, typed, no localStorage (cookie handles session; user data comes from `/api/users/me`)
@@ -261,26 +211,25 @@ This is not being built now, but **several decisions change shape** if we don't 
 - [ ] Delete old `src/App.jsx`, `src/main.jsx`, `src/context/UserContext.jsx`
 - [ ] Playwright smoke test: unauthed visit to `/` redirects to `/login`
 
-**End of session**: every route returns a placeholder page under the right URL. Auth redirects work. Data hooks defined but unused.
+**End of session**: every route returns a placeholder under the right URL. Auth redirects work.
 
 ---
 
 ## Session 5 — Common components
 
-**Goal**: port `src/components/common/` to TSX + Tailwind. These are used everywhere, so they come first.
+**Goal**: port `src/components/common/` to TSX + Tailwind. Used everywhere, so they come first. Keep existing animations (CSS/canvas) — just port them.
 
 - [ ] `Card.tsx` — cva variants for elevation/glow
 - [ ] `TopBar.tsx` — logo, user pill, logout, nav
 - [ ] `ProgressBar.tsx`
-- [ ] `LoadingSpinner.tsx` + skeletons (use Tailwind's `animate-pulse` instead of `@keyframes`)
+- [ ] `LoadingSpinner.tsx` + skeletons (Tailwind `animate-pulse`)
 - [ ] `Countdown.tsx`
-- [ ] `Confetti.tsx` — keep canvas or replace with Framer Motion?
+- [ ] `Confetti.tsx` — keep the existing canvas implementation
 - [ ] `LevelUpModal.tsx`
 - [ ] `BuddyCelebration.tsx`
-- [ ] `CollectorCard.tsx` — flip animation via Framer Motion
-- [ ] `PenaltyGame.tsx` — 482 lines, will likely split into `PenaltyGame`, `Goalie`, `BallTrajectory` sub-components
+- [ ] `CollectorCard.tsx` — keep the existing CSS flip animation
+- [ ] `PenaltyGame.tsx` — 482 lines; split into `PenaltyGame`, `Goalie`, `BallTrajectory` if it falls out naturally
 - [ ] Component tests for each (render + one interaction)
-- [ ] Storybook? — **skip for now**, revisit if we feel the need in S11
 
 **End of session**: all common components used in Next pages. No inline styles left in this folder.
 
@@ -288,24 +237,24 @@ This is not being built now, but **several decisions change shape** if we don't 
 
 ## Session 6 — Avatar components
 
-**Goal**: port the avatar system. Small, isolated, good practice session.
+**Goal**: port the avatar system. Small, isolated.
 
 - [ ] `AvatarSVG.tsx`
 - [ ] `AvatarBuilder.tsx` — the 256-line customization UI
 - [ ] Type the DiceBear config properly (`AvatarConfig`)
-- [ ] Tests: snapshot test for AvatarSVG, interaction tests for Builder category switching
+- [ ] Tests: snapshot for AvatarSVG, interaction tests for Builder category switching
 
 ---
 
 ## Session 7 — Login + Home screens
 
-**Goal**: the two entry-point screens. Also battle-tests our hooks + providers end-to-end.
+**Goal**: the two entry-point screens. Battle-tests hooks + providers end-to-end.
 
 - [ ] `app/login/page.tsx` — port `LoginScreen.jsx` (388 lines)
   - React Hook Form + Zod for login/register form
   - Invite code validation
   - Avatar shuffle on register
-  - Uses `useMe` mutation hook → sets cookie → redirects
+  - Login/register sets the session cookie → redirects
 - [ ] `app/page.tsx` — port `HomeScreen.jsx` (1285 lines)
   - Extract: `IntroCarousel`, `DailyChallengeCard`, `WeeklyChallengeCard`, `StatTile`, `CountdownBanner`
   - Eliminate all inline styles
@@ -342,61 +291,51 @@ This is not being built now, but **several decisions change shape** if we don't 
 ## Session 10 — Team + Photos + Admin
 
 - [ ] `app/team/page.tsx` ← `TeamScreen.jsx` (994) — leaderboard + feed + cheers
-- [ ] `app/team/photos/page.tsx` ← `PhotoAlbumScreen.jsx` (880) — upload + gallery (use Next `Image`)
-- [ ] `app/admin/page.tsx` ← `AdminScreen.jsx` (606) — protected by middleware + server-side admin check
-  - **[SEC C2]** Do **not** port the "Visa lösenord" (show-password) feature — it relied on the
-    plaintext `display_password` column being dropped in Session 3. The admin can reset a
-    password (sets a new PBKDF2 hash) but can never view existing ones.
-  - **[SEC C1]** Every admin action (reset season, delete user, reset password, invites,
-    season/countdown dates) is gated by a server-side `team_memberships.role = 'admin'` check
-    in the Route Handler — never by the client alone.
+- [ ] `app/team/photos/page.tsx` ← `PhotoAlbumScreen.jsx` (880) — upload + gallery (use Next `Image`; uploads downscale client-side per [SEC M1])
+- [ ] `app/admin/page.tsx` ← `AdminScreen.jsx` (606)
+  - **[SEC C1]** Protected by middleware **and** a server-side `admin`-claim check in every admin Route Handler (reset season, delete user, reset password, invites, season/countdown dates) — never by the client alone.
+  - **[SEC C2]** Do **not** port the "Visa lösenord" (show-password) feature — the plaintext column is gone. Admins can reset a password (new PBKDF2 hash) but never view existing ones.
 - [ ] Convert all `/public/spelarbilder/*.jpg` loads to Next `Image`
 
 ---
 
-## Session 11 — Polish, animations, server components
+## Session 11 — Accessibility & QA pass
 
-**Goal**: move what can be server-rendered to server components. Replace custom animations with Framer Motion. Accessibility pass.
+**Goal**: a light, time-boxed correctness pass before launch (no animation rewrites, no server-component refactor).
 
-- [ ] Identify static/server-renderable sections in Home, Team, Admin → convert
-- [ ] Migrate custom `@keyframes` and manual `requestAnimationFrame` to Framer Motion where it simplifies code
 - [ ] `jsx-a11y` lint sweep: fix labels, roles, focus management
-- [ ] Keyboard navigation pass
-- [ ] Dark mode? — **out of scope** unless you ask for it
-- [ ] Lighthouse audit: aim for 90+ on all categories
+- [ ] Keyboard navigation pass on the main flows
+- [ ] Quick cross-device check (mobile viewport, since the app is phone-first)
+- [ ] Fix any bugs surfaced during the port (track them as `fix:` commits)
 
 ---
 
-## Session 12 — E2E tests, CI polish, commit UX finish
+## Session 12 — E2E tests, CI, launch
 
-**Goal**: wrap up. Make the repo shine.
+**Goal**: verify the critical flows and ship.
 
 - [ ] Playwright E2E suite covering:
   - Register → login → log exercise → see stats update
   - Start buddy challenge → accept → complete → level up
   - Upload photo → see in album
   - Admin generates invite → new user registers with it
-- [ ] CI: matrix over Node 20/22, cache deps, upload coverage
-- [ ] Flesh out the `commit-banner.mjs` from Session 1:
-  - Detailed diff stats with color
-  - Test coverage delta since last commit
-  - Bundle-size delta for `app/` (via `next build` stats)
-  - Fun Högalid-themed flair per commit type
+- [ ] CI: cache deps, run typecheck/lint/test/build, upload coverage
 - [ ] `README.md` rewrite: setup, scripts, architecture, deployment
 - [ ] `CONTRIBUTING.md`: commit conventions, branch strategy
-- [ ] Merge `rewrite/next` → `main`, deploy, smoke-test production
+- [ ] **Pre-launch DB**: rotate the Turso token; run "Nollställ säsong" to clear test data; set season start + countdown date
+- [ ] Merge `rewrite/next` → `master`, deploy, smoke-test production
 
 ---
 
 ## Risk register
 
-| Risk | Mitigation |
-|---|---|
-| Turso schema drift during migration | API routes read/write the same tables as old functions — no schema changes until the rewrite ships |
-| Users logged out mid-deploy | Issue a one-time migration endpoint that accepts old `localStorage` session and issues a cookie |
-| Session 8/9 screens bigger than expected | Each screen is a self-contained session — can slip one over into the next without blocking anything else |
+| Risk                                                     | Mitigation                                                                                                                                             |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **8-day deadline vs. full rewrite**                      | Scope frozen to port + security + bugs (no new features). Sessions are independent; if time runs short, the app is shippable after S10 + S12 essentials |
+| Turso schema drift during migration                      | Route handlers read/write the same tables as the old functions — no schema changes beyond dropping `display_password`                                  |
+| Session 8/9 screens bigger than expected                 | Each screen is a self-contained session — can slip into the next without blocking anything else                                                        |
 | Inline-style → Tailwind conversion misses dynamic styles | Keep `style={{...}}` only for truly computed values (e.g. `transform: translateX(${px})`). Grep for remaining inline styles at the end of each session |
-| Tailwind v4 is new; plugins may lag | Pin versions; prettier-plugin-tailwindcss v0.6+ supports v4 |
+| Tailwind v4 is new; plugins may lag                      | Pin versions; prettier-plugin-tailwindcss v0.6+ supports v4                                                                                            |
 
 ---
 
@@ -404,9 +343,10 @@ This is not being built now, but **several decisions change shape** if we don't 
 
 _Add a line here at the end of every session._
 
-- **2026-04-22** — Plan written. Open questions resolved (Netlify, `rewrite/next`, custom cookie auth). Multi-tenant forward-compat folded into Sessions 1 & 3.
-- **2026-04-26** — Pre-S1 cleanup pass: README rewrite (removed leaked admin pw + real Turso URL), `.claude/` untracked, repo flipped to public, two rulesets enforcing (master needs PR+approval, both branches get Copilot auto-review), `claude-respond-to-copilot.yml` workflow wired up using `ANTHROPIC_API_KEY` secret. Ready to start main S1 work.
-- **2026-05-29** — Security review of live `master` + production Turso DB (findings kept in local, gitignored `SHIP_REVIEW.md`). Confirmed master is not live with real players → all fixes land in the rewrite. Folded the gaps into this plan as `[SEC …]` tasks: C2 plaintext passwords (S3+S10), H1 server-side points (S3), M1 Netlify Blobs photo storage (S3, no migration needed), M3/M4 rate limiting + generic errors (S3); added decision #7. C1/C3 were already core to the plan. Action for Emil: rotate the Turso token. Still pre-S1 otherwise.
+- **2026-04-22** — Plan written. Decisions resolved (Netlify, `rewrite/next`, custom cookie auth).
+- **2026-04-26** — Pre-S1 cleanup: README rewrite (removed leaked admin pw + real Turso URL), `.claude/` untracked, repo public, two rulesets enforcing, `claude-respond-to-copilot.yml` wired up. Ready to start main S1 work.
+- **2026-05-29** — Security review of live `master` + production Turso DB (findings in local, gitignored `SHIP_REVIEW.md`). Confirmed `master` not live with real players → all fixes land in the rewrite. Folded gaps in as `[SEC …]` tasks. Action for Emil: rotate the Turso token.
+- **2026-05-30** — **Scope frozen for an 8-day launch (target 2026-06-07): stack upgrade + security + bugs only, no new features.** Removed from plan: multi-tenant future-proofing (teams/memberships/email/TeamConfig), Sentry, Commitizen + commit-banner script, Framer Motion rewrites (keep existing animations), Storybook, server-component optimization, Lighthouse-90/dark-mode. Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
 
 ---
 
@@ -415,6 +355,6 @@ _Add a line here at the end of every session._
 Each new Claude Code session starts with **zero memory** of prior conversations. To pick up cleanly:
 
 1. **Be on the right branch**: most session work happens on `rewrite/next-sN-<topic>` branched off `rewrite/next`. Check `git branch` first.
-2. **Tell Claude**: `"Read PLAN.md and continue from where we left off. Use the conventions in the plan exactly."` That's enough — PLAN.md is the source of truth.
-3. **For a fresh session at the start of a new session number**: `"Read PLAN.md and start Session N. Follow the branching convention (branch off rewrite/next as rewrite/next-sN-<topic>)."`
-4. **Update the Progress log** at the end of every session before stopping. Future-you needs to know where you left off.
+2. **Tell Claude**: `"Read PLAN.md and continue from where we left off. Use the conventions in the plan exactly."`
+3. **For a fresh session number**: `"Read PLAN.md and start Session N. Follow the branching convention (branch off rewrite/next as rewrite/next-sN-<topic>)."`
+4. **Update the Progress log** at the end of every session before stopping.
