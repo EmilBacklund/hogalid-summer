@@ -20,7 +20,6 @@ or fixing a bug is explicitly out of scope for this launch (see "Out of scope" b
 
 ### Out of scope for launch (do NOT build)
 - Multi-tenant / "any team can apply" (teams table, memberships, per-team config, email-based accounts)
-- Sentry / external error monitoring
 - Commitizen + custom commit-banner script (keep plain commitlint only)
 - Framer Motion / animation rewrites — keep the existing CSS/canvas animations as-is
 - Server-component optimization, Lighthouse-90 chase, Storybook, dark mode
@@ -66,6 +65,7 @@ Full file inventory is in the exploration notes (archived in git history of this
 | Unit/component tests | **Vitest + React Testing Library**                                   | Fast, Vite-compatible                                             |
 | E2E tests            | **Playwright**                                                       | Standard for Next.js; one focused happy-path suite                |
 | CI                   | **GitHub Actions**                                                   | Typecheck, lint, test, build on PR                                |
+| Errors               | **Sentry**                                                           | Surface production errors fast — directly serves "no issues"      |
 | Deployment           | **Netlify** (via `@netlify/plugin-nextjs`)                           | Confirmed                                                         |
 
 ---
@@ -135,6 +135,7 @@ Full file inventory is in the exploration notes (archived in git history of this
 - [ ] Vitest + React Testing Library + jsdom config
 - [ ] Playwright installed but skipped until Session 12
 - [ ] GitHub Actions workflow (`.github/workflows/ci.yml`): typecheck, lint, test, build
+- [ ] Sentry SDK wired up (`@sentry/nextjs`, client + server), DSN from env, disabled in dev. _(Emil: create the Sentry project + add `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` to Netlify env.)_
 - [ ] Sanity-check commit: empty Next.js "Hello Högalid" page renders
 
 **End of session**: `npm run dev` shows a blank Next.js page. Hooks fire. CI is green.
@@ -346,7 +347,7 @@ _Add a line here at the end of every session._
 - **2026-04-22** — Plan written. Decisions resolved (Netlify, `rewrite/next`, custom cookie auth).
 - **2026-04-26** — Pre-S1 cleanup: README rewrite (removed leaked admin pw + real Turso URL), `.claude/` untracked, repo public, two rulesets enforcing, `claude-respond-to-copilot.yml` wired up. Ready to start main S1 work.
 - **2026-05-29** — Security review of live `master` + production Turso DB (findings in local, gitignored `SHIP_REVIEW.md`). Confirmed `master` not live with real players → all fixes land in the rewrite. Folded gaps in as `[SEC …]` tasks. Action for Emil: rotate the Turso token.
-- **2026-05-30** — **Scope frozen for an 8-day launch (target 2026-06-07): stack upgrade + security + bugs only, no new features.** Removed from plan: multi-tenant future-proofing (teams/memberships/email/TeamConfig), Sentry, Commitizen + commit-banner script, Framer Motion rewrites (keep existing animations), Storybook, server-component optimization, Lighthouse-90/dark-mode. Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
+- **2026-05-30** — **Scope frozen for an 8-day launch (target 2026-06-07): stack upgrade + security + bugs only, no new features.** Removed from plan: multi-tenant future-proofing (teams/memberships/email/TeamConfig), Commitizen + commit-banner script, Framer Motion rewrites (keep existing animations), Storybook, server-component optimization, Lighthouse-90/dark-mode. (Sentry re-added 2026-05-30 — it serves the "no issues" goal.) Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
 
 ---
 
