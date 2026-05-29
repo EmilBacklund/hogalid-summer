@@ -19,6 +19,7 @@ Scope is deliberately tight: **upgrade the stack + fix all security issues + fix
 or fixing a bug is explicitly out of scope for this launch (see "Out of scope" below).
 
 ### Out of scope for launch (do NOT build)
+
 - Multi-tenant / "any team can apply" (teams table, memberships, per-team config, email-based accounts)
 - Commitizen + custom commit-banner script (keep plain commitlint only)
 - Framer Motion / animation rewrites — keep the existing CSS/canvas animations as-is
@@ -123,22 +124,22 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 ### Main session 1 work
 
-- [ ] Scaffold Next.js 15 in place (preserving `public/`, `README.md`, `.git/`)
-- [ ] `tsconfig.json` with strict settings
-- [ ] Tailwind v4 config (theme tokens for Högalid brand colors from `constants/colors.js`)
-- [ ] ESLint 9 flat config: `@eslint/js`, `typescript-eslint`, `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`, `@next/eslint-plugin-next`
-- [ ] Prettier 3 + `prettier-plugin-tailwindcss`
-- [ ] Husky + lint-staged:
+- [x] Scaffold Next.js 15 in place (preserving `public/`, `README.md`, `.git/`); removed `index.html` + `vite.config.js`
+- [x] `tsconfig.json` with strict settings (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`)
+- [x] Tailwind v4 config via `@theme` in `app/globals.css` (Högalid brand tokens from `constants/colors.js`)
+- [x] ESLint 9 flat config (`@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`, `@next/eslint-plugin-next`); ignores the old Vite app + build artifacts
+- [x] Prettier 3 + `prettier-plugin-tailwindcss`
+- [x] Husky + lint-staged:
   - `pre-commit`: lint-staged (ESLint fix + Prettier write on staged files)
   - `commit-msg`: commitlint
   - `pre-push`: `tsc --noEmit && vitest run`
-- [ ] Vitest + React Testing Library + jsdom config
-- [ ] Playwright installed but skipped until Session 12
-- [ ] GitHub Actions workflow (`.github/workflows/ci.yml`): typecheck, lint, test, build
-- [ ] Sentry SDK wired up (`@sentry/nextjs`, client + server), DSN from env, disabled in dev. _(Emil: create the Sentry project + add `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` to Netlify env.)_
-- [ ] Sanity-check commit: empty Next.js "Hello Högalid" page renders
+- [x] Vitest + React Testing Library + jsdom config (with `cn()` util + tests)
+- [x] Playwright installed but skipped until Session 12
+- [x] GitHub Actions workflow (`.github/workflows/ci.yml`): typecheck, lint, test, build
+- [x] Sentry SDK wired up (`@sentry/nextjs`, client/server/edge + `global-error.tsx`), DSN from env, inert without it. _(Emil: create the Sentry project + add `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` to Netlify env.)_
+- [x] Sanity-check: `/` "Hello Högalid" page builds and prerenders
 
-**End of session**: `npm run dev` shows a blank Next.js page. Hooks fire. CI is green.
+**End of session**: ✅ `npm run typecheck`, `lint`, `test`, and `build` all pass. Hooks fire on commit. Netlify config switched to `@netlify/plugin-nextjs`.
 
 ---
 
@@ -330,13 +331,13 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 ## Risk register
 
-| Risk                                                     | Mitigation                                                                                                                                             |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Risk                                                     | Mitigation                                                                                                                                              |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **8-day deadline vs. full rewrite**                      | Scope frozen to port + security + bugs (no new features). Sessions are independent; if time runs short, the app is shippable after S10 + S12 essentials |
-| Turso schema drift during migration                      | Route handlers read/write the same tables as the old functions — no schema changes beyond dropping `display_password`                                  |
-| Session 8/9 screens bigger than expected                 | Each screen is a self-contained session — can slip into the next without blocking anything else                                                        |
-| Inline-style → Tailwind conversion misses dynamic styles | Keep `style={{...}}` only for truly computed values (e.g. `transform: translateX(${px})`). Grep for remaining inline styles at the end of each session |
-| Tailwind v4 is new; plugins may lag                      | Pin versions; prettier-plugin-tailwindcss v0.6+ supports v4                                                                                            |
+| Turso schema drift during migration                      | Route handlers read/write the same tables as the old functions — no schema changes beyond dropping `display_password`                                   |
+| Session 8/9 screens bigger than expected                 | Each screen is a self-contained session — can slip into the next without blocking anything else                                                         |
+| Inline-style → Tailwind conversion misses dynamic styles | Keep `style={{...}}` only for truly computed values (e.g. `transform: translateX(${px})`). Grep for remaining inline styles at the end of each session  |
+| Tailwind v4 is new; plugins may lag                      | Pin versions; prettier-plugin-tailwindcss v0.6+ supports v4                                                                                             |
 
 ---
 
@@ -347,7 +348,8 @@ _Add a line here at the end of every session._
 - **2026-04-22** — Plan written. Decisions resolved (Netlify, `rewrite/next`, custom cookie auth).
 - **2026-04-26** — Pre-S1 cleanup: README rewrite (removed leaked admin pw + real Turso URL), `.claude/` untracked, repo public, two rulesets enforcing, `claude-respond-to-copilot.yml` wired up. Ready to start main S1 work.
 - **2026-05-29** — Security review of live `master` + production Turso DB (findings in local, gitignored `SHIP_REVIEW.md`). Confirmed `master` not live with real players → all fixes land in the rewrite. Folded gaps in as `[SEC …]` tasks. Action for Emil: rotate the Turso token.
-- **2026-05-30** — **Scope frozen for an 8-day launch (target 2026-06-07): stack upgrade + security + bugs only, no new features.** Removed from plan: multi-tenant future-proofing (teams/memberships/email/TeamConfig), Commitizen + commit-banner script, Framer Motion rewrites (keep existing animations), Storybook, server-component optimization, Lighthouse-90/dark-mode. (Sentry re-added 2026-05-30 — it serves the "no issues" goal.) Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
+- **2026-05-30** — **Scope frozen for an 8-day launch (target 2026-06-07): stack upgrade + security + bugs only, no new features.** Removed from plan: multi-tenant future-proofing (teams/memberships/email/TeamConfig), Commitizen + commit-banner script, Framer Motion rewrites (keep existing animations), Storybook, server-component optimization, Lighthouse-90/dark-mode. (Sentry re-added 2026-05-30 — it serves the "no issues" goal.)
+- **2026-05-30 (Session 1 ✅)** — Scaffolded Next.js 15 + React 19 + strict TypeScript + Tailwind v4 in place on `rewrite/next-s1-foundation`. Full tooling wired: ESLint 9 flat config, Prettier, Husky (pre-commit/commit-msg/pre-push) + lint-staged + commitlint, Vitest + RTL + jsdom (3 passing tests), Playwright (installed, skipped till S12), GitHub Actions CI, Sentry (inert without DSN) + `global-error.tsx`, `@netlify/plugin-nextjs`. Removed `index.html`/`vite.config.js`. typecheck + lint + test + build all green. **Next: Session 2 (port constants/utils/types).** Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
 
 ---
 
