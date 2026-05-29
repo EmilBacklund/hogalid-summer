@@ -62,6 +62,19 @@ Full file inventory is in the exploration notes (archived in git history of this
 4. **API**: Next.js **Route Handlers** (`app/api/*/route.ts`) replace Netlify Functions. Netlify still deploys them.
 5. **Screen splitting**: extract sub-components where it's natural (`<ChallengeCard>`, `<StatTile>`). No over-engineering.
 6. **Server vs Client Components**: start everything client-side during migration. Move static pieces to server components in the Session 11 polish pass.
+7. **Security hardening (2026-05-29 review of `master`)**: a review of the live `master`
+   app + production DB found critical issues. The rewrite must fix them by design — tasks
+   are tagged `[SEC …]` in the sessions below:
+   - **C1** no API auth/authz → cookie+PBKDF2 sessions + `team_memberships.role` server-side
+     checks on every mutation (S3/S4/S10). *Already core to this plan.*
+   - **C2** passwords stored/served in plaintext (`display_password`) → drop the column and
+     the admin show-password UI (S3 + S10).
+   - **C3** wide-open CORS → eliminated naturally by same-origin Route Handlers.
+   - **H1** client-supplied points → recompute server-side from exercises (S3).
+   - **M1** base64 photos in DB → Netlify Blobs + metadata-only rows (S3).
+   - **M3/M4** no rate limiting / leaked error messages → add in S3.
+   - **C4** (operational, outside the rewrite): rotate the Turso token; it was shared
+     out-of-band. Not in git history.
 
 ---
 
@@ -76,7 +89,7 @@ This is not being built now, but **several decisions change shape** if we don't 
 - **No hardcoded "hogalid" in code**: move team name, logo path, brand colors to a `TeamConfig` record loaded from DB. The app reads it at boot. Today there's one record; tomorrow there are many.
 - **Env var naming**: `TURSO_URL` stays generic (good). Avoid anything named `HOGALID_*`.
 - **Users keyed by email (not alias)**: current auth is `alias + password`. For multi-tenant we need email for password reset / invite flow. Add `email` as a nullable column in Session 3, keep `alias` as display handle, and make email required in a future migration. Log in still works by alias for now.
-- **File storage escape hatch**: photos are stored as base64 blobs in SQLite today. That breaks fast at multi-team scale (~10 MB per photo × N teams). Flag it, don't fix it now — but isolate `photos.ts` behind a `PhotoStorage` interface so swapping to R2 / UploadThing / S3 later is a one-file change.
+- **File storage**: photos are stored as base64 blobs in SQLite today. That breaks fast at multi-team scale (~10 MB per photo × N teams) and currently dumps minors' photos to any unauthenticated caller. **Decision (2026-05-29): fix it in Session 3** — implement a `PhotoStorage` interface with a Netlify Blobs adapter (see Session 3 [SEC M1]). The interface keeps the future swap to R2 / UploadThing / S3 a one-file change. No data migration needed: `master` isn't live and the season resets, so the existing base64 photos are throwaway.
 - **Sentry from day one**: errors across many tenants are painful to debug without it. Cheap to add now.
 
 ### What we don't build now
@@ -192,7 +205,21 @@ This is not being built now, but **several decisions change shape** if we don't 
 
 - [ ] **Multi-tenant-aware schema migration**: add `teams` table + `team_memberships (user_id, team_id, role)` + `team_id` FK on all domain tables. Seed one row for Högalid F15, hardcode its ID behind `DEFAULT_TEAM_ID` env var. Move the global `isAdmin` flag onto `team_memberships.role`.
 - [ ] Add nullable `email` column on `users` (for future password-reset / multi-team invites)
-- [ ] Wrap photo storage behind a `PhotoStorage` interface so the base64-in-DB impl can be swapped for R2 / S3 later without touching callers
+- [ ] **[SEC C2] Drop plaintext passwords**: remove the `display_password` column and stop
+      returning any cleartext password from the API. PBKDF2 hash only. Admins *reset*
+      passwords, never view them. (See Session 10 for the matching UI removal.)
+- [ ] **[SEC H1] Server-authoritative points**: the logs Route Handler **recomputes**
+      `points` from the submitted exercises using `constants/exercises` rules and ignores
+      any client-sent points/score. Clamp minutes/reps to sane maxima. Never trust the client.
+- [ ] **[SEC M1] Photo storage = Netlify Blobs now** (not deferred). Define the
+      `PhotoStorage` interface AND ship a `NetlifyBlobsStorage` implementation in this
+      session: store image *bytes* in Netlify Blobs (`@netlify/blobs`), keep only metadata
+      in the DB (`alias/team_id, week_start, uploaded_at, mime_type, blob_key`). Client
+      downscales before upload (canvas → ~1280px, WebP/JPEG q≈0.8); list endpoint is
+      paginated and returns URLs, not bytes; bytes are served through an **auth-gated**
+      route with cache headers (photos of minors must not be publicly fetchable).
+- [ ] **[SEC M3/M4]** Add basic rate limiting (login attempts + invite redemption) and
+      return generic error messages to clients (log details server-side; Sentry captures them).
 - [ ] Port `netlify/functions/db.js` → `src/server/db.ts` (singleton getter)
 - [ ] Port `netlify/functions/auth.js` → `src/server/auth.ts` (PBKDF2 via Node `crypto`)
 - [ ] Port `netlify/functions/buddyProgress.js` → `src/server/buddyProgress.ts`
@@ -317,6 +344,12 @@ This is not being built now, but **several decisions change shape** if we don't 
 - [ ] `app/team/page.tsx` ← `TeamScreen.jsx` (994) — leaderboard + feed + cheers
 - [ ] `app/team/photos/page.tsx` ← `PhotoAlbumScreen.jsx` (880) — upload + gallery (use Next `Image`)
 - [ ] `app/admin/page.tsx` ← `AdminScreen.jsx` (606) — protected by middleware + server-side admin check
+  - **[SEC C2]** Do **not** port the "Visa lösenord" (show-password) feature — it relied on the
+    plaintext `display_password` column being dropped in Session 3. The admin can reset a
+    password (sets a new PBKDF2 hash) but can never view existing ones.
+  - **[SEC C1]** Every admin action (reset season, delete user, reset password, invites,
+    season/countdown dates) is gated by a server-side `team_memberships.role = 'admin'` check
+    in the Route Handler — never by the client alone.
 - [ ] Convert all `/public/spelarbilder/*.jpg` loads to Next `Image`
 
 ---
@@ -373,6 +406,7 @@ _Add a line here at the end of every session._
 
 - **2026-04-22** — Plan written. Open questions resolved (Netlify, `rewrite/next`, custom cookie auth). Multi-tenant forward-compat folded into Sessions 1 & 3.
 - **2026-04-26** — Pre-S1 cleanup pass: README rewrite (removed leaked admin pw + real Turso URL), `.claude/` untracked, repo flipped to public, two rulesets enforcing (master needs PR+approval, both branches get Copilot auto-review), `claude-respond-to-copilot.yml` workflow wired up using `ANTHROPIC_API_KEY` secret. Ready to start main S1 work.
+- **2026-05-29** — Security review of live `master` + production Turso DB (findings kept in local, gitignored `SHIP_REVIEW.md`). Confirmed master is not live with real players → all fixes land in the rewrite. Folded the gaps into this plan as `[SEC …]` tasks: C2 plaintext passwords (S3+S10), H1 server-side points (S3), M1 Netlify Blobs photo storage (S3, no migration needed), M3/M4 rate limiting + generic errors (S3); added decision #7. C1/C3 were already core to the plan. Action for Emil: rotate the Turso token. Still pre-S1 otherwise.
 
 ---
 

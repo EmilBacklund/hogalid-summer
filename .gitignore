@@ -8,3 +8,6 @@ dist
 
 # Claude Code session memory and local settings
 .claude/
+
+# Local-only security review (documents vulnerabilities — keep out of git)
+SHIP_REVIEW.md
