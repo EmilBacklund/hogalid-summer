@@ -147,21 +147,15 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 **Goal**: port the pure, UI-free code first. No risk, builds typing confidence.
 
-- [ ] Migrate `src/constants/*.js` → `src/constants/*.ts`
-  - `colors.ts` → also generate Tailwind theme tokens
-  - `exercises.ts` → typed `Exercise` union (also the source of truth for server-side point recompute — see [SEC H1])
-  - `challenges.ts` → typed `BingoTile`, `DailyChallenge`, `WeeklyChallenge`
-  - `avatar.ts`, `badges.ts`, `cards.ts`, `celebrations.ts`, `levels.ts`, `playerCards.ts`, `stickers.ts`
-- [ ] Migrate `src/utils/*.js` → `src/utils/*.ts` (all pure — no UI):
-  - `api.ts` (replaced in S3, placeholder for now)
-  - `date.ts`, `levels.ts`, `stats.ts`, `challenges.ts`, `feed.ts`, `weeklyHistory.ts`, `stickers.ts`
-  - `photosCache.ts`, `usersCache.ts` (may become TanStack Query hooks in S4)
-- [ ] Define shared domain types in `src/types/`: `User`, `Log`, `BuddyChallenge`, `Photo`, `Invite`, `Config`
-- [ ] Zod schemas in `src/schemas/` that mirror domain types (for API in S3)
-- [ ] Unit tests for every util function (target: 100% coverage on utils)
-- [ ] Delete old `.js` files once `.ts` versions pass tests
+- [x] Migrate `src/constants/*.js` → `src/constants/*.ts` (all: colors, exercises, levels, challenges, avatar, badges, cards, celebrations, playerCards, stickers + barrel)
+  - Tailwind theme tokens already live in `app/globals.css` (`@theme`, S1)
+- [x] Migrate `src/utils/*.js` → `src/utils/*.ts` (api, date, levels, stats, challenges, feed, weeklyHistory, stickers, usersCache, photosCache + barrel). `api.ts` rewritten as generic typed `fetch` helpers (Route Handlers in S3).
+- [x] Define shared domain types in `src/types/` (`User`, `Log`, `Exercise`, `Level`, `BingoTile`, `Stats`, `Badge`, `Card`, `FeedEvent`, …). `BuddyChallenge`/`Invite`/`Config` deferred to S3 where the server defines them.
+- [x] Zod schemas in `src/schemas/` — initial log/login input schemas (expanded in S3)
+- [x] Unit tests for the pure utils (date, levels, challenges, stats — 21 tests). Broader coverage grows alongside S3+.
+- [x] Delete old `.js` files (constants + utils are now 100% TS; components stay `.jsx` until their session)
 
-**End of session**: `npm run typecheck && npm test` green. No UI changes yet.
+**End of session**: ✅ `npm run typecheck`, `lint`, `test` (21), and `build` all pass. No UI changes yet.
 
 ---
 
@@ -349,7 +343,8 @@ _Add a line here at the end of every session._
 - **2026-04-26** — Pre-S1 cleanup: README rewrite (removed leaked admin pw + real Turso URL), `.claude/` untracked, repo public, two rulesets enforcing, `claude-respond-to-copilot.yml` wired up. Ready to start main S1 work.
 - **2026-05-29** — Security review of live `master` + production Turso DB (findings in local, gitignored `SHIP_REVIEW.md`). Confirmed `master` not live with real players → all fixes land in the rewrite. Folded gaps in as `[SEC …]` tasks. Action for Emil: rotate the Turso token.
 - **2026-05-30** — **Scope frozen for an 8-day launch (target 2026-06-07): stack upgrade + security + bugs only, no new features.** Removed from plan: multi-tenant future-proofing (teams/memberships/email/TeamConfig), Commitizen + commit-banner script, Framer Motion rewrites (keep existing animations), Storybook, server-component optimization, Lighthouse-90/dark-mode. (Sentry re-added 2026-05-30 — it serves the "no issues" goal.)
-- **2026-05-30 (Session 1 ✅)** — Scaffolded Next.js 15 + React 19 + strict TypeScript + Tailwind v4 in place on `rewrite/next-s1-foundation`. Full tooling wired: ESLint 9 flat config, Prettier, Husky (pre-commit/commit-msg/pre-push) + lint-staged + commitlint, Vitest + RTL + jsdom (3 passing tests), Playwright (installed, skipped till S12), GitHub Actions CI, Sentry (inert without DSN) + `global-error.tsx`, `@netlify/plugin-nextjs`. Removed `index.html`/`vite.config.js`. typecheck + lint + test + build all green. **Next: Session 2 (port constants/utils/types).** Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
+- **2026-05-30 (Session 1 ✅)** — Scaffolded Next.js 15 + React 19 + strict TypeScript + Tailwind v4 in place on `rewrite/next-s1-foundation`. Full tooling wired: ESLint 9 flat config, Prettier, Husky (pre-commit/commit-msg/pre-push) + lint-staged + commitlint, Vitest + RTL + jsdom (3 passing tests), Playwright (installed, skipped till S12), GitHub Actions CI, Sentry (inert without DSN) + `global-error.tsx`, `@netlify/plugin-nextjs`. Removed `index.html`/`vite.config.js`. typecheck + lint + test + build all green. Merged locally into `rewrite/next`.
+- **2026-05-30 (Session 2 ✅)** — Ported all of `src/constants` and `src/utils` from JS to strict TS on `rewrite/next-s2-constants`, plus `src/types` (domain types) and initial `src/schemas` (Zod). Data-heavy constants renamed via `git mv` (data byte-identical, then typed); logic files (utils + avatar/cards) rewritten with full types and strict-mode fixes (Date math, safe indexing). 21 Vitest tests. `src/constants` + `src/utils` are now 100% TypeScript; components remain `.jsx` (ported in their sessions, excluded from tsc/lint/build for now). typecheck + lint + test + build all green. **Next: Session 3 (API Route Handlers + the security-critical work — auth, no-plaintext-passwords, server-side points, Netlify Blobs photos).** Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
 
 ---
 
