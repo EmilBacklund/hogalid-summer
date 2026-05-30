@@ -14,7 +14,7 @@ import {
   computeWeeklyHistory,
   generateFeed,
 } from '../utils';
-import { Card, ProgressBar, Countdown } from '../components/common';
+import { Card, ProgressBar, Countdown, InstallPrompt } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -443,6 +443,7 @@ export function HomeScreen() {
           onClose={() => setShowIntro(false)}
         />
       )}
+      <InstallPrompt />
       <style>{`
         @keyframes fireGlow {
           0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
