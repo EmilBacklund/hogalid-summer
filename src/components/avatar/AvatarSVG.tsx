@@ -1,10 +1,20 @@
 import { useMemo } from 'react';
 import { createAvatar } from '@dicebear/core';
-import * as adventurer from '@dicebear/adventurer';
+import { adventurer } from '@dicebear/collection';
+import type { AvatarConfig } from '@/types';
 
-export function AvatarSVG({ avatarConfig, size = 52 }) {
+type CreateAvatarOptions = Parameters<typeof createAvatar>[1];
+
+/** Renders a DiceBear "adventurer" avatar from a stored {@link AvatarConfig}. */
+export function AvatarSVG({
+  avatarConfig,
+  size = 52,
+}: {
+  avatarConfig: AvatarConfig;
+  size?: number;
+}) {
   const dataUri = useMemo(() => {
-    const c = avatarConfig || {};
+    const c = avatarConfig ?? {};
     const options = {
       seed: 'fixed',
       size,
@@ -24,16 +34,19 @@ export function AvatarSVG({ avatarConfig, size = 52 }) {
       features: c.features ? [c.features] : [],
       backgroundColor: c.backgroundColor ? [c.backgroundColor] : [],
     };
-    return createAvatar(adventurer, options).toDataUri();
+    // DiceBear types each field as a literal-union array; our values come from
+    // the validated avatar constants, so we assert the shape once here.
+    return createAvatar(adventurer, options as unknown as CreateAvatarOptions).toDataUri();
   }, [avatarConfig, size]);
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- data-URI avatar, not a remote asset
     <img
       src={dataUri}
       width={size}
       height={size}
       alt="Avatar"
-      style={{ display: 'block', flexShrink: 0, borderRadius: '50%' }}
+      className="block shrink-0 rounded-full"
     />
   );
 }

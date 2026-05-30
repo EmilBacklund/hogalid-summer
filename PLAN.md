@@ -216,14 +216,14 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 ---
 
-## Session 6 — Avatar components
+## Session 6 — Avatar components ✅
 
 **Goal**: port the avatar system. Small, isolated.
 
-- [ ] `AvatarSVG.tsx`
-- [ ] `AvatarBuilder.tsx` — the 256-line customization UI
-- [ ] Type the DiceBear config properly (`AvatarConfig`)
-- [ ] Tests: snapshot for AvatarSVG, interaction tests for Builder category switching
+- [x] `AvatarSVG.tsx` — typed; imports `adventurer` from `@dicebear/collection` (the old `@dicebear/adventurer` package isn't a dep). DiceBear's literal-union option fields are asserted once via a documented cast.
+- [x] `AvatarBuilder.tsx` — ported to TSX + Tailwind; internal `AvatarPreviewButton`/`ColorButton`/`NoneButton`; tabs + starter/unlocked option grids; `compact` mode.
+- [x] DiceBear config typed via the existing `AvatarConfig` (`Record<string, string | null>`).
+- [x] Tests: AvatarSVG renders an SVG data-URI; AvatarBuilder category switching + option/none selection (3 tests).
 
 ---
 
@@ -334,6 +334,7 @@ _Add a line here at the end of every session._
 - **2026-05-30 (Session 3 ✅)** — Ported the entire backend off Netlify Functions onto 22 Next.js Route Handlers (committed on `rewrite/next`), landing the security-critical fixes. New `src/server/` layer: `db`, `auth` (PBKDF2), `session` (signed httpOnly HMAC cookie + `requireUser`/`requireAdmin`), `responses` (`ApiError` + generic-error `handle` wrapper), `rateLimit`, `points` (server-authoritative scoring), `photoStorage` (Blobs), `buddyProgress`/`buddyChallenges`, `invites`, `repo` (row→domain mappers), `dates`. **[SEC C1]** every mutation derives the alias from the cookie; admin actions verify the signed `admin` claim. **[SEC C2]** `display_password` gone; admin reset stores only a new hash. **[SEC H1]** points recomputed + clamped server-side; bingo/daily bonus logs created server-side from constants (bingo line-bonus clamped, full engine TODO in S9); completions idempotent. **[SEC M1]** photo bytes in Netlify Blobs, metadata + `blob_key` in DB, paginated list returns URLs, bytes auth-gated. **[SEC M3/M4]** rate limiting + generic client errors. Zod validates every body (~20 schemas). 66 Vitest tests (incl. authz + points + admin gating). Deleted `netlify/functions/`; `api.ts` base → `/api`. typecheck + lint + test + build all green. **Decision (Emil):** bonus-point authoritativeness = "move bonus creation server-side, clamp line bonus." Merged into `rewrite/next`.
 - **2026-05-30 (Session 4 ✅)** — App shell on `rewrite/next`: file-based routing replaced the manual `pushState` screen dispatcher. 11 route pages (all `<PlaceholderScreen>` stand-ins until their porting session) + `app/layout.tsx` wired with `Providers` (TanStack Query + typed `UserProvider`). `middleware.ts` edge guard redirects unauthed→/login and gates `/admin` on the signed `admin` claim. Six TanStack Query hooks (`useMe`/`useConfig`/`useAllUsers`/`useBuddyChallenges`/`usePhotos`/`useLogs`); added shared types (`Config`, `BuddyChallenge`, `PhotosPage`, `Me`) and reshaped `Photo` (URL, not bytes). **No more localStorage session — cookie-only via `/api/auth/me`.** Deleted `App.jsx`/`main.jsx`/`UserContext.jsx`. 72 vitest tests (incl. 6 new middleware tests) + a Playwright redirect spec for S12. typecheck + lint + test + build green. **Next: Session 5 (common components → TSX + Tailwind: Card, TopBar, ProgressBar, spinners, Countdown, Confetti, modals, CollectorCard, PenaltyGame).**
 - **2026-05-30 (Session 5 ✅)** — Ported all 10 `src/components/common/` to TSX + Tailwind on `rewrite/next`: Card (cva), TopBar, ProgressBar, LoadingSpinner(+skeletons), Countdown (now via `useConfig`), Confetti, LevelUpModal, BuddyCelebration, CollectorCard, PenaltyGame (internal `GoalNet`). Fonts (Fredoka One/Nunito) + shared keyframes/animation utilities moved into `globals.css`; brand `--font-*` tokens added. Inline styles kept only for genuinely dynamic values. a11y: clickable Card/cards are keyboard-activatable; modals close on Escape/backdrop with `role="dialog"`. 23 component tests (92 total). `PlaceholderScreen` now renders `TopBar`+`Card`. Deleted the old `.jsx`. typecheck + lint + test + build green. **Smoke-tested S3/S4 live against real Turso** (config/login/me/users all correct; existing 11 users intact; `/api/users` leaks no password — C2 confirmed). **Next: Session 6 (avatar components — AvatarSVG, AvatarBuilder, typed DiceBear config).**
+- **2026-05-30 (Session 6 ✅)** — Ported the avatar system to TSX on `rewrite/next`: `AvatarSVG` (DiceBear adventurer via `@dicebear/collection`, typed against `AvatarConfig`, literal-union options asserted once) and `AvatarBuilder` (Tailwind, typed, internal preview/color/none buttons, `compact` mode). 3 component tests (95 total). Deleted the old `.jsx`. typecheck + lint + test + build green. **Next: Session 7 (Login + Home screens — React Hook Form + Zod, invite validation, avatar shuffle; HomeScreen extraction).**
 
 ---
 
