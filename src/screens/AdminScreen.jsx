@@ -4,7 +4,69 @@ import { apiGet, apiPost, apiPut, apiDelete, localToday, computeStats, getLevel,
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
-export function AdminScreen() {
+function LeaderSection({ players }) {
+  const leaders = players.filter(p => p.role === 'leader');
+  const [alias, setAlias] = useState('');
+  const [password, setPassword] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState(null);
+  const [error, setError] = useState('');
+
+  async function handleCreate() {
+    if (!alias.trim() || !password.trim()) return;
+    setCreating(true);
+    setError('');
+    try {
+      await apiPost('/users?action=createleader', { alias: alias.trim(), password: password.trim() });
+      setCreated(alias.trim());
+      setAlias('');
+      setPassword('');
+    } catch (e) {
+      setError(e.message.includes('alias_taken') ? 'Det smeknamnet är redan taget.' : 'Kunde inte skapa konto: ' + e.message);
+    }
+    setCreating(false);
+  }
+
+  return (
+    <div>
+      {leaders.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+          {leaders.map(l => (
+            <div key={l.alias} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>👁️ {l.alias}</span>
+              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12 }}>Ledare</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <input
+          value={alias}
+          onChange={e => setAlias(e.target.value)}
+          placeholder="Smeknamn"
+          style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
+        />
+        <input
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Lösenord"
+          style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
+        />
+      </div>
+      <button
+        onClick={handleCreate}
+        disabled={!alias.trim() || !password.trim() || creating}
+        style={{ width: '100%', padding: '9px 0', borderRadius: 10, border: 'none', background: !alias.trim() || !password.trim() || creating ? 'rgba(255,255,255,0.1)' : COLORS.lime, color: !alias.trim() || !password.trim() || creating ? 'rgba(255,255,255,0.3)' : COLORS.dark, fontWeight: 700, fontSize: 13, cursor: !alias.trim() || !password.trim() || creating ? 'not-allowed' : 'pointer', fontFamily: "'Nunito', sans-serif" }}
+      >
+        {creating ? 'Skapar...' : '+ Skapa ledarkonto'}
+      </button>
+      {created && <div style={{ color: COLORS.lime, fontSize: 13, fontWeight: 700, marginTop: 8 }}>✅ {created} skapad!</div>}
+      {error && <div style={{ color: '#f87171', fontSize: 13, marginTop: 8 }}>{error}</div>}
+    </div>
+  );
+}
+
+export function AdminScreen({ onViewTeam }) {
   const { handleLogout, setSeasonStart, setCountdownDate, countdownDate } = useUser();
 
   const [players, setPlayers] = useState([]);
@@ -288,7 +350,17 @@ export function AdminScreen() {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><img src="/img/hogalid-logo.png" alt="" style={{ width: 32, height: 32 }} /><span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: COLORS.lime }}>Admin — Högalid F15</span></div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Sommarlovet 2026</div>
         </div>
-        <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 13, borderRadius: 8, padding: "6px 12px" }}>Logga ut</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {onViewTeam && (
+            <button
+              onClick={onViewTeam}
+              style={{ background: 'rgba(168,230,61,0.15)', border: `1px solid ${COLORS.lime}55`, color: COLORS.lime, cursor: 'pointer', fontSize: 13, borderRadius: 8, padding: '6px 12px', fontWeight: 700, marginRight: 8 }}
+            >
+              👁️ Lagvy
+            </button>
+          )}
+          <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 13, borderRadius: 8, padding: "6px 12px" }}>Logga ut</button>
+        </div>
       </div>
 
       <div style={{ padding: "16px 16px 40px" }}>
@@ -388,6 +460,17 @@ export function AdminScreen() {
               {savingSeasonDate ? "Sparar..." : seasonDateSaved ? "✅ Sparat!" : "Spara"}
             </button>
           </div>
+        </div>
+
+        {/* Leader accounts */}
+        <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16, padding: '14px 16px', marginBottom: 12 }}>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            👁️ Ledarkonton
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 12, lineHeight: 1.45 }}>
+            Ledare kan följa laget i appen men inte logga träning, ladda upp foton eller kommunicera.
+          </div>
+          <LeaderSection players={players} />
         </div>
 
         {/* Invite manager */}

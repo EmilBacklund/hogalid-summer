@@ -397,6 +397,7 @@ export function UserProvider({ children }) {
     pendingCheers,
     sendCheer,
     markCheersSeen,
+    isLeader: user?.role === 'leader',
   };
 
   return (

@@ -753,6 +753,23 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
+    // POST - create leader account (admin only)
+    if (method === 'POST' && action === 'createleader') {
+      const body = await req.json();
+      const { alias, password } = body;
+      const key = (alias || '').toLowerCase().trim();
+      if (!key || !password) return new Response(JSON.stringify({ error: 'missing_fields' }), { status: 400, headers });
+      const existing = await db.execute({ sql: 'SELECT alias FROM users WHERE alias = ?', args: [key] });
+      if (existing.rows.length > 0) return new Response(JSON.stringify({ error: 'alias_taken' }), { status: 409, headers });
+      const hashed = await hashPassword(password);
+      const joinedAt = new Date().toISOString();
+      await db.execute({
+        sql: "INSERT INTO users (alias, password, display_password, avatar_config, unlocked_items, highscores, joined_at, role) VALUES (?, ?, ?, ?, ?, ?, ?, 'leader')",
+        args: [key, hashed, password, '{}', '[]', '{}', joinedAt],
+      });
+      return new Response(JSON.stringify({ ok: true, alias: key }), { status: 201, headers });
+    }
+
     return new Response(JSON.stringify({ error: 'unknown_action' }), { status: 400, headers });
   } catch (err) {
     console.error(err);
@@ -771,6 +788,7 @@ function rowToUser(row) {
     secretFlags: JSON.parse(row.secret_flags || '{}'),
     joinedAt: row.joined_at,
     photoCount: 0,
+    role: row.role || 'player',
   };
 }
 

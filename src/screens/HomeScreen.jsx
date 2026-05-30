@@ -323,7 +323,7 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
 }
 
 export function HomeScreen() {
-  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget, pendingCheers, markCheersSeen } = useUser();
+  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget, pendingCheers, markCheersSeen, isLeader } = useUser();
   const displayName = user.displayName || user.displayAlias || user.alias;
 
   function goTo(target) {
@@ -1134,25 +1134,27 @@ export function HomeScreen() {
       </div>
 
       {/* Action buttons */}
-      <button
-        onClick={() => setScreen('log')}
-        style={{
-          width: '100%',
-          padding: '18px 0',
-          borderRadius: 18,
-          border: 'none',
-          background: COLORS.lime,
-          color: COLORS.dark,
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 22,
-          cursor: 'pointer',
-          marginBottom: 10,
-          boxShadow: `0 6px 28px ${COLORS.lime}55`,
-          letterSpacing: 0.5,
-        }}
-      >
-        📕 Dagbok
-      </button>
+      {!isLeader && (
+        <button
+          onClick={() => setScreen('log')}
+          style={{
+            width: '100%',
+            padding: '18px 0',
+            borderRadius: 18,
+            border: 'none',
+            background: COLORS.lime,
+            color: COLORS.dark,
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: 22,
+            cursor: 'pointer',
+            marginBottom: 10,
+            boxShadow: `0 6px 28px ${COLORS.lime}55`,
+            letterSpacing: 0.5,
+          }}
+        >
+          📕 Dagbok
+        </button>
+      )}
       <button
         onClick={() => setScreen('bingo')}
         style={{
