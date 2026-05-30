@@ -3,11 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/server/db', () => ({
   getDb: vi.fn(),
   initDb: vi.fn(async () => {}),
+  albumPhotosNeedsImageData: vi.fn(() => false),
 }));
 
 import { POST } from './route';
 import { GET as getBytes } from './[id]/route';
-import { getDb } from '@/server/db';
+import { getDb, albumPhotosNeedsImageData } from '@/server/db';
 import { signSession, SESSION_COOKIE } from '@/server/session';
 import { setPhotoStorageForTests, type PhotoStorage } from '@/server/photoStorage';
 import { createFakeDb, type FakeDb } from '@/test/fakeDb';
@@ -73,6 +74,24 @@ describe('POST /api/photos (SEC M1 — bytes to Blobs, metadata to DB)', () => {
     const insert = db.calls.find((c) => /INSERT INTO album_photos/.test(c.sql));
     const blobKey = (insert!.args as unknown[])[1] as string;
     expect(blobKey).toContain('maja/');
+  });
+
+  it('supplies image_data on legacy DBs that still have the NOT NULL column', async () => {
+    vi.mocked(albumPhotosNeedsImageData).mockReturnValueOnce(true);
+    const db = createFakeDb([
+      {
+        test: (sql) => /COUNT\(\*\) AS count FROM album_photos/.test(sql),
+        result: { rows: [{ count: 0 } as never] },
+      },
+      { test: (sql) => /INSERT INTO album_photos/.test(sql), result: { lastInsertRowid: 7n } },
+    ]);
+    useDb(db);
+    const res = await POST(uploadReq(await cookie('maja')));
+    expect(res.status).toBe(201);
+    const insert = db.calls.find((c) => /INSERT INTO album_photos/.test(c.sql));
+    expect(insert!.sql).toContain('image_data');
+    // The trailing arg is the '' placeholder satisfying the legacy NOT NULL column.
+    expect((insert!.args as unknown[]).at(-1)).toBe('');
   });
 
   it('enforces the weekly upload limit', async () => {

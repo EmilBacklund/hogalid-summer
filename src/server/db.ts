@@ -25,6 +25,14 @@ export function getDb(): Client {
  */
 let initialized = false;
 
+/** True when the connected DB still has the legacy `album_photos.image_data` column. */
+let albumPhotosHasImageData = false;
+
+/** Whether photo inserts must supply the legacy NOT NULL `image_data` column. */
+export function albumPhotosNeedsImageData(): boolean {
+  return albumPhotosHasImageData;
+}
+
 export async function initDb(db: Client = getDb()): Promise<void> {
   if (initialized) return;
   await db.executeMultiple(`
@@ -164,11 +172,19 @@ export async function initDb(db: Client = getDb()): Promise<void> {
     // column already exists
   }
 
+  // Legacy DBs (pre-SEC M1) kept base64 bytes in a NOT NULL `image_data` column.
+  // We no longer write bytes to the DB, but the NOT NULL constraint would reject
+  // metadata-only inserts — so detect the column and supply '' for it on insert
+  // (non-destructive: existing rows keep their data).
+  const columns = await db.execute('PRAGMA table_info(album_photos)');
+  albumPhotosHasImageData = columns.rows.some((r) => String(r.name) === 'image_data');
+
   initialized = true;
 }
 
 /** Test-only: reset the memoized init flag so a fresh fake DB re-runs initDb. */
 export function resetInitForTests(): void {
   initialized = false;
+  albumPhotosHasImageData = false;
   client = null;
 }

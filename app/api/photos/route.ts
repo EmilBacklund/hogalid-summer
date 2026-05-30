@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { getDb, initDb } from '@/server/db';
+import { albumPhotosNeedsImageData, getDb, initDb } from '@/server/db';
 import { ApiError, handle, json, parseBody, requireUser } from '@/server/responses';
 import { getPhotoStorage } from '@/server/photoStorage';
 import { getWeekStart, stockholmToday } from '@/server/dates';
@@ -96,10 +96,17 @@ export function POST(req: Request) {
     await getPhotoStorage().put(blobKey, bytes);
 
     const uploadedAt = new Date().toISOString();
-    const insert = await db.execute({
-      sql: 'INSERT INTO album_photos (alias, blob_key, mime_type, week_start, uploaded_at) VALUES (?, ?, ?, ?, ?)',
-      args: [session.alias, blobKey, resolvedMime, weekStart, uploadedAt],
-    });
+    // Legacy DBs still carry a NOT NULL `image_data` column; supply '' for it so
+    // the metadata-only insert satisfies the constraint (bytes live in storage).
+    const insert = albumPhotosNeedsImageData()
+      ? await db.execute({
+          sql: 'INSERT INTO album_photos (alias, blob_key, mime_type, week_start, uploaded_at, image_data) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [session.alias, blobKey, resolvedMime, weekStart, uploadedAt, ''],
+        })
+      : await db.execute({
+          sql: 'INSERT INTO album_photos (alias, blob_key, mime_type, week_start, uploaded_at) VALUES (?, ?, ?, ?, ?)',
+          args: [session.alias, blobKey, resolvedMime, weekStart, uploadedAt],
+        });
     const id = Number(insert.lastInsertRowid);
 
     return json(

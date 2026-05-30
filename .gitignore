@@ -26,3 +26,6 @@ playwright/.cache/
 
 # Local-only security review (documents vulnerabilities — keep out of git)
 SHIP_REVIEW.md
+
+# Local photo storage (dev/E2E fallback for Netlify Blobs)
+.photos-dev/
