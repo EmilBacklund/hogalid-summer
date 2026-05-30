@@ -101,6 +101,7 @@ export function AdminScreen({ onViewTeam }) {
   const [deletingPhoto, setDeletingPhoto] = useState({});
   const [approvingPhoto, setApprovingPhoto] = useState({});
   const [showPhotos, setShowPhotos] = useState(false);
+  const [showPendingModal, setShowPendingModal] = useState(false);
 
   // Log viewer per player
   const [expandedLogs, setExpandedLogs] = useState({});  // { alias: bool }
@@ -129,7 +130,11 @@ export function AdminScreen({ onViewTeam }) {
       .catch(() => setInvites([]));
 
     fetchTeamPhotos()
-      .then(data => setPhotos(data || []))
+      .then(data => {
+        const all = data || [];
+        setPhotos(all);
+        if (all.some(p => p.status === 'pending')) setShowPendingModal(true);
+      })
       .catch(() => setPhotos([]))
       .finally(() => setLoadingPhotos(false));
   }, []);
@@ -355,6 +360,38 @@ export function AdminScreen({ onViewTeam }) {
   return (
     <div style={{ minHeight: "100vh", background: `linear-gradient(160deg, ${COLORS.dark} 0%, #001e6e 60%, #002864 100%)`, fontFamily: "'Nunito', sans-serif", color: "#fff" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap');`}</style>
+
+      {/* Pending photos modal */}
+      {showPendingModal && (() => {
+        const pendingCount = photos.filter(p => p.status === 'pending').length;
+        return pendingCount > 0 ? (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px' }}>
+            <div style={{ background: 'linear-gradient(160deg, #001540 0%, #002060 100%)', border: '1px solid rgba(255,220,0,0.4)', borderRadius: 24, padding: '28px 24px', maxWidth: 340, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}>
+              <div style={{ fontSize: 44, marginBottom: 12 }}>📸</div>
+              <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: '#ffd700', marginBottom: 8 }}>
+                {pendingCount} {pendingCount === 1 ? 'foto väntar' : 'foton väntar'}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 24, lineHeight: 1.5 }}>
+                {pendingCount === 1 ? 'Ett foto behöver' : `${pendingCount} foton behöver`} granskas innan {pendingCount === 1 ? 'det' : 'de'} syns för spelarna.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  onClick={() => { setShowPhotos(true); setShowPendingModal(false); }}
+                  style={{ width: '100%', padding: '12px 0', borderRadius: 14, border: 'none', background: '#ffd700', color: '#001540', fontWeight: 900, fontSize: 16, cursor: 'pointer', fontFamily: "'Nunito', sans-serif" }}
+                >
+                  Granska foton nu →
+                </button>
+                <button
+                  onClick={() => setShowPendingModal(false)}
+                  style={{ width: '100%', padding: '10px 0', borderRadius: 14, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: "'Nunito', sans-serif" }}
+                >
+                  Senare
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null;
+      })()}
 
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
