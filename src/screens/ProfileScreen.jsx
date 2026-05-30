@@ -11,6 +11,7 @@ import {
   getAvailableOptions,
 } from '../constants';
 import { getLevel, getNextLevel, calcProgress, getEarnedStickers, fetchAllUsersStale } from '../utils';
+import { DEMO_TEAM_USERS } from '../demo/demoData';
 import { Card, ProgressBar, ButtonLoader } from '../components/common';
 import { AvatarSVG, AvatarBuilder } from '../components/avatar';
 import { useUser } from '../context/UserContext';
@@ -54,7 +55,7 @@ const TABS = [
 ];
 
 export function ProfileScreen() {
-  const { user, stats, setScreen, handleUnlock, handleAvatarUpdate, handleUpdateDisplayName } = useUser();
+  const { user, stats, setScreen, handleUnlock, handleAvatarUpdate, handleUpdateDisplayName, isDemo } = useUser();
   const displayAlias = user.displayAlias || user.alias;
   const shownName = user.displayName || displayAlias;
   const [activeTab, setActiveTab] = useState('avatar');
@@ -79,9 +80,13 @@ export function ProfileScreen() {
   const nextLevel = getNextLevel(stats.totalPoints);
   const progress = calcProgress(stats.totalPoints);
   useEffect(() => {
+    if (isDemo) {
+      setAllUsers(DEMO_TEAM_USERS);
+      return;
+    }
     const stale = fetchAllUsersStale((fresh) => setAllUsers(fresh || []));
     if (stale) setAllUsers(stale);
-  }, []);
+  }, [isDemo]);
 
   const earnedStickers = useMemo(() => getEarnedStickers(user, stats, allUsers), [user, stats, allUsers]);
   const earnedBadges = BADGES.filter((b) => b.condition(stats));

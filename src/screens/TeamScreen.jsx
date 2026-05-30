@@ -194,6 +194,7 @@ export function TeamScreen() {
   // Show confetti briefly on mount if we just leveled up (stored in sessionStorage)
   useEffect(() => {
     if (loadingTeam) return;
+    if (isDemo) return; // demo mode — don't touch the shared session level key
     const key = 'fball_last_team_level';
     const last = sessionStorage.getItem(key);
     if (last && last !== teamLevel.name) {

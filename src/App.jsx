@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { COLORS } from './constants';
 import { UserProvider, useUser } from './context/UserContext';
-import { TopBar, LoadingSpinner, TopLoadingBar, BuddyCelebration, LevelUpModal } from './components/common';
+import { TopBar, LoadingSpinner, TopLoadingBar, BuddyCelebration, LevelUpModal, DemoBanner } from './components/common';
 import {
   LoginScreen,
   HomeScreen,
@@ -18,7 +18,7 @@ import {
 function AppContent() {
   const { user, loading, autoLoading, screen, setScreen, handleLogout,
           newlyCompletedChallenge, clearNewlyCompletedChallenge,
-          levelUpData, clearLevelUp } = useUser();
+          levelUpData, clearLevelUp, isDemo } = useUser();
   const [adminSpectator, setAdminSpectator] = useState(false);
 
   const bgStyle = {
@@ -106,6 +106,8 @@ function AppContent() {
       {screen === "album"      && <PhotoAlbumScreen />}
       {screen === "bingo"      && <BingoScreen />}
       {screen === "cards"      && <CardsScreen />}
+
+      {isDemo && <DemoBanner />}
     </div>
   );
 }

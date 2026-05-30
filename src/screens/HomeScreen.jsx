@@ -737,7 +737,7 @@ export function HomeScreen() {
         const levelInfo = getWeeklyLevelInfo(weekVal, weekly.goal);
 
         // Mark fire as seen once — resets automatically each new week
-        if (!loadingTeam && levelInfo.isMaxLevel && !fireSeenThisWeek) {
+        if (!loadingTeam && levelInfo.isMaxLevel && !fireSeenThisWeek && !isDemo) {
           const weekKey = `fire_seen_${getWeekStart(localToday())}`;
           localStorage.setItem(weekKey, '1');
           setFireSeenThisWeek(true);
