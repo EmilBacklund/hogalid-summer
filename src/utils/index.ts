@@ -22,3 +22,12 @@ export { fetchTeamPhotos, fetchTeamPhotosStale, invalidatePhotosCache } from './
 export { computeWeeklyHistory, saveWeeklyResult, getWeeklyChallengeForDate } from './weeklyHistory';
 export { generateFeed } from './feed';
 export { getEarnedStickers, getStickerContext } from './stickers';
+export {
+  shuffleOpenFirst,
+  getBoardLineState,
+  getBoardCounts,
+  computeLineBonus,
+  type LineState,
+  type LineBonusResult,
+  type BoardCounts,
+} from './bingo';
