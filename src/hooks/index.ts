@@ -7,3 +7,5 @@ export { useLogs } from './useLogs';
 export { useStats } from './useStats';
 export { useCheers } from './useCheers';
 export type { Cheer } from './useCheers';
+export { useLogMutations } from './useLogMutations';
+export type { TrainingLogInput } from './useLogMutations';
