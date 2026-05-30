@@ -107,7 +107,7 @@ export async function saveWeeklyResult(
   const value = computeWeekValue(allUsers, prevWeekStart, prevWeekEnd, challenge.type);
   const levelInfo = getWeeklyLevelInfo(value, challenge.goal);
 
-  await apiPost('/users?action=saveweeklyresult', {
+  await apiPost('/weekly-results', {
     weekStart: prevWeekStart,
     challengeLabel: challenge.label,
     challengeType: challenge.type,

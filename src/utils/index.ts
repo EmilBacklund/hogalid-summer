@@ -31,3 +31,4 @@ export {
   type LineBonusResult,
   type BoardCounts,
 } from './bingo';
+export { computeTeamAggregate, type TeamAggregate, type TeamMemberStats } from './team';
