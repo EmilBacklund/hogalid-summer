@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { apiGet, apiPost, apiPut, localToday, computeStats, invalidateUsersCache, getLevel } from '../utils';
 import { BINGO, BONUS_BINGO, BINGO_TWO } from '../constants';
+import { DEMO_USER } from '../demo/demoData';
+
+const DEMO_ALIAS = 'demo';
+const DEMO_PASSWORD = 'sommar2026';
 
 const UserContext = createContext(null);
 
@@ -32,6 +36,9 @@ export function UserProvider({ children }) {
   const [pendingCheers, setPendingCheers] = useState([]);
   const seenCompletedIds = useRef(null);
   const prevLevelName = useRef(null);
+
+  // Demo mode — role:'demo' user, everything is client-side only
+  const isDemo = user?.role === DEMO_USER.role && user?.role === 'demo';
 
   // Detect newly completed buddy challenges (don't fire on first load)
   useEffect(() => {
@@ -112,6 +119,7 @@ export function UserProvider({ children }) {
   }, [stats]);
 
   async function fetchCheers(alias) {
+    if (isDemo) return; // demo mode — no API calls
     try {
       const data = await apiGet(`/users?action=cheers&alias=${encodeURIComponent(alias)}`);
       setPendingCheers(data);
@@ -121,6 +129,7 @@ export function UserProvider({ children }) {
   }
 
   async function sendCheer(toAlias) {
+    if (isDemo) return { ok: false, error: 'demo_mode' };
     try {
       await apiPost('/users?action=cheer', { fromAlias: user.alias, toAlias });
       return { ok: true };
@@ -134,6 +143,7 @@ export function UserProvider({ children }) {
   }
 
   async function markCheersSeen(ids) {
+    if (isDemo) return;
     try {
       await apiPut('/users?action=cheerseen', { ids });
       setPendingCheers(prev => prev.filter(c => !ids.includes(c.id)));
@@ -143,6 +153,7 @@ export function UserProvider({ children }) {
   }
 
   async function fetchBuddyChallenges(alias) {
+    if (isDemo) return; // demo mode — no API calls
     try {
       const data = await apiGet(`/buddy-challenges?alias=${encodeURIComponent(alias)}`);
       setBuddyChallenges(data);
@@ -153,6 +164,7 @@ export function UserProvider({ children }) {
 
   async function refreshCurrentUser(alias = user?.alias) {
     if (!alias) return null;
+    if (isDemo) return user; // demo mode — return current state, no API call
     invalidateUsersCache();
     const updated = await apiGet(`/users?alias=${alias}`);
     setUser(updated);
@@ -161,12 +173,15 @@ export function UserProvider({ children }) {
   }
 
   function handleLogin(u, credentials) {
-    if (credentials) {
+    // Never persist demo session — it resets on page reload by design
+    if (u?.role !== 'demo' && credentials) {
       localStorage.setItem("hogalid_session", JSON.stringify(credentials));
     }
     setUser(u);
-    fetchBuddyChallenges(u.alias);
-    fetchCheers(u.alias);
+    if (u?.role !== 'demo') {
+      fetchBuddyChallenges(u.alias);
+      fetchCheers(u.alias);
+    }
     setScreen("home");
   }
 
@@ -178,6 +193,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleSaveLog(log, newHighscores) {
+    if (isDemo) return false; // demo mode — UI disables save button, this is a safety net
     setLoading(true);
     try {
       await apiPost("/users?action=addlog", { alias: user.alias, log });
@@ -198,6 +214,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleCreateBuddyChallenge(toAlias, exerciseId, amount) {
+    if (isDemo) return { ok: false, error: 'demo_mode' };
     try {
       await apiPost('/buddy-challenges?action=create', {
         fromAlias: user.alias, toAlias, exerciseId, amount,
@@ -210,6 +227,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleRespondBuddyChallenge(challengeId, response) {
+    if (isDemo) return;
     try {
       await apiPost('/buddy-challenges?action=respond', { challengeId, response });
       await fetchBuddyChallenges(user.alias);
@@ -219,6 +237,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleCancelBuddyChallenge(challengeId) {
+    if (isDemo) return;
     try {
       await apiPost('/buddy-challenges?action=cancel', { challengeId });
       await fetchBuddyChallenges(user.alias);
@@ -231,6 +250,7 @@ export function UserProvider({ children }) {
     const currentStats = computeStats(user);
     if (currentStats.totalPoints < cost) return;
     const newItems = [...(user.unlockedItems || []), itemId];
+    if (isDemo) { setUser(u => ({ ...u, unlockedItems: newItems })); return; }
     try {
       await apiPut("/users?action=update", { alias: user.alias, unlockedItems: newItems, highscores: user.highscores, avatarConfig: user.avatarConfig });
       await refreshCurrentUser(user.alias);
@@ -240,6 +260,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleAvatarUpdate(newConfig) {
+    if (isDemo) { setUser(u => ({ ...u, avatarConfig: newConfig })); return; }
     try {
       await apiPut("/users?action=update", { alias: user.alias, avatarConfig: newConfig, highscores: user.highscores, unlockedItems: user.unlockedItems });
       await refreshCurrentUser(user.alias);
@@ -249,6 +270,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleUpdateDisplayName(displayName) {
+    if (isDemo) { setUser(u => ({ ...u, displayName })); return; }
     try {
       await apiPut("/users?action=updatedisplayname", { alias: user.alias, displayName });
       setUser({ ...user, displayName });
@@ -259,6 +281,7 @@ export function UserProvider({ children }) {
 
   async function handleBingoDone(challengeId, bonusPoints) {
     if ((user.bingo || []).includes(challengeId)) return;
+    if (isDemo) { setUser(u => ({ ...u, bingo: [...(u.bingo || []), challengeId] })); return; }
     try {
       await apiPost("/users?action=bingo", { alias: user.alias, challengeId });
       const challenge = BINGO.find(b => b.id === challengeId);
@@ -275,6 +298,7 @@ export function UserProvider({ children }) {
 
   async function handleAdultBingoDone(challengeId) {
     if ((user.adultBingo || []).includes(challengeId)) return;
+    if (isDemo) { setUser(u => ({ ...u, adultBingo: [...(u.adultBingo || []), challengeId] })); return; }
     try {
       await apiPost('/users?action=adultbingo', { alias: user.alias, challengeId });
       await refreshCurrentUser(user.alias);
@@ -285,6 +309,7 @@ export function UserProvider({ children }) {
 
   async function handleBonusBingoDone(challengeId, bonusPoints) {
     if ((user.bonusBingo || []).includes(challengeId)) return;
+    if (isDemo) { setUser(u => ({ ...u, bonusBingo: [...(u.bonusBingo || []), challengeId] })); return; }
     try {
       await apiPost('/users?action=bonusbingo', { alias: user.alias, challengeId });
       const challenge = BONUS_BINGO.find((b) => b.id === challengeId);
@@ -301,6 +326,7 @@ export function UserProvider({ children }) {
 
   async function handleBingoTwoDone(challengeId, bonusPoints) {
     if ((user.bingoTwo || []).includes(challengeId)) return;
+    if (isDemo) { setUser(u => ({ ...u, bingoTwo: [...(u.bingoTwo || []), challengeId] })); return; }
     try {
       await apiPost('/users?action=bingotwo', { alias: user.alias, challengeId });
       const challenge = BINGO_TWO.find((b) => b.id === challengeId);
@@ -316,6 +342,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleRecordSecretProgress(patch) {
+    if (isDemo) return;
     try {
       await apiPost('/users?action=secretprogress', { alias: user.alias, patch });
       await refreshCurrentUser(user.alias);
@@ -325,6 +352,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleCompleteDaily(challengeId, points) {
+    if (isDemo) return;
     if (loading) return;
     const today = localToday();
     // Guard against double submission
@@ -345,6 +373,7 @@ export function UserProvider({ children }) {
   }
 
   async function handleUpdateLog(action, logId, updatedLog) {
+    if (isDemo) return;
     try {
       if (action === "delete") {
         await apiPut("/users?action=deletelog", { logId });
@@ -397,6 +426,10 @@ export function UserProvider({ children }) {
     pendingCheers,
     sendCheer,
     markCheersSeen,
+    isLeader: user?.role === 'leader',
+    isDemo,
+    DEMO_ALIAS,
+    DEMO_PASSWORD,
   };
 
   return (

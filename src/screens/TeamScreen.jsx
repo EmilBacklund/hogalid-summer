@@ -20,11 +20,12 @@ import {
 import { Card, ProgressBar, Confetti } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { DEMO_TEAM_USERS, DEMO_PHOTOS } from '../demo/demoData';
 import { ArrowLeft, ArrowRight, Camera } from 'lucide-react';
 import { PhotoAlbumModal } from './PhotoAlbumScreen';
 
 export function TeamScreen() {
-  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer } = useUser();
+  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer, isLeader, isDemo } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [teamPhotos, setTeamPhotos] = useState([]);
@@ -50,6 +51,14 @@ export function TeamScreen() {
   const getUserLabel = (u) => u.displayName || u.displayAlias || u.alias;
 
   useEffect(() => {
+    // Demo mode — use mock data, never touch real API or caches
+    if (isDemo) {
+      setAllUsers(DEMO_TEAM_USERS);
+      setTeamPhotos(DEMO_PHOTOS);
+      setLoadingTeam(false);
+      return;
+    }
+
     const stale = fetchAllUsersStale(fresh => {
       setAllUsers(fresh);
       setLoadingTeam(false);
@@ -75,13 +84,14 @@ export function TeamScreen() {
       const current = reactions[eventKey] || {};
       const myEmoji = current[user.alias];
       const removing = myEmoji === emoji;
-      // Optimistic update
+      // Optimistic update (runs in demo mode too so the UI responds)
       setReactions(prev => {
         const copy = { ...prev, [eventKey]: { ...(prev[eventKey] || {}) } };
         if (removing) delete copy[eventKey][user.alias];
         else copy[eventKey][user.alias] = emoji;
         return copy;
       });
+      if (isDemo) return; // demo mode — skip API calls, keep local update
       await apiPost('/users?action=react', { eventKey, alias: user.alias, emoji: removing ? null : emoji });
       const updated = await apiGet('/users?action=reactions');
       setReactions(updated);
@@ -175,6 +185,7 @@ export function TeamScreen() {
 
   // Save previous week's result to DB in the background
   useEffect(() => {
+    if (isDemo) return; // demo mode — never write mock data to DB
     if (!loadingTeam && allUsers.length > 0 && seasonStart) {
       saveWeeklyResult(allUsers, seasonStart).catch(() => {});
     }
@@ -183,6 +194,7 @@ export function TeamScreen() {
   // Show confetti briefly on mount if we just leveled up (stored in sessionStorage)
   useEffect(() => {
     if (loadingTeam) return;
+    if (isDemo) return; // demo mode — don't touch the shared session level key
     const key = 'fball_last_team_level';
     const last = sessionStorage.getItem(key);
     if (last && last !== teamLevel.name) {
@@ -488,7 +500,7 @@ export function TeamScreen() {
                   <div style={{ color: isMe ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{getUserLabel(u)}</div>
                   {isMe ? (
                     <div style={{ color: COLORS.lime, fontSize: 10 }}>Du</div>
-                  ) : (
+                  ) : (!isLeader && !user.isAdmin && (
                     <button
                       onClick={async () => {
                         if (cheerState) return;
@@ -513,7 +525,7 @@ export function TeamScreen() {
                     >
                       {cheerState === 'sent' ? '✅ Hejat!' : cheerState === 'already' ? 'Redan hejat' : '📣 Heja!'}
                     </button>
-                  )}
+                  ))}
                 </div>
               );
             })}
@@ -567,17 +579,19 @@ export function TeamScreen() {
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, flexShrink: 0 }}>{e.date}</div>
               </div>
-              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                {['🔥', '👏', '⚽', '💪'].map(emoji => {
-                  const count = reactionCounts[emoji] || 0;
-                  const mine = myReaction === emoji;
-                  return (
-                    <button key={emoji} onClick={(evt) => { evt.stopPropagation(); toggleReaction(eventKey, emoji); }} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {emoji}{count > 0 && <span style={{ fontSize: 11 }}>{count}</span>}
-                    </button>
-                  );
-                })}
-              </div>
+              {!isLeader && !user.isAdmin && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  {['🔥', '👏', '⚽', '💪'].map(emoji => {
+                    const count = reactionCounts[emoji] || 0;
+                    const mine = myReaction === emoji;
+                    return (
+                      <button key={emoji} onClick={(evt) => { evt.stopPropagation(); toggleReaction(eventKey, emoji); }} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {emoji}{count > 0 && <span style={{ fontSize: 11 }}>{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         }

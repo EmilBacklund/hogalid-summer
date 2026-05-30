@@ -5,10 +5,11 @@ import { Card } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { AvatarBuilder } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { DEMO_USER } from '../demo/demoData';
 import { ArrowRight } from 'lucide-react';
 
 export function LoginScreen() {
-  const { handleLogin } = useUser();
+  const { handleLogin, DEMO_ALIAS, DEMO_PASSWORD } = useUser();
   const [mode, setMode] = useState('login');
   const [alias, setAlias] = useState('');
   const [password, setPassword] = useState('');
@@ -89,6 +90,11 @@ export function LoginScreen() {
         });
         handleLogin(user, creds);
       } else {
+        // Demo mode — no API call, no localStorage
+        if (creds.alias.toLowerCase() === DEMO_ALIAS && creds.password === DEMO_PASSWORD) {
+          handleLogin(DEMO_USER);
+          return;
+        }
         const user = await apiPost('/users?action=login', creds);
         handleLogin(user, creds);
       }
@@ -370,15 +376,27 @@ export function LoginScreen() {
           )}
 
           {mode === 'login' && (
-            <div
-              style={{
-                textAlign: 'center',
-                marginTop: 12,
-                color: 'rgba(255,255,255,0.4)',
-                fontSize: 12,
-              }}
-            >
-              Glömt lösenordet? Fråga tränaren!
+            <div style={{ textAlign: 'center', marginTop: 12 }}>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 12 }}>
+                Glömt lösenordet? Fråga tränaren!
+              </div>
+              <button
+                onClick={() => { setAlias(DEMO_ALIAS); setPassword(DEMO_PASSWORD); setError(''); }}
+                style={{
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10,
+                  color: 'rgba(255,255,255,0.55)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  fontFamily: "'Nunito', sans-serif",
+                  width: '100%',
+                }}
+              >
+                🎮 Prova appen som förälder
+              </button>
             </div>
           )}
         </Card>

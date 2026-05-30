@@ -6,7 +6,7 @@ function json(data, status = 200) {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
@@ -45,6 +45,7 @@ function rowToPhoto(row) {
     weekStart: row.week_start,
     uploadedAt: row.uploaded_at,
     date: (row.uploaded_at || '').slice(0, 10),
+    status: row.status || 'approved',
   };
 }
 
@@ -57,7 +58,7 @@ export default async (req) => {
       status: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
     });
@@ -66,7 +67,7 @@ export default async (req) => {
   try {
     if (req.method === 'GET') {
       const result = await db.execute(`
-        SELECT p.id, p.alias, p.image_data, p.mime_type, p.week_start, p.uploaded_at, u.display_name, u.display_alias
+        SELECT p.id, p.alias, p.image_data, p.mime_type, p.week_start, p.uploaded_at, p.status, u.display_name, u.display_alias
         FROM album_photos p
         LEFT JOIN users u ON u.alias = p.alias
         ORDER BY p.uploaded_at DESC
@@ -103,14 +104,14 @@ export default async (req) => {
 
       const uploadedAt = new Date().toISOString();
       const insert = await db.execute({
-        sql: 'INSERT INTO album_photos (alias, image_data, mime_type, week_start, uploaded_at) VALUES (?, ?, ?, ?, ?)',
+        sql: "INSERT INTO album_photos (alias, image_data, mime_type, week_start, uploaded_at, status) VALUES (?, ?, ?, ?, ?, 'pending')",
         args: [alias, imageData, mimeType, weekStart, uploadedAt],
       });
       const id = Number(insert.lastInsertRowid);
 
       const result = await db.execute({
         sql: `
-          SELECT p.id, p.alias, p.image_data, p.mime_type, p.week_start, p.uploaded_at, u.display_name, u.display_alias
+          SELECT p.id, p.alias, p.image_data, p.mime_type, p.week_start, p.uploaded_at, p.status, u.display_name, u.display_alias
           FROM album_photos p
           LEFT JOIN users u ON u.alias = p.alias
           WHERE p.id = ?
@@ -119,6 +120,22 @@ export default async (req) => {
       });
 
       return json({ ok: true, photo: rowToPhoto(result.rows[0]) }, 201);
+    }
+
+    if (req.method === 'PUT') {
+      const body = await req.json();
+      const { id, status } = body;
+      if (!id || !['approved', 'rejected'].includes(status)) return json({ error: 'invalid_params' }, 400);
+      await db.execute({ sql: 'UPDATE album_photos SET status = ? WHERE id = ?', args: [status, Number(id)] });
+      return json({ ok: true });
+    }
+
+    if (req.method === 'DELETE') {
+      const body = await req.json();
+      const id = body.id;
+      if (!id) return json({ error: 'missing_id' }, 400);
+      await db.execute({ sql: 'DELETE FROM album_photos WHERE id = ?', args: [Number(id)] });
+      return json({ ok: true });
     }
 
     return json({ error: 'method_not_allowed' }, 405);

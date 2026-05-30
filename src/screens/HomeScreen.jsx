@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { COLORS, EXERCISES, PLAYER_CARDS, LEGEND_CARDS, TOTAL_PLAYER_CARDS, TOTAL_LEGEND_CARDS, CARD_PACK_COST, LEGEND_PACK_COST } from '../constants';
 import {
   getLevel,
@@ -14,9 +14,10 @@ import {
   computeWeeklyHistory,
   generateFeed,
 } from '../utils';
-import { Card, ProgressBar, Countdown } from '../components/common';
+import { Card, ProgressBar, Countdown, InstallPrompt } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { DEMO_TEAM_USERS, DEMO_PHOTOS } from '../demo/demoData';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 const INTRO_PAGES = [
@@ -123,6 +124,26 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
   const isFirst = pageIndex === 0;
   const isLast = pageIndex === INTRO_PAGES.length - 1;
 
+  const touchStartX = useRef(null);
+
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 40) return; // too short, ignore
+    if (dx < 0) {
+      // swipe left → next
+      if (isLast) onClose(); else onNext();
+    } else {
+      // swipe right → prev
+      if (!isFirst) onPrev();
+    }
+  }
+
   return (
     <div
       onClick={onClose}
@@ -139,6 +160,8 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         style={{
           width: '100%',
           maxWidth: 380,
@@ -301,7 +324,7 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
 }
 
 export function HomeScreen() {
-  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget, pendingCheers, markCheersSeen } = useUser();
+  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget, pendingCheers, markCheersSeen, isLeader, isDemo } = useUser();
   const displayName = user.displayName || user.displayAlias || user.alias;
 
   function goTo(target) {
@@ -319,8 +342,18 @@ export function HomeScreen() {
   });
   const [cheerToast, setCheerToast] = useState(null);  // { names: [...] }
   const [cheerFading, setCheerFading] = useState(false);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const pendingModalShownRef = useRef(false);
 
   useEffect(() => {
+    // Demo mode — use mock data, never touch real API or caches
+    if (isDemo) {
+      setAllUsers(DEMO_TEAM_USERS);
+      setTeamPhotos(DEMO_PHOTOS);
+      setLoadingTeam(false);
+      return;
+    }
+
     const stale = fetchAllUsersStale(fresh => {
       setAllUsers(fresh);
       setLoadingTeam(false);
@@ -337,6 +370,17 @@ export function HomeScreen() {
       setTeamPhotos(stalePhotos);
     }
   }, []);
+
+  // Show pending photos modal for leaders once photos have loaded
+  useEffect(() => {
+    if (!isLeader || pendingModalShownRef.current) return;
+    if (teamPhotos.length === 0) return;
+    const pendingCount = teamPhotos.filter(p => p.status === 'pending').length;
+    if (pendingCount > 0) {
+      pendingModalShownRef.current = true;
+      setShowPendingModal(true);
+    }
+  }, [isLeader, teamPhotos]);
 
   useEffect(() => {
     if (!user?.alias) return;
@@ -421,6 +465,40 @@ export function HomeScreen() {
           onClose={() => setShowIntro(false)}
         />
       )}
+
+      {/* Pending photos modal for leaders */}
+      {showPendingModal && (() => {
+        const pendingCount = teamPhotos.filter(p => p.status === 'pending').length;
+        return pendingCount > 0 ? (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px' }}>
+            <div style={{ background: 'linear-gradient(160deg, #001540 0%, #002060 100%)', border: '1px solid rgba(255,220,0,0.4)', borderRadius: 24, padding: '28px 24px', maxWidth: 340, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}>
+              <div style={{ fontSize: 44, marginBottom: 12 }}>📸</div>
+              <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: '#ffd700', marginBottom: 8 }}>
+                {pendingCount} {pendingCount === 1 ? 'foto väntar' : 'foton väntar'}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 24, lineHeight: 1.5 }}>
+                {pendingCount === 1 ? 'Ett foto behöver' : `${pendingCount} foton behöver`} granskas innan {pendingCount === 1 ? 'det' : 'de'} syns för spelarna.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  onClick={() => { setShowPendingModal(false); setScreen('album'); }}
+                  style={{ width: '100%', padding: '12px 0', borderRadius: 14, border: 'none', background: '#ffd700', color: '#001540', fontWeight: 900, fontSize: 16, cursor: 'pointer', fontFamily: "'Nunito', sans-serif" }}
+                >
+                  Granska foton nu →
+                </button>
+                <button
+                  onClick={() => setShowPendingModal(false)}
+                  style={{ width: '100%', padding: '10px 0', borderRadius: 14, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: "'Nunito', sans-serif" }}
+                >
+                  Senare
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null;
+      })()}
+
+      <InstallPrompt />
       <style>{`
         @keyframes fireGlow {
           0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
@@ -659,7 +737,7 @@ export function HomeScreen() {
         const levelInfo = getWeeklyLevelInfo(weekVal, weekly.goal);
 
         // Mark fire as seen once — resets automatically each new week
-        if (!loadingTeam && levelInfo.isMaxLevel && !fireSeenThisWeek) {
+        if (!loadingTeam && levelInfo.isMaxLevel && !fireSeenThisWeek && !isDemo) {
           const weekKey = `fire_seen_${getWeekStart(localToday())}`;
           localStorage.setItem(weekKey, '1');
           setFireSeenThisWeek(true);
@@ -1111,25 +1189,27 @@ export function HomeScreen() {
       </div>
 
       {/* Action buttons */}
-      <button
-        onClick={() => setScreen('log')}
-        style={{
-          width: '100%',
-          padding: '18px 0',
-          borderRadius: 18,
-          border: 'none',
-          background: COLORS.lime,
-          color: COLORS.dark,
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 22,
-          cursor: 'pointer',
-          marginBottom: 10,
-          boxShadow: `0 6px 28px ${COLORS.lime}55`,
-          letterSpacing: 0.5,
-        }}
-      >
-        📕 Dagbok
-      </button>
+      {!isLeader && (
+        <button
+          onClick={() => setScreen('log')}
+          style={{
+            width: '100%',
+            padding: '18px 0',
+            borderRadius: 18,
+            border: 'none',
+            background: COLORS.lime,
+            color: COLORS.dark,
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: 22,
+            cursor: 'pointer',
+            marginBottom: 10,
+            boxShadow: `0 6px 28px ${COLORS.lime}55`,
+            letterSpacing: 0.5,
+          }}
+        >
+          📕 Dagbok
+        </button>
+      )}
       <button
         onClick={() => setScreen('bingo')}
         style={{

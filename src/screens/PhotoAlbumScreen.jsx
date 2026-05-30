@@ -11,8 +11,10 @@ import {
 import { COLORS } from '../constants';
 import { ButtonLoader, LoadingSpinner } from '../components/common';
 import { useUser } from '../context/UserContext';
+import { DEMO_PHOTOS } from '../demo/demoData';
 import {
   apiPost,
+  apiPut,
   fetchTeamPhotos,
   fetchTeamPhotosStale,
   getWeekStart,
@@ -435,18 +437,26 @@ function AlbumPage({ page, pageIndex, allPhotos, onOpenPhoto }) {
                     }}
                   />
                 )}
-                <img
-                  src={getPhotoSrc(photo)}
-                  alt={`Foto av ${photo.uploaderName}`}
-                  style={{
-                    width: '100%',
-                    display: 'block',
-                    objectFit: 'cover',
-                    borderRadius: 14,
-                    aspectRatio: slot.aspectRatio,
-                    background: '#dfe7f4',
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <img
+                    src={getPhotoSrc(photo)}
+                    alt={`Foto av ${photo.uploaderName}`}
+                    style={{
+                      width: '100%',
+                      display: 'block',
+                      objectFit: 'cover',
+                      borderRadius: 14,
+                      aspectRatio: slot.aspectRatio,
+                      background: '#dfe7f4',
+                      opacity: photo.status === 'pending' ? 0.6 : 1,
+                    }}
+                  />
+                  {photo.status === 'pending' && (
+                    <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.7)', borderRadius: 6, padding: '3px 7px', color: '#fbbf24', fontSize: 10, fontWeight: 800 }}>
+                      🕐 Väntar
+                    </div>
+                  )}
+                </div>
                 <div style={{ paddingTop: 10 }}>
                   <div style={{ color: COLORS.navy, fontWeight: 900, fontSize: 13, lineHeight: 1.2 }}>
                     {photo.uploaderName}
@@ -469,13 +479,14 @@ export function PhotoAlbumModal({
   onPhotosChange,
   onClose,
 }) {
-  const { user } = useUser();
+  const { user, isLeader, isDemo } = useUser();
   const [photos, setPhotos] = useState(initialPhotos || []);
   const [loading, setLoading] = useState(!initialPhotos);
   const [uploading, setUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageMotion, setPageMotion] = useState('forward');
+  const [approvingPhoto, setApprovingPhoto] = useState({});
   const fileInputRef = useRef(null);
   const touchStartXRef = useRef(null);
 
@@ -487,6 +498,14 @@ export function PhotoAlbumModal({
   }, [initialPhotos]);
 
   useEffect(() => {
+    // Demo mode — use mock photos, never touch real API or caches
+    if (isDemo) {
+      setPhotos(DEMO_PHOTOS);
+      onPhotosChange?.(DEMO_PHOTOS);
+      setLoading(false);
+      return;
+    }
+
     const stale = fetchTeamPhotosStale((fresh) => {
       const nextPhotos = fresh || [];
       setPhotos(nextPhotos);
@@ -512,7 +531,30 @@ export function PhotoAlbumModal({
   }, [onPhotosChange]);
 
   const uploadsLeft = useMemo(() => getUploadsLeft(photos, user.alias), [photos, user.alias]);
-  const pages = useMemo(() => buildAlbumPages(photos), [photos]);
+
+  // Players only see approved photos (plus their own pending ones)
+  const visiblePhotos = useMemo(() => {
+    if (isLeader) return photos;
+    return photos.filter(p => p.status === 'approved' || p.status == null || p.alias === user.alias);
+  }, [photos, isLeader, user.alias]);
+
+  const pendingPhotos = useMemo(() => photos.filter(p => p.status === 'pending'), [photos]);
+
+  const pages = useMemo(() => buildAlbumPages(visiblePhotos), [visiblePhotos]);
+
+  async function approvePhoto(id, status) {
+    setApprovingPhoto(prev => ({ ...prev, [id]: true }));
+    try {
+      if (!isDemo) {
+        await apiPut('/photos', { id, status });
+        invalidatePhotosCache();
+      }
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+    } catch (e) {
+      alert('Kunde inte uppdatera foto: ' + e.message);
+    }
+    setApprovingPhoto(prev => ({ ...prev, [id]: false }));
+  }
 
   useEffect(() => {
     if (pageIndex > pages.length - 1) {
@@ -705,49 +747,89 @@ export function PhotoAlbumModal({
             </button>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              marginTop: 14,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ color: 'rgba(255,255,255,0.74)', fontSize: 12 }}>
-              Du har <strong style={{ color: '#fff' }}>{uploadsLeft}</strong> uppladdning{uploadsLeft !== 1 ? 'ar' : ''} kvar den här veckan
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || uploadsLeft <= 0}
+          {!isLeader && !isDemo && (
+            <div
               style={{
-                border: 'none',
-                borderRadius: 16,
-                padding: '12px 16px',
-                background: uploadsLeft > 0
-                  ? `linear-gradient(135deg, ${COLORS.yellow} 0%, #ffe760 100%)`
-                  : 'rgba(255,255,255,0.08)',
-                color: uploadsLeft > 0 ? COLORS.navy : 'rgba(255,255,255,0.42)',
-                fontWeight: 900,
-                cursor: uploading || uploadsLeft <= 0 ? 'default' : 'pointer',
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: 8,
+                justifyContent: 'space-between',
+                gap: 12,
+                marginTop: 14,
+                flexWrap: 'wrap',
               }}
             >
-              {uploading ? <ButtonLoader color={COLORS.navy} /> : <ImagePlus size={18} />}
-              {uploading ? 'Laddar upp...' : uploadsLeft > 0 ? 'Lägg till bild' : 'Veckan är full'}
-            </button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={onFileChange}
-            style={{ display: 'none' }}
-          />
+              <div style={{ color: 'rgba(255,255,255,0.74)', fontSize: 12 }}>
+                Du har <strong style={{ color: '#fff' }}>{uploadsLeft}</strong> uppladdning{uploadsLeft !== 1 ? 'ar' : ''} kvar den här veckan
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || uploadsLeft <= 0}
+                style={{
+                  border: 'none',
+                  borderRadius: 16,
+                  padding: '12px 16px',
+                  background: uploadsLeft > 0
+                    ? `linear-gradient(135deg, ${COLORS.yellow} 0%, #ffe760 100%)`
+                    : 'rgba(255,255,255,0.08)',
+                  color: uploadsLeft > 0 ? COLORS.navy : 'rgba(255,255,255,0.42)',
+                  fontWeight: 900,
+                  cursor: uploading || uploadsLeft <= 0 ? 'default' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                {uploading ? <ButtonLoader color={COLORS.navy} /> : <ImagePlus size={18} />}
+                {uploading ? 'Laddar upp...' : uploadsLeft > 0 ? 'Lägg till bild' : 'Veckan är full'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onFileChange}
+                style={{ display: 'none' }}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Leader approval section */}
+        {isLeader && pendingPhotos.length > 0 && (
+          <div style={{ padding: '12px 16px 0' }}>
+            <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: 14, padding: '12px 14px' }}>
+              <div style={{ color: '#fbbf24', fontWeight: 800, fontSize: 13, marginBottom: 10 }}>
+                🕐 {pendingPhotos.length} foto{pendingPhotos.length !== 1 ? 'n' : ''} väntar på godkännande
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {pendingPhotos.map(photo => (
+                  <div key={photo.id} style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: '8px 10px' }}>
+                    <img src={getPhotoSrc(photo)} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{photo.alias}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{photo.date}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button
+                        onClick={() => approvePhoto(photo.id, 'approved')}
+                        disabled={approvingPhoto[photo.id]}
+                        style={{ background: 'rgba(168,230,61,0.85)', border: 'none', borderRadius: 8, color: '#001540', fontSize: 12, fontWeight: 800, padding: '6px 10px', cursor: approvingPhoto[photo.id] ? 'not-allowed' : 'pointer', opacity: approvingPhoto[photo.id] ? 0.6 : 1 }}
+                      >
+                        ✓ Godkänn
+                      </button>
+                      <button
+                        onClick={() => approvePhoto(photo.id, 'rejected')}
+                        disabled={approvingPhoto[photo.id]}
+                        style={{ background: 'rgba(220,40,40,0.7)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 800, padding: '6px 10px', cursor: approvingPhoto[photo.id] ? 'not-allowed' : 'pointer', opacity: approvingPhoto[photo.id] ? 0.6 : 1 }}
+                      >
+                        ✕ Neka
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div
           style={{
@@ -758,7 +840,7 @@ export function PhotoAlbumModal({
         >
           {loading ? (
             <LoadingSpinner text="Laddar fotoalbumet..." />
-          ) : photos.length === 0 ? (
+          ) : visiblePhotos.length === 0 ? (
             <div
               style={{
                 minHeight: 360,

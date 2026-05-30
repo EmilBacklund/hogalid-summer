@@ -11,6 +11,7 @@ import {
 } from '../utils';
 import { Card, ProgressBar, SkeletonBar, ButtonLoader, Confetti, BuddyCelebration } from '../components/common';
 import { useUser } from '../context/UserContext';
+import { DEMO_TEAM_USERS } from '../demo/demoData';
 import { ArrowLeft } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -605,7 +606,7 @@ function BuddySection({ user, allUsers, buddyChallenges, handlers }) {
 export function ChallengesScreen() {
   const { user, setScreen, handleCompleteDaily, loading, seasonStart,
           buddyChallenges, handleCreateBuddyChallenge, handleRespondBuddyChallenge, handleCancelBuddyChallenge,
-          challengeScrollTarget, setChallengeScrollTarget } = useUser();
+          challengeScrollTarget, setChallengeScrollTarget, isDemo } = useUser();
 
   const dailyRef  = useRef(null);
   const weeklyRef = useRef(null);
@@ -637,6 +638,11 @@ export function ChallengesScreen() {
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [showAllLevels, setShowAllLevels] = useState(false);
   useEffect(() => {
+    if (isDemo) {
+      setAllUsers(DEMO_TEAM_USERS);
+      setLoadingTeam(false);
+      return;
+    }
     const stale = fetchAllUsersStale(fresh => {
       setAllUsers(fresh);
       setLoadingTeam(false);
@@ -645,7 +651,7 @@ export function ChallengesScreen() {
       setAllUsers(stale);
       setLoadingTeam(false);
     }
-  }, []);
+  }, [isDemo]);
 
   let weekTouch = 0,
     weekMinutes = 0;
