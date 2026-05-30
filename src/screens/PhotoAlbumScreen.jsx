@@ -11,6 +11,7 @@ import {
 import { COLORS } from '../constants';
 import { ButtonLoader, LoadingSpinner } from '../components/common';
 import { useUser } from '../context/UserContext';
+import { DEMO_PHOTOS } from '../demo/demoData';
 import {
   apiPost,
   apiPut,
@@ -478,7 +479,7 @@ export function PhotoAlbumModal({
   onPhotosChange,
   onClose,
 }) {
-  const { user, isLeader } = useUser();
+  const { user, isLeader, isDemo } = useUser();
   const [photos, setPhotos] = useState(initialPhotos || []);
   const [loading, setLoading] = useState(!initialPhotos);
   const [uploading, setUploading] = useState(false);
@@ -497,6 +498,14 @@ export function PhotoAlbumModal({
   }, [initialPhotos]);
 
   useEffect(() => {
+    // Demo mode — use mock photos, never touch real API or caches
+    if (isDemo) {
+      setPhotos(DEMO_PHOTOS);
+      onPhotosChange?.(DEMO_PHOTOS);
+      setLoading(false);
+      return;
+    }
+
     const stale = fetchTeamPhotosStale((fresh) => {
       const nextPhotos = fresh || [];
       setPhotos(nextPhotos);
@@ -536,9 +545,11 @@ export function PhotoAlbumModal({
   async function approvePhoto(id, status) {
     setApprovingPhoto(prev => ({ ...prev, [id]: true }));
     try {
-      await apiPut('/photos', { id, status });
+      if (!isDemo) {
+        await apiPut('/photos', { id, status });
+        invalidatePhotosCache();
+      }
       setPhotos(prev => prev.map(p => p.id === id ? { ...p, status } : p));
-      invalidatePhotosCache();
     } catch (e) {
       alert('Kunde inte uppdatera foto: ' + e.message);
     }
@@ -736,7 +747,7 @@ export function PhotoAlbumModal({
             </button>
           </div>
 
-          {!isLeader && (
+          {!isLeader && !isDemo && (
             <div
               style={{
                 display: 'flex',
