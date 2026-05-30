@@ -9,3 +9,4 @@ export { LoadingSpinner, SkeletonBar, TopLoadingBar, ButtonLoader } from './Load
 export { LevelUpModal } from './LevelUpModal';
 export { CardFront, CardBack } from './CollectorCard';
 export { InstallPrompt } from './InstallPrompt';
+export { DemoBanner } from './DemoBanner';
