@@ -55,6 +55,7 @@ export function BonusBingoModal({
       <div
         role="dialog"
         aria-modal="true"
+        aria-label="Bonusbingo"
         className="max-h-[90vh] w-full max-w-[430px] overflow-y-auto rounded-[28px] border-[6px] border-white/[0.18] shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
         style={{
           padding: expanded ? '20px 16px 110px' : '20px 16px 18px',

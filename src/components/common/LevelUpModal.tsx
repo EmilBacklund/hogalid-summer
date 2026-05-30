@@ -23,6 +23,7 @@ export function LevelUpModal({ level, onClose }: { level: Level | null; onClose:
       <div
         role="dialog"
         aria-modal="true"
+        aria-label="Nivå upp"
         className="w-full max-w-[340px] rounded-[28px] border-2 border-[#f0dc0088] bg-[linear-gradient(160deg,rgba(0,20,64,0.98)_0%,rgba(0,40,100,0.96)_58%,rgba(220,40,40,0.88)_100%)] px-7 pt-9 pb-7 text-center shadow-[0_0_60px_#f0dc0044,0_20px_60px_rgba(0,0,0,0.5)]"
       >
         <div className="animate-level-pop mb-3 text-[72px] leading-none">{level.icon}</div>

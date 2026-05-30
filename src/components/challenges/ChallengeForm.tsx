@@ -131,7 +131,8 @@ export function ChallengeForm({
           value={formAmount}
           onChange={(e) => setFormAmount(e.target.value)}
           placeholder={`0–${selectedEx?.max}`}
-          className="w-30 rounded-[10px] border-[1.5px] border-white/20 bg-white/[0.08] px-3 py-[9px] text-sm text-white outline-none"
+          aria-label={`Antal ${selectedEx?.unit ?? ''}`}
+          className="focus:ring-hogalid-yellow/40 w-30 rounded-[10px] border-[1.5px] border-white/20 bg-white/[0.08] px-3 py-[9px] text-sm text-white outline-none focus:ring-2"
         />
       </div>
 

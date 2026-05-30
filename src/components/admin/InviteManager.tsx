@@ -90,6 +90,7 @@ export function InviteManager() {
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void handleCreate()}
+          aria-label="Namn på inbjudan"
           placeholder="Namnge länken, t.ex. Maja eller Spelare 12"
           className="flex-1 rounded-[10px] border border-white/20 bg-white/[0.08] px-3 py-2.5 text-[13px] text-white"
         />

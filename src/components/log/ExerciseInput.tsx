@@ -65,6 +65,7 @@ export function ExerciseInput({
               </div>
               <input
                 {...NUM_PROPS}
+                aria-label={`${ex.label} – antal ${ex.unit}`}
                 placeholder={`Antal ${ex.unit}`}
                 value={value}
                 onChange={(e) => onValue(e.target.value)}
@@ -77,6 +78,7 @@ export function ExerciseInput({
               </div>
               <input
                 {...NUM_PROPS}
+                aria-label={`${ex.label} – rekord`}
                 placeholder="🏆 Rekord"
                 value={highscore}
                 onChange={(e) => onHighscore(e.target.value)}
@@ -91,6 +93,7 @@ export function ExerciseInput({
       ) : (
         <input
           {...NUM_PROPS}
+          aria-label={`${ex.label} – antal ${ex.unit}`}
           placeholder={`Antal ${ex.unit}`}
           value={value}
           onChange={(e) => onValue(e.target.value)}

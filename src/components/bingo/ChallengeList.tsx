@@ -126,6 +126,7 @@ export function ChallengeList({
                     type="button"
                     onClick={() => setSelectedChallenge(null)}
                     disabled={busy}
+                    aria-label="Avbryt"
                     className="rounded-xl px-4 py-3 text-sm"
                     style={{
                       border: `1px solid ${closeBorder}`,

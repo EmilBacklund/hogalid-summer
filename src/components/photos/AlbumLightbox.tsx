@@ -33,7 +33,12 @@ export function AlbumLightbox({ photos, index, onClose, onPrev, onNext }: AlbumL
       }}
       className="fixed inset-0 z-[1400] flex items-center justify-center bg-[rgba(0,7,20,0.9)] px-4 py-7"
     >
-      <div role="dialog" aria-modal="true" className="relative w-full max-w-[420px]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Foto"
+        className="relative w-full max-w-[420px]"
+      >
         <button
           type="button"
           onClick={onClose}

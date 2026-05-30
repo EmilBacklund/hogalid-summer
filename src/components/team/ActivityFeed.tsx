@@ -120,6 +120,8 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(functi
               <button
                 key={emoji}
                 type="button"
+                aria-pressed={mine}
+                aria-label={`Reagera med ${emoji}`}
                 onClick={(evt) => {
                   evt.stopPropagation();
                   onToggleReaction(eventKey, mine ? '' : emoji);
@@ -172,6 +174,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(functi
                 type="button"
                 onClick={() => setPage((v) => v - 1)}
                 disabled={page === 0}
+                aria-label="Föregående sida"
                 className={cn('text-xl', page === 0 ? 'text-white/15' : 'text-white/50')}
               >
                 ←
@@ -183,6 +186,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(functi
                 type="button"
                 onClick={() => setPage((v) => v + 1)}
                 disabled={page >= totalPages - 1}
+                aria-label="Nästa sida"
                 className={cn(
                   'text-xl',
                   page >= totalPages - 1 ? 'text-white/15' : 'text-white/50',

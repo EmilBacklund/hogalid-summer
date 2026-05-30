@@ -41,6 +41,7 @@ export function BuddyCelebration({
         <div
           role="dialog"
           aria-modal="true"
+          aria-label="Utmaning klarad"
           className="border-hogalid-yellow w-full max-w-[340px] rounded-[24px] border-2 bg-[linear-gradient(145deg,#0a1628,#001e6e)] px-7 pt-9 pb-7 text-center shadow-[0_0_60px_#f0dc0044]"
         >
           <div className="mb-3 text-[72px] leading-none">🤝</div>

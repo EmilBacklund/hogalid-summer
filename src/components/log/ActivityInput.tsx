@@ -25,6 +25,7 @@ export function ActivityInput({ activity: act, value, onChange }: ActivityInputP
         inputMode="numeric"
         pattern="[0-9]*"
         autoComplete="off"
+        aria-label={`${act.label} – antal ${act.unit}`}
         placeholder={`Antal ${act.unit}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}

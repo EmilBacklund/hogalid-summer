@@ -64,6 +64,7 @@ export function ProfileHeader({
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
             maxLength={20}
+            aria-label="Smeknamn"
             onKeyDown={(e) => {
               if (e.key === 'Enter') void commitName();
               else if (e.key === 'Escape') {
@@ -71,7 +72,7 @@ export function ProfileHeader({
                 setEditingName(false);
               }
             }}
-            className="border-hogalid-yellow font-display w-40 rounded-lg border bg-white/10 px-2.5 py-1 text-center text-xl text-white outline-none"
+            className="border-hogalid-yellow focus:ring-hogalid-yellow/40 font-display w-40 rounded-lg border bg-white/10 px-2.5 py-1 text-center text-xl text-white outline-none focus:ring-2"
           />
           <button
             type="button"

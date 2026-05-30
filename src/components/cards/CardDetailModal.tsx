@@ -24,7 +24,12 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
       }}
       className="fixed inset-0 z-[1100] flex cursor-pointer flex-col items-center justify-center overflow-y-auto bg-black/[0.82] p-6"
     >
-      <div className="flex w-full max-w-[340px] flex-col items-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={card.name}
+        className="flex w-full max-w-[340px] flex-col items-center"
+      >
         <CardFront card={card} size={1.6} />
 
         {/* Info panel — solid background for readability over the card art. */}

@@ -25,6 +25,7 @@ export function AdultIntroModal({ onOpen, onClose }: AdultIntroModalProps) {
       <div
         role="dialog"
         aria-modal="true"
+        aria-label="Hemligt vuxenbingo hittat"
         className="w-full max-w-[360px] rounded-3xl border border-[rgba(250,204,21,0.28)] px-5 py-[22px] shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
         style={{
           background:

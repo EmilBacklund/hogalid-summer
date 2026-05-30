@@ -123,7 +123,8 @@ function LogHistoryContent({ user }: { user: User }) {
                     placeholder={`0 ${ex.unit}`}
                     value={val?.value || ''}
                     onChange={(e) => setVal(ex.id, e.target.value)}
-                    className="w-20 rounded-lg border-[1.5px] border-white/20 bg-white/[0.08] px-2.5 py-[7px] text-right text-sm text-white outline-none"
+                    aria-label={`${ex.label} – antal ${ex.unit}`}
+                    className="focus:ring-hogalid-yellow/40 w-20 rounded-lg border-[1.5px] border-white/20 bg-white/[0.08] px-2.5 py-[7px] text-right text-sm text-white outline-none focus:ring-2"
                   />
                 </div>
               );
