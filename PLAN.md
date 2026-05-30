@@ -159,28 +159,24 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 ---
 
-## Session 3 — API routes (server side) — **security-critical session**
+## Session 3 — API routes (server side) — **security-critical session** ✅
 
 **Goal**: move the backend off Netlify Functions onto Next.js Route Handlers, with Zod validation, real auth, and tests. This session lands most of the security fixes.
 
-- [ ] Keep the existing Turso schema (no multi-tenant). Port `netlify/functions/db.js` → `src/server/db.ts` (singleton getter).
-- [ ] Port `netlify/functions/auth.js` → `src/server/auth.ts` (PBKDF2 via Node `crypto`).
-- [ ] Port `netlify/functions/buddyProgress.js` → `src/server/buddyProgress.ts`.
-- [ ] **[SEC C1] Real auth**: signed httpOnly session cookie helpers (`setSessionCookie`, `getSession`, `clearSessionCookie`; SameSite=Lax, Secure in prod). Every mutating handler derives the acting alias from the cookie — never from the request body. Admin handlers verify the signed `admin` claim server-side.
-- [ ] **[SEC C2] Drop plaintext passwords**: remove the `display_password` column; never return a cleartext password from the API. PBKDF2 hash only. Admins _reset_ passwords, never view them. (Matching UI removal in S10.)
-- [ ] **[SEC H1] Server-authoritative points**: the logs handler **recomputes** `points` from the submitted exercises using `constants/exercises` rules and ignores any client-sent score. Clamp minutes/reps to sane maxima.
-- [ ] **[SEC M1] Photo storage = Netlify Blobs**: define a `PhotoStorage` interface and ship a `NetlifyBlobsStorage` impl. Store image _bytes_ in Netlify Blobs; keep only metadata in the DB (`alias, week_start, uploaded_at, mime_type, blob_key`). Client downscales before upload (canvas → ~1280px, WebP/JPEG q≈0.8); list endpoint is paginated and returns URLs, not bytes; bytes served through an **auth-gated** route with cache headers (minors' photos must not be publicly fetchable).
-- [ ] **[SEC M3/M4]** Basic rate limiting (login attempts + invite redemption); return generic error messages to clients and log details server-side.
-- [ ] Create Route Handlers:
-  - `app/api/users/route.ts` (+ sub-routes: `login`, `register`, `me`, `config`, `cheer`)
-  - `app/api/logs/route.ts`
-  - `app/api/buddy-challenges/route.ts` (+ `/accept`, `/complete`)
-  - `app/api/photos/route.ts`
-- [ ] All request bodies validated with Zod schemas from Session 2.
-- [ ] Handler tests with Vitest (mock DB; assert status codes, response shape, **and authz** — unauthenticated and non-admin callers are rejected).
-- [ ] Delete `netlify/functions/`; update `netlify.toml` (drop the functions block).
+- [x] Keep the existing Turso schema (no multi-tenant). Port `netlify/functions/db.js` → `src/server/db.ts` (memoized singleton + idempotent `initDb`).
+- [x] Port `netlify/functions/auth.js` → `src/server/auth.ts` (PBKDF2-SHA256 via Node `crypto`, timing-safe verify).
+- [x] Port `netlify/functions/buddyProgress.js` → `src/server/buddyProgress.ts` (typed; also `buddyChallenges.ts` for row mapping + baseline snapshot).
+- [x] **[SEC C1] Real auth**: signed httpOnly session cookie (`src/server/session.ts` — HMAC-SHA256 via Web Crypto so it stays edge-portable for S4 middleware; SameSite=Lax, Secure in prod). `requireUser`/`requireAdmin` guards. Every mutating handler derives the acting alias from the cookie — never from the body. Admin handlers verify the signed `admin` claim server-side.
+- [x] **[SEC C2] Drop plaintext passwords**: `display_password` column gone from `initDb`; never read/written. PBKDF2 hash only; admin reset stores a new hash, never the cleartext (verified by a test). (Matching UI removal still in S10.)
+- [x] **[SEC H1] Server-authoritative points** (`src/server/points.ts`): the logs handler **recomputes** `points`/`minutes` from clamped exercises and ignores any client score (the schema doesn't even accept one). Exercise values clamped to per-exercise maxima; summer activities clamped; penalty score clamped 0..10. Bingo/daily bonus logs are created **server-side** from constants; the bingo line-bonus is accepted but hard-clamped (`MAX_LINE_BONUS`) — TODO(S9) to port the full line engine. Bingo/daily completion is idempotent (replays award nothing).
+- [x] **[SEC M1] Photo storage = Netlify Blobs**: `PhotoStorage` interface + `NetlifyBlobsStorage` impl (`src/server/photoStorage.ts`). Bytes in Blobs; DB keeps metadata + `blob_key`. List endpoint paginated (`limit`/`offset`), returns `url`s not bytes; bytes served through the **auth-gated** `app/api/photos/[id]` route with `Cache-Control: private`. (Client-side downscale lands with the PhotoAlbum screen in S10.)
+- [x] **[SEC M3/M4]** In-memory rate limiting (`src/server/rateLimit.ts`) on login, register/invite redemption, and invite validation; generic `{ error: code }` client messages with full detail logged server-side (`src/server/responses.ts` `handle` wrapper + `ApiError`).
+- [x] Create Route Handlers (22 total): `auth/{login,register,logout,me}`, `users` + `users/display-name` + `users/secret-progress`, `config`, `logs`, `bingo`, `daily`, `cheers`, `reactions`, `weekly-results`, `buddy-challenges` (+ `/respond`, `/cancel`), `photos` (+ `/[id]`), `invites` (+ `/validate`), `admin` (dispatch route for all privileged actions).
+- [x] All request bodies validated with Zod schemas (`src/schemas` expanded to ~20 schemas).
+- [x] Handler tests with Vitest (mock DB + injected fake blob storage): 66 tests — session signing, server-side points/clamps, auth, **authz** (unauthenticated → 401, non-admin → 403, can't edit/delete another user's log), photo upload + auth-gated bytes, admin gating, no-plaintext-password on reset.
+- [x] Deleted `netlify/functions/`; `netlify.toml` had no functions block to drop (functions were auto-detected from the now-removed directory). `src/utils/api.ts` base switched to `/api`.
 
-**End of session**: all API endpoints respond correctly via Vitest/`curl`; auth and admin gating verified by tests.
+**End of session**: ✅ typecheck, lint, test (66), and build all pass. All 22 endpoints build as dynamic route handlers; auth and admin gating verified by tests.
 
 ---
 
@@ -345,6 +341,7 @@ _Add a line here at the end of every session._
 - **2026-05-30** — **Scope frozen for an 8-day launch (target 2026-06-07): stack upgrade + security + bugs only, no new features.** Removed from plan: multi-tenant future-proofing (teams/memberships/email/TeamConfig), Commitizen + commit-banner script, Framer Motion rewrites (keep existing animations), Storybook, server-component optimization, Lighthouse-90/dark-mode. (Sentry re-added 2026-05-30 — it serves the "no issues" goal.)
 - **2026-05-30 (Session 1 ✅)** — Scaffolded Next.js 15 + React 19 + strict TypeScript + Tailwind v4 in place on `rewrite/next-s1-foundation`. Full tooling wired: ESLint 9 flat config, Prettier, Husky (pre-commit/commit-msg/pre-push) + lint-staged + commitlint, Vitest + RTL + jsdom (3 passing tests), Playwright (installed, skipped till S12), GitHub Actions CI, Sentry (inert without DSN) + `global-error.tsx`, `@netlify/plugin-nextjs`. Removed `index.html`/`vite.config.js`. typecheck + lint + test + build all green. Merged locally into `rewrite/next`.
 - **2026-05-30 (Session 2 ✅)** — Ported all of `src/constants` and `src/utils` from JS to strict TS on `rewrite/next-s2-constants`, plus `src/types` (domain types) and initial `src/schemas` (Zod). Data-heavy constants renamed via `git mv` (data byte-identical, then typed); logic files (utils + avatar/cards) rewritten with full types and strict-mode fixes (Date math, safe indexing). 21 Vitest tests. `src/constants` + `src/utils` are now 100% TypeScript; components remain `.jsx` (ported in their sessions, excluded from tsc/lint/build for now). typecheck + lint + test + build all green. **Next: Session 3 (API Route Handlers + the security-critical work — auth, no-plaintext-passwords, server-side points, Netlify Blobs photos).** Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
+- **2026-05-30 (Session 3 ✅)** — Ported the entire backend off Netlify Functions onto 22 Next.js Route Handlers on `rewrite/next-s3-api`, landing the security-critical fixes. New `src/server/` layer: `db`, `auth` (PBKDF2), `session` (signed httpOnly HMAC cookie + `requireUser`/`requireAdmin`), `responses` (`ApiError` + generic-error `handle` wrapper), `rateLimit`, `points` (server-authoritative scoring), `photoStorage` (Blobs), `buddyProgress`/`buddyChallenges`, `invites`, `repo` (row→domain mappers), `dates`. **[SEC C1]** every mutation derives the alias from the cookie; admin actions verify the signed `admin` claim. **[SEC C2]** `display_password` gone; admin reset stores only a new hash. **[SEC H1]** points recomputed + clamped server-side; bingo/daily bonus logs created server-side from constants (bingo line-bonus clamped, full engine TODO in S9); completions idempotent. **[SEC M1]** photo bytes in Netlify Blobs, metadata + `blob_key` in DB, paginated list returns URLs, bytes auth-gated. **[SEC M3/M4]** rate limiting + generic client errors. Zod validates every body (~20 schemas). 66 Vitest tests (incl. authz + points + admin gating). Deleted `netlify/functions/`; `api.ts` base → `/api`. typecheck + lint + test + build all green. **Decision (Emil):** bonus-point authoritativeness = "move bonus creation server-side, clamp line bonus." **Next: Session 4 (app shell, file-based routing, middleware auth redirect, TanStack Query providers/hooks).**
 
 ---
 

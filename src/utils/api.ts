@@ -1,6 +1,6 @@
-// API helpers — talk to the backend (Netlify Functions today; Next Route
-// Handlers after Session 3).
-export const API = '/.netlify/functions';
+// API helpers — talk to the backend Next.js Route Handlers under /api.
+// Requests are same-origin and carry the httpOnly session cookie automatically.
+export const API = '/api';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

@@ -1,19 +1,38 @@
-import { createClient } from "@libsql/client";
+import { createClient, type Client } from '@libsql/client';
 
-export function getDb() {
-  return createClient({
-    url: process.env.TURSO_URL,
-    authToken: process.env.TURSO_TOKEN,
-  });
+/**
+ * Single libsql client per server instance. Route Handlers run in a long-lived
+ * Node process on Netlify, so we memoize the client instead of opening a new
+ * connection per request.
+ */
+let client: Client | null = null;
+
+export function getDb(): Client {
+  if (client) return client;
+  const url = process.env.TURSO_URL;
+  const authToken = process.env.TURSO_TOKEN;
+  if (!url) throw new Error('TURSO_URL is not configured');
+  client = createClient(authToken ? { url, authToken } : { url });
+  return client;
 }
 
-export async function initDb(db) {
+/**
+ * Ensure the schema exists. Idempotent — safe to call on every cold start.
+ *
+ * Note (SEC C2): the `display_password` plaintext column is intentionally gone.
+ * Passwords are stored only as PBKDF2 hashes in `users.password`. Photo bytes
+ * (SEC M1) live in Netlify Blobs; `album_photos` keeps metadata + `blob_key`.
+ */
+let initialized = false;
+
+export async function initDb(db: Client = getDb()): Promise<void> {
+  if (initialized) return;
   await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS users (
       alias TEXT PRIMARY KEY,
       display_alias TEXT DEFAULT '',
+      display_name TEXT DEFAULT '',
       password TEXT NOT NULL,
-      display_password TEXT DEFAULT '',
       avatar_config TEXT DEFAULT '{}',
       unlocked_items TEXT DEFAULT '[]',
       highscores TEXT DEFAULT '{}',
@@ -30,7 +49,12 @@ export async function initDb(db) {
       minutes INTEGER DEFAULT 0,
       bingo INTEGER DEFAULT 0,
       bingo_football INTEGER DEFAULT 0,
-      daily_challenge INTEGER DEFAULT 0
+      daily_challenge INTEGER DEFAULT 0,
+      ice_cream INTEGER DEFAULT 0,
+      swim INTEGER DEFAULT 0,
+      pages INTEGER DEFAULT 0,
+      title TEXT DEFAULT '',
+      created_at TEXT DEFAULT ''
     );
 
     CREATE TABLE IF NOT EXISTS bingo (
@@ -118,43 +142,33 @@ export async function initDb(db) {
       from_completed_at TEXT,
       to_completed_at TEXT,
       from_progress INTEGER DEFAULT 0,
-      to_progress INTEGER DEFAULT 0
+      to_progress INTEGER DEFAULT 0,
+      from_baseline INTEGER DEFAULT 0,
+      to_baseline INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS album_photos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       alias TEXT NOT NULL,
-      image_data TEXT NOT NULL,
+      blob_key TEXT NOT NULL,
       mime_type TEXT DEFAULT 'image/jpeg',
       week_start TEXT NOT NULL,
       uploaded_at TEXT NOT NULL
     );
   `);
 
-  // Migrations
-  const migrations = [
-    "ALTER TABLE users ADD COLUMN display_alias TEXT DEFAULT ''",
-    "ALTER TABLE users ADD COLUMN display_password TEXT DEFAULT ''",
-    "ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''",
-    "ALTER TABLE users ADD COLUMN secret_flags TEXT DEFAULT '{}'",
-    "ALTER TABLE logs ADD COLUMN ice_cream INTEGER DEFAULT 0",
-    "ALTER TABLE logs ADD COLUMN swim INTEGER DEFAULT 0",
-    "ALTER TABLE logs ADD COLUMN pages INTEGER DEFAULT 0",
-    "ALTER TABLE logs ADD COLUMN title TEXT DEFAULT ''",
-    "ALTER TABLE logs ADD COLUMN created_at TEXT DEFAULT ''",
-    "ALTER TABLE buddy_challenges ADD COLUMN from_baseline INTEGER DEFAULT 0",
-    "ALTER TABLE buddy_challenges ADD COLUMN to_baseline INTEGER DEFAULT 0",
-    "ALTER TABLE album_photos ADD COLUMN mime_type TEXT DEFAULT 'image/jpeg'",
-    "ALTER TABLE album_photos ADD COLUMN week_start TEXT DEFAULT ''",
-  ];
-  for (const sql of migrations) {
-    try { await db.execute(sql); } catch (e) { /* column already exists */ }
+  // Idempotent migration for DBs created before photos moved to Netlify Blobs.
+  try {
+    await db.execute("ALTER TABLE album_photos ADD COLUMN blob_key TEXT DEFAULT ''");
+  } catch {
+    // column already exists
   }
 
-  // Migration: add avatar_config column if missing (replaces old avatar_base)
-  try {
-    await db.execute("ALTER TABLE users ADD COLUMN avatar_config TEXT DEFAULT '{}'");
-  } catch (e) {
-    // Column already exists — ignore
-  }
+  initialized = true;
+}
+
+/** Test-only: reset the memoized init flag so a fresh fake DB re-runs initDb. */
+export function resetInitForTests(): void {
+  initialized = false;
+  client = null;
 }
