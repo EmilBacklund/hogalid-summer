@@ -146,6 +146,7 @@ export async function initDb(db) {
     "ALTER TABLE buddy_challenges ADD COLUMN to_baseline INTEGER DEFAULT 0",
     "ALTER TABLE album_photos ADD COLUMN mime_type TEXT DEFAULT 'image/jpeg'",
     "ALTER TABLE album_photos ADD COLUMN week_start TEXT DEFAULT ''",
+    "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'player'",
   ];
   for (const sql of migrations) {
     try { await db.execute(sql); } catch (e) { /* column already exists */ }

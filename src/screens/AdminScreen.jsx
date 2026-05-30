@@ -1,10 +1,72 @@
 import { useState, useEffect } from 'react';
 import { COLORS } from '../constants';
-import { apiGet, apiPost, apiPut, apiDelete, localToday, computeStats, getLevel } from '../utils';
+import { apiGet, apiPost, apiPut, apiDelete, localToday, computeStats, getLevel, fetchTeamPhotos } from '../utils';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 
-export function AdminScreen() {
+function LeaderSection({ players }) {
+  const leaders = players.filter(p => p.role === 'leader');
+  const [alias, setAlias] = useState('');
+  const [password, setPassword] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState(null);
+  const [error, setError] = useState('');
+
+  async function handleCreate() {
+    if (!alias.trim() || !password.trim()) return;
+    setCreating(true);
+    setError('');
+    try {
+      await apiPost('/users?action=createleader', { alias: alias.trim(), password: password.trim() });
+      setCreated(alias.trim());
+      setAlias('');
+      setPassword('');
+    } catch (e) {
+      setError(e.message.includes('alias_taken') ? 'Det smeknamnet är redan taget.' : 'Kunde inte skapa konto: ' + e.message);
+    }
+    setCreating(false);
+  }
+
+  return (
+    <div>
+      {leaders.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+          {leaders.map(l => (
+            <div key={l.alias} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>👁️ {l.alias}</span>
+              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12 }}>Ledare</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <input
+          value={alias}
+          onChange={e => setAlias(e.target.value)}
+          placeholder="Smeknamn"
+          style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
+        />
+        <input
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Lösenord"
+          style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: "'Nunito', sans-serif" }}
+        />
+      </div>
+      <button
+        onClick={handleCreate}
+        disabled={!alias.trim() || !password.trim() || creating}
+        style={{ width: '100%', padding: '9px 0', borderRadius: 10, border: 'none', background: !alias.trim() || !password.trim() || creating ? 'rgba(255,255,255,0.1)' : COLORS.lime, color: !alias.trim() || !password.trim() || creating ? 'rgba(255,255,255,0.3)' : COLORS.dark, fontWeight: 700, fontSize: 13, cursor: !alias.trim() || !password.trim() || creating ? 'not-allowed' : 'pointer', fontFamily: "'Nunito', sans-serif" }}
+      >
+        {creating ? 'Skapar...' : '+ Skapa ledarkonto'}
+      </button>
+      {created && <div style={{ color: COLORS.lime, fontSize: 13, fontWeight: 700, marginTop: 8 }}>✅ {created} skapad!</div>}
+      {error && <div style={{ color: '#f87171', fontSize: 13, marginTop: 8 }}>{error}</div>}
+    </div>
+  );
+}
+
+export function AdminScreen({ onViewTeam }) {
   const { handleLogout, setSeasonStart, setCountdownDate, countdownDate } = useUser();
 
   const [players, setPlayers] = useState([]);
@@ -33,6 +95,16 @@ export function AdminScreen() {
   const [savingFirstLog, setSavingFirstLog] = useState({});
   const [firstLogSaved, setFirstLogSaved] = useState({});
 
+  // Photo moderation
+  const [photos, setPhotos] = useState([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [deletingPhoto, setDeletingPhoto] = useState({});
+  const [showPhotos, setShowPhotos] = useState(false);
+
+  // Log viewer per player
+  const [expandedLogs, setExpandedLogs] = useState({});  // { alias: bool }
+  const [deletingLog, setDeletingLog] = useState({});    // { logId: bool }
+
   // Invite manager
   const [inviteLabel, setInviteLabel] = useState('');
   const [creatingInvite, setCreatingInvite] = useState(false);
@@ -54,6 +126,11 @@ export function AdminScreen() {
     apiGet('/users?action=invites')
       .then((data) => setInvites(data || []))
       .catch(() => setInvites([]));
+
+    fetchTeamPhotos()
+      .then(data => setPhotos(data || []))
+      .catch(() => setPhotos([]))
+      .finally(() => setLoadingPhotos(false));
   }, []);
 
   function formatDateTime(value) {
@@ -183,6 +260,32 @@ export function AdminScreen() {
     setSavingFirstLog(prev => ({ ...prev, [alias]: false }));
   }
 
+  async function handleDeletePhoto(id) {
+    setDeletingPhoto(prev => ({ ...prev, [id]: true }));
+    try {
+      await apiDelete('/photos', { id });
+      setPhotos(prev => prev.filter(p => p.id !== id));
+    } catch (e) {
+      alert('Kunde inte ta bort foto: ' + e.message);
+    }
+    setDeletingPhoto(prev => ({ ...prev, [id]: false }));
+  }
+
+  async function handleDeleteLog(alias, logId) {
+    setDeletingLog(prev => ({ ...prev, [logId]: true }));
+    try {
+      await apiPut('/users?action=deletelog', { logId });
+      setPlayers(prev => prev.map(p =>
+        p.alias === alias
+          ? { ...p, logs: (p.logs || []).filter(l => l.id !== logId) }
+          : p
+      ));
+    } catch (e) {
+      alert('Kunde inte ta bort logg: ' + e.message);
+    }
+    setDeletingLog(prev => ({ ...prev, [logId]: false }));
+  }
+
   async function handleCreateInvite() {
     if (!inviteLabel.trim()) return;
     setCreatingInvite(true);
@@ -247,7 +350,17 @@ export function AdminScreen() {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><img src="/img/hogalid-logo.png" alt="" style={{ width: 32, height: 32 }} /><span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 20, color: COLORS.lime }}>Admin — Högalid F15</span></div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Sommarlovet 2026</div>
         </div>
-        <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 13, borderRadius: 8, padding: "6px 12px" }}>Logga ut</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {onViewTeam && (
+            <button
+              onClick={onViewTeam}
+              style={{ background: 'rgba(168,230,61,0.15)', border: `1px solid ${COLORS.lime}55`, color: COLORS.lime, cursor: 'pointer', fontSize: 13, borderRadius: 8, padding: '6px 12px', fontWeight: 700, marginRight: 8 }}
+            >
+              👁️ Lagvy
+            </button>
+          )}
+          <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 13, borderRadius: 8, padding: "6px 12px" }}>Logga ut</button>
+        </div>
       </div>
 
       <div style={{ padding: "16px 16px 40px" }}>
@@ -347,6 +460,17 @@ export function AdminScreen() {
               {savingSeasonDate ? "Sparar..." : seasonDateSaved ? "✅ Sparat!" : "Spara"}
             </button>
           </div>
+        </div>
+
+        {/* Leader accounts */}
+        <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16, padding: '14px 16px', marginBottom: 12 }}>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            👁️ Ledarkonton
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 12, lineHeight: 1.45 }}>
+            Ledare kan följa laget i appen men inte logga träning, ladda upp foton eller kommunicera.
+          </div>
+          <LeaderSection players={players} />
         </div>
 
         {/* Invite manager */}
@@ -464,6 +588,55 @@ export function AdminScreen() {
           )}
         </div>
 
+        {/* Photo moderation */}
+        <div style={{ marginBottom: 18 }}>
+          <button
+            onClick={() => setShowPhotos(v => !v)}
+            style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16, padding: '14px 16px', cursor: 'pointer', color: '#fff', fontFamily: "'Nunito', sans-serif" }}
+          >
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,0.5)' }}>📸 Lagets foton</span>
+              <span style={{ marginLeft: 8, fontSize: 13, color: COLORS.accent, fontWeight: 700 }}>{photos.length} st</span>
+            </div>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{showPhotos ? '▲ Dölj' : '▼ Visa'}</span>
+          </button>
+
+          {showPhotos && (
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none', borderRadius: '0 0 16px 16px', padding: '12px 16px' }}>
+              {loadingPhotos ? (
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, padding: '8px 0' }}>Laddar foton...</div>
+              ) : photos.length === 0 ? (
+                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '8px 0' }}>Inga foton uppladdade än.</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {photos.map(photo => (
+                    <div key={photo.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.3)' }}>
+                      <img
+                        src={photo.imageData}
+                        alt=""
+                        style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }}
+                      />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.65)', padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{photo.alias}</div>
+                          <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{(photo.uploadedAt || '').slice(0, 10)}</div>
+                        </div>
+                        <button
+                          onClick={() => handleDeletePhoto(photo.id)}
+                          disabled={deletingPhoto[photo.id]}
+                          style={{ background: 'rgba(220,40,40,0.85)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', cursor: deletingPhoto[photo.id] ? 'not-allowed' : 'pointer', opacity: deletingPhoto[photo.id] ? 0.6 : 1 }}
+                        >
+                          {deletingPhoto[photo.id] ? '...' : '🗑️ Ta bort'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Player cards */}
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
           Alla spelare ({players.length}) — sorterat senast aktiv
@@ -564,6 +737,41 @@ export function AdminScreen() {
                     </div>
                   )}
                 </div>
+
+                {/* Log viewer */}
+                <button
+                  onClick={() => setExpandedLogs(prev => ({ ...prev, [p.alias]: !prev[p.alias] }))}
+                  style={{ width: '100%', marginTop: 8, padding: '7px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
+                >
+                  <span>📋 Träningsloggar ({(p.logs || []).length} st)</span>
+                  <span>{expandedLogs[p.alias] ? '▲' : '▼'}</span>
+                </button>
+
+                {expandedLogs[p.alias] && (
+                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {(p.logs || []).length === 0 ? (
+                      <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: '6px 10px' }}>Inga loggar.</div>
+                    ) : [...(p.logs || [])].sort((a, b) => b.date.localeCompare(a.date)).map(log => (
+                      <div key={log.id} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{log.date}</div>
+                          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {log.points}p &nbsp;·&nbsp; {log.minutes} min
+                            {log.title ? ` · ${log.title}` : ''}
+                            {log.bingo ? ' · Bingo' : ''}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteLog(p.alias, log.id)}
+                          disabled={deletingLog[log.id]}
+                          style={{ flexShrink: 0, background: 'rgba(220,40,40,0.7)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', cursor: deletingLog[log.id] ? 'not-allowed' : 'pointer', opacity: deletingLog[log.id] ? 0.6 : 1 }}
+                        >
+                          {deletingLog[log.id] ? '...' : '🗑️'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Delete player */}
                 {deleteConfirm[p.alias] ? (

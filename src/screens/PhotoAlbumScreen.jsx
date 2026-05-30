@@ -469,7 +469,7 @@ export function PhotoAlbumModal({
   onPhotosChange,
   onClose,
 }) {
-  const { user } = useUser();
+  const { user, isLeader } = useUser();
   const [photos, setPhotos] = useState(initialPhotos || []);
   const [loading, setLoading] = useState(!initialPhotos);
   const [uploading, setUploading] = useState(false);
@@ -705,48 +705,50 @@ export function PhotoAlbumModal({
             </button>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              marginTop: 14,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ color: 'rgba(255,255,255,0.74)', fontSize: 12 }}>
-              Du har <strong style={{ color: '#fff' }}>{uploadsLeft}</strong> uppladdning{uploadsLeft !== 1 ? 'ar' : ''} kvar den här veckan
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || uploadsLeft <= 0}
+          {!isLeader && (
+            <div
               style={{
-                border: 'none',
-                borderRadius: 16,
-                padding: '12px 16px',
-                background: uploadsLeft > 0
-                  ? `linear-gradient(135deg, ${COLORS.yellow} 0%, #ffe760 100%)`
-                  : 'rgba(255,255,255,0.08)',
-                color: uploadsLeft > 0 ? COLORS.navy : 'rgba(255,255,255,0.42)',
-                fontWeight: 900,
-                cursor: uploading || uploadsLeft <= 0 ? 'default' : 'pointer',
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: 8,
+                justifyContent: 'space-between',
+                gap: 12,
+                marginTop: 14,
+                flexWrap: 'wrap',
               }}
             >
-              {uploading ? <ButtonLoader color={COLORS.navy} /> : <ImagePlus size={18} />}
-              {uploading ? 'Laddar upp...' : uploadsLeft > 0 ? 'Lägg till bild' : 'Veckan är full'}
-            </button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={onFileChange}
-            style={{ display: 'none' }}
-          />
+              <div style={{ color: 'rgba(255,255,255,0.74)', fontSize: 12 }}>
+                Du har <strong style={{ color: '#fff' }}>{uploadsLeft}</strong> uppladdning{uploadsLeft !== 1 ? 'ar' : ''} kvar den här veckan
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || uploadsLeft <= 0}
+                style={{
+                  border: 'none',
+                  borderRadius: 16,
+                  padding: '12px 16px',
+                  background: uploadsLeft > 0
+                    ? `linear-gradient(135deg, ${COLORS.yellow} 0%, #ffe760 100%)`
+                    : 'rgba(255,255,255,0.08)',
+                  color: uploadsLeft > 0 ? COLORS.navy : 'rgba(255,255,255,0.42)',
+                  fontWeight: 900,
+                  cursor: uploading || uploadsLeft <= 0 ? 'default' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                {uploading ? <ButtonLoader color={COLORS.navy} /> : <ImagePlus size={18} />}
+                {uploading ? 'Laddar upp...' : uploadsLeft > 0 ? 'Lägg till bild' : 'Veckan är full'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onFileChange}
+                style={{ display: 'none' }}
+              />
+            </div>
+          )}
         </div>
 
         <div
