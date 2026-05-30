@@ -99,6 +99,19 @@ export interface BuddyChallenge {
 /** Current-session response from `/api/auth/me`: a user, or the admin marker. */
 export type Me = User | { alias: 'admin'; isAdmin: true };
 
+/** An invite as served to the admin UI (mirrors the server's InviteClient). */
+export interface Invite {
+  id: number;
+  label: string;
+  token: string;
+  code: string;
+  status: 'active' | 'clicked' | 'used' | 'disabled';
+  clickedAt: string | null;
+  usedAt: string | null;
+  usedByAlias: string;
+  createdAt: string;
+}
+
 // ── Static data shapes (constants) ──────────────────────────────────────────
 
 export interface Exercise {
