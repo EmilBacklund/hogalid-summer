@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { COLORS } from './constants';
 import { UserProvider, useUser } from './context/UserContext';
 import { TopBar, LoadingSpinner, TopLoadingBar, BuddyCelebration, LevelUpModal } from './components/common';
@@ -18,6 +19,7 @@ function AppContent() {
   const { user, loading, autoLoading, screen, setScreen, handleLogout,
           newlyCompletedChallenge, clearNewlyCompletedChallenge,
           levelUpData, clearLevelUp } = useUser();
+  const [adminSpectator, setAdminSpectator] = useState(false);
 
   const bgStyle = {
     minHeight: "100vh",
@@ -51,7 +53,23 @@ function AppContent() {
   }
 
   if (user.isAdmin) {
-    return <AdminScreen />;
+    if (adminSpectator) {
+      return (
+        <div style={bgStyle}>
+          <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap'); body { background: ${COLORS.dark}; }`}</style>
+          <div style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, maxWidth: 480, width: '100%', padding: '0 16px', boxSizing: 'border-box', pointerEvents: 'none' }}>
+            <button
+              onClick={() => setAdminSpectator(false)}
+              style={{ pointerEvents: 'all', background: 'rgba(0,21,64,0.95)', border: '1.5px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 99, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Nunito', sans-serif", boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
+            >
+              ← Tillbaka till admin
+            </button>
+          </div>
+          <TeamScreen />
+        </div>
+      );
+    }
+    return <AdminScreen onViewTeam={() => setAdminSpectator(true)} />;
   }
 
   return (

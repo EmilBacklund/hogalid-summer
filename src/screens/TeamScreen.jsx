@@ -24,7 +24,7 @@ import { ArrowLeft, ArrowRight, Camera } from 'lucide-react';
 import { PhotoAlbumModal } from './PhotoAlbumScreen';
 
 export function TeamScreen() {
-  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer } = useUser();
+  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer, isLeader } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [teamPhotos, setTeamPhotos] = useState([]);
@@ -488,7 +488,7 @@ export function TeamScreen() {
                   <div style={{ color: isMe ? COLORS.lime : '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{getUserLabel(u)}</div>
                   {isMe ? (
                     <div style={{ color: COLORS.lime, fontSize: 10 }}>Du</div>
-                  ) : (
+                  ) : (!isLeader && !user.isAdmin && (
                     <button
                       onClick={async () => {
                         if (cheerState) return;
@@ -513,7 +513,7 @@ export function TeamScreen() {
                     >
                       {cheerState === 'sent' ? '✅ Hejat!' : cheerState === 'already' ? 'Redan hejat' : '📣 Heja!'}
                     </button>
-                  )}
+                  ))}
                 </div>
               );
             })}
@@ -567,17 +567,19 @@ export function TeamScreen() {
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, flexShrink: 0 }}>{e.date}</div>
               </div>
-              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                {['🔥', '👏', '⚽', '💪'].map(emoji => {
-                  const count = reactionCounts[emoji] || 0;
-                  const mine = myReaction === emoji;
-                  return (
-                    <button key={emoji} onClick={(evt) => { evt.stopPropagation(); toggleReaction(eventKey, emoji); }} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {emoji}{count > 0 && <span style={{ fontSize: 11 }}>{count}</span>}
-                    </button>
-                  );
-                })}
-              </div>
+              {!isLeader && !user.isAdmin && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  {['🔥', '👏', '⚽', '💪'].map(emoji => {
+                    const count = reactionCounts[emoji] || 0;
+                    const mine = myReaction === emoji;
+                    return (
+                      <button key={emoji} onClick={(evt) => { evt.stopPropagation(); toggleReaction(eventKey, emoji); }} style={{ background: mine ? 'rgba(240,220,0,0.2)' : 'rgba(255,255,255,0.07)', border: mine ? '1px solid rgba(240,220,0,0.4)' : '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 9px', cursor: 'pointer', fontSize: 13, color: mine ? COLORS.yellow : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {emoji}{count > 0 && <span style={{ fontSize: 11 }}>{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         }

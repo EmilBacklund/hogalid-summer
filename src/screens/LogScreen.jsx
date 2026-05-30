@@ -75,7 +75,10 @@ const RANGE_STYLE = {
 };
 
 export function LogScreen() {
-  const { user, setScreen, handleSaveLog, handleUpdateLog, handleRecordSecretProgress } = useUser();
+  const { user, setScreen, handleSaveLog, handleUpdateLog, handleRecordSecretProgress, isLeader } = useUser();
+  useEffect(() => {
+    if (isLeader) setScreen('home');
+  }, [isLeader]);
 
   // === Write state ===
   const [date, setDate] = useState(localToday());
