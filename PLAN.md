@@ -231,17 +231,19 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 **Goal**: the two entry-point screens. Battle-tests hooks + providers end-to-end.
 
-- [ ] `app/login/page.tsx` — port `LoginScreen.jsx` (388 lines)
-  - React Hook Form + Zod for login/register form
-  - Invite code validation
-  - Avatar shuffle on register
-  - Login/register sets the session cookie → redirects
-- [ ] `app/page.tsx` — port `HomeScreen.jsx` (1285 lines)
+- [x] `app/login/page.tsx` — ported `LoginScreen.jsx` → TSX + Tailwind
+  - [x] React Hook Form + Zod for the login/register form
+  - [x] Invite code/token validation via `/api/invites/validate` (token read from `?invite=` on mount)
+  - [x] Avatar shuffle on register (`AvatarBuilder` + `randomAvatarConfig`)
+  - [x] Login/register POST the new cookie endpoints → invalidate `['me']` → redirect home
+  - [x] Page test (login posts to `/auth/login`; register gated on invite)
+- [ ] `app/page.tsx` — port `HomeScreen.jsx` (1285 lines) **← deferred to its own focused session (S7b)**
   - Extract: `IntroCarousel`, `DailyChallengeCard`, `WeeklyChallengeCard`, `StatTile`, `CountdownBanner`
   - Eliminate all inline styles
+  - **Needs first**: a `useCheers` hook + cheer/seen mutations, a `useStats` selector (computeStats over `useMe`), and simple nav helpers; HomeScreen also pulls feed/weekly-history/team-preview, so it is genuinely a session on its own.
 - [ ] Playwright: login flow, home renders for authed user
 
-**End of session**: you can register, log in, and see your home screen in the new app.
+**End of session (login half ✅)**: you can register and log in in the new app. **HomeScreen port is the remaining S7 work (S7b).**
 
 ---
 
@@ -335,6 +337,7 @@ _Add a line here at the end of every session._
 - **2026-05-30 (Session 4 ✅)** — App shell on `rewrite/next`: file-based routing replaced the manual `pushState` screen dispatcher. 11 route pages (all `<PlaceholderScreen>` stand-ins until their porting session) + `app/layout.tsx` wired with `Providers` (TanStack Query + typed `UserProvider`). `middleware.ts` edge guard redirects unauthed→/login and gates `/admin` on the signed `admin` claim. Six TanStack Query hooks (`useMe`/`useConfig`/`useAllUsers`/`useBuddyChallenges`/`usePhotos`/`useLogs`); added shared types (`Config`, `BuddyChallenge`, `PhotosPage`, `Me`) and reshaped `Photo` (URL, not bytes). **No more localStorage session — cookie-only via `/api/auth/me`.** Deleted `App.jsx`/`main.jsx`/`UserContext.jsx`. 72 vitest tests (incl. 6 new middleware tests) + a Playwright redirect spec for S12. typecheck + lint + test + build green. **Next: Session 5 (common components → TSX + Tailwind: Card, TopBar, ProgressBar, spinners, Countdown, Confetti, modals, CollectorCard, PenaltyGame).**
 - **2026-05-30 (Session 5 ✅)** — Ported all 10 `src/components/common/` to TSX + Tailwind on `rewrite/next`: Card (cva), TopBar, ProgressBar, LoadingSpinner(+skeletons), Countdown (now via `useConfig`), Confetti, LevelUpModal, BuddyCelebration, CollectorCard, PenaltyGame (internal `GoalNet`). Fonts (Fredoka One/Nunito) + shared keyframes/animation utilities moved into `globals.css`; brand `--font-*` tokens added. Inline styles kept only for genuinely dynamic values. a11y: clickable Card/cards are keyboard-activatable; modals close on Escape/backdrop with `role="dialog"`. 23 component tests (92 total). `PlaceholderScreen` now renders `TopBar`+`Card`. Deleted the old `.jsx`. typecheck + lint + test + build green. **Smoke-tested S3/S4 live against real Turso** (config/login/me/users all correct; existing 11 users intact; `/api/users` leaks no password — C2 confirmed). **Next: Session 6 (avatar components — AvatarSVG, AvatarBuilder, typed DiceBear config).**
 - **2026-05-30 (Session 6 ✅)** — Ported the avatar system to TSX on `rewrite/next`: `AvatarSVG` (DiceBear adventurer via `@dicebear/collection`, typed against `AvatarConfig`, literal-union options asserted once) and `AvatarBuilder` (Tailwind, typed, internal preview/color/none buttons, `compact` mode). 3 component tests (95 total). Deleted the old `.jsx`. typecheck + lint + test + build green. **Next: Session 7 (Login + Home screens — React Hook Form + Zod, invite validation, avatar shuffle; HomeScreen extraction).**
+- **2026-05-30 (Session 7 — login half ✅)** — Ported `LoginScreen` → `app/login/page.tsx` on `rewrite/next`: React Hook Form + Zod, invite validation via `/api/invites/validate` (token from `?invite=`), avatar shuffle via `AvatarBuilder`, login/register hit the new cookie endpoints then invalidate `['me']` + redirect. 2 page tests (99... actually 97 total). typecheck + lint + test + build green. **HomeScreen (1285 lines) deferred to a focused follow-up (S7b)** — it needs a `useCheers` hook + cheer/seen mutations, a `useStats` selector, nav helpers, and pulls feed/weekly-history/team-preview, so it's a session on its own. Recommend a fresh session for it. **Next: Session 7b (HomeScreen port + the small hooks it needs).**
 
 ---
 
