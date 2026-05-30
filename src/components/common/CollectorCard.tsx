@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { Card } from '@/types';
 
@@ -177,12 +178,13 @@ export function CardFront({ card, size = 1, style, onClick }: FaceProps & { card
 
       {card.image ? (
         <div className="relative w-full overflow-hidden" style={{ height: h * 0.68 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={card.image}
             alt={card.name}
+            fill
+            sizes="(max-width: 480px) 50vw, 200px"
             onLoad={() => setImgLoaded(true)}
-            className="h-full w-full object-cover object-top transition-opacity duration-300"
+            className="object-cover object-top transition-opacity duration-300"
             style={{ opacity: imgLoaded ? 1 : 0 }}
           />
           <div

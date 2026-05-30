@@ -273,6 +273,27 @@ body {
     transform: scale(1.03);
   }
 }
+/* ── Photo album: page turn ── */
+@keyframes album-page-forward {
+  0% {
+    opacity: 0;
+    transform: translateX(48px) rotateY(-10deg) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotateY(0deg) scale(1);
+  }
+}
+@keyframes album-page-backward {
+  0% {
+    opacity: 0;
+    transform: translateX(-48px) rotateY(10deg) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotateY(0deg) scale(1);
+  }
+}
 
 .animate-football-bounce {
   animation: football-bounce 0.8s ease-in-out infinite;
@@ -330,6 +351,12 @@ body {
 }
 .animate-gentle-pulse {
   animation: gentle-pulse 2s ease-in-out infinite;
+}
+.animate-album-page-forward {
+  animation: album-page-forward 0.32s ease-out;
+}
+.animate-album-page-backward {
+  animation: album-page-backward 0.32s ease-out;
 }
 /* The pack flip is phase-driven, so the animation shorthand stays inline;
    sparkle delays are staggered inline per particle. */
