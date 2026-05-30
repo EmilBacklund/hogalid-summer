@@ -1,22 +1,7 @@
 import type { Client, Row } from '@libsql/client';
-import type { ExerciseEntry } from '@/types';
+import type { BuddyChallenge, ExerciseEntry } from '@/types';
 
-export interface BuddyChallengeClient {
-  id: string;
-  fromAlias: string;
-  toAlias: string;
-  exerciseId: string;
-  amount: number;
-  status: string;
-  createdAt: string;
-  acceptedAt: string | null;
-  fromCompletedAt: string | null;
-  toCompletedAt: string | null;
-  fromProgress: number;
-  toProgress: number;
-}
-
-export function rowToChallenge(r: Row): BuddyChallengeClient {
+export function rowToChallenge(r: Row): BuddyChallenge {
   return {
     id: String(r.id),
     fromAlias: String(r.from_alias),

@@ -180,30 +180,18 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 ---
 
-## Session 4 — App shell, routing, auth context
+## Session 4 — App shell, routing, auth context ✅
 
 **Goal**: replace the manual screen dispatcher with Next.js file-based routing. Set up auth + data fetching primitives.
 
-- [ ] Route structure:
-  - `app/layout.tsx` — root layout (fonts, providers, TopBar slot)
-  - `app/page.tsx` → Home (placeholder for S7)
-  - `app/login/page.tsx`
-  - `app/log/page.tsx`, `app/log/history/page.tsx`
-  - `app/profile/page.tsx`
-  - `app/challenges/page.tsx`
-  - `app/bingo/page.tsx`
-  - `app/cards/page.tsx`
-  - `app/team/page.tsx`, `app/team/photos/page.tsx`
-  - `app/admin/page.tsx`
-- [ ] `middleware.ts` — redirect unauthed users to `/login` (except `/login`); the admin route additionally requires the `admin` claim.
-- [ ] Providers (`src/providers/`):
-  - `QueryProvider` (TanStack Query client)
-  - `UserProvider` — rebuilt from `UserContext.jsx`, typed, no localStorage (cookie handles session; user data comes from `/api/users/me`)
-- [ ] TanStack Query hooks in `src/hooks/`: `useMe`, `useLogs`, `useConfig`, `useBuddyChallenges`, `usePhotos`, `useAllUsers`
-- [ ] Delete old `src/App.jsx`, `src/main.jsx`, `src/context/UserContext.jsx`
-- [ ] Playwright smoke test: unauthed visit to `/` redirects to `/login`
+- [x] Route structure — `app/layout.tsx` (providers + TopBar slot), and pages for `/`, `/login`, `/log`, `/log/history`, `/profile`, `/challenges`, `/bingo`, `/cards`, `/team`, `/team/photos`, `/admin`. All real screens are `<PlaceholderScreen>` stand-ins (shared `src/components/PlaceholderScreen.tsx` with session display + nav) until their porting session; `/login` is its own placeholder (form in S7).
+- [x] `middleware.ts` — edge guard: unauthed → `/login` (except `/login`, which bounces authed users to `/`); `/admin` requires the signed `admin` claim. Verifies the cookie via `verifySessionValue` (Web Crypto, edge-safe). Matcher excludes `/api`, `_next`, and static files.
+- [x] Providers (`src/providers/`): `QueryProvider` (TanStack Query client, one per session) + `UserProvider` (typed rebuild of `UserContext.jsx`, **no localStorage** — session from the httpOnly cookie via `/api/auth/me`; exposes `user`/`isAdmin`/`isAuthenticated`/`refresh`/`logout`). Composed in `src/providers/index.tsx`.
+- [x] TanStack Query hooks (`src/hooks/`): `useMe`, `useConfig`, `useAllUsers`, `useBuddyChallenges`, `usePhotos`, `useLogs` (selector over `useMe`). Added shared client types `Config`, `BuddyChallenge`, `PhotosPage`, `Me` and reshaped `Photo` (no inlined bytes → `url`).
+- [x] Deleted old `src/App.jsx`, `src/main.jsx`, `src/context/UserContext.jsx`.
+- [x] Auth-redirect tests: fast **vitest** `middleware.test.ts` (6 cases — unauthed→/login, authed→away from /login, non-admin blocked from /admin, admin allowed) + a **Playwright** `e2e/auth.spec.ts` smoke test for S12.
 
-**End of session**: every route returns a placeholder under the right URL. Auth redirects work.
+**End of session**: ✅ every route renders a placeholder under the right URL; middleware auth redirects verified. typecheck + lint + test (72) + build all green; middleware registered in the build.
 
 ---
 
@@ -341,7 +329,9 @@ _Add a line here at the end of every session._
 - **2026-05-30** — **Scope frozen for an 8-day launch (target 2026-06-07): stack upgrade + security + bugs only, no new features.** Removed from plan: multi-tenant future-proofing (teams/memberships/email/TeamConfig), Commitizen + commit-banner script, Framer Motion rewrites (keep existing animations), Storybook, server-component optimization, Lighthouse-90/dark-mode. (Sentry re-added 2026-05-30 — it serves the "no issues" goal.)
 - **2026-05-30 (Session 1 ✅)** — Scaffolded Next.js 15 + React 19 + strict TypeScript + Tailwind v4 in place on `rewrite/next-s1-foundation`. Full tooling wired: ESLint 9 flat config, Prettier, Husky (pre-commit/commit-msg/pre-push) + lint-staged + commitlint, Vitest + RTL + jsdom (3 passing tests), Playwright (installed, skipped till S12), GitHub Actions CI, Sentry (inert without DSN) + `global-error.tsx`, `@netlify/plugin-nextjs`. Removed `index.html`/`vite.config.js`. typecheck + lint + test + build all green. Merged locally into `rewrite/next`.
 - **2026-05-30 (Session 2 ✅)** — Ported all of `src/constants` and `src/utils` from JS to strict TS on `rewrite/next-s2-constants`, plus `src/types` (domain types) and initial `src/schemas` (Zod). Data-heavy constants renamed via `git mv` (data byte-identical, then typed); logic files (utils + avatar/cards) rewritten with full types and strict-mode fixes (Date math, safe indexing). 21 Vitest tests. `src/constants` + `src/utils` are now 100% TypeScript; components remain `.jsx` (ported in their sessions, excluded from tsc/lint/build for now). typecheck + lint + test + build all green. **Next: Session 3 (API Route Handlers + the security-critical work — auth, no-plaintext-passwords, server-side points, Netlify Blobs photos).** Admin model simplified to single env-var admin with a signed cookie claim (was `team_memberships.role`). S11 reduced to an a11y/QA pass; S12 now includes the pre-launch DB steps. Still pre-S1.
-- **2026-05-30 (Session 3 ✅)** — Ported the entire backend off Netlify Functions onto 22 Next.js Route Handlers on `rewrite/next-s3-api`, landing the security-critical fixes. New `src/server/` layer: `db`, `auth` (PBKDF2), `session` (signed httpOnly HMAC cookie + `requireUser`/`requireAdmin`), `responses` (`ApiError` + generic-error `handle` wrapper), `rateLimit`, `points` (server-authoritative scoring), `photoStorage` (Blobs), `buddyProgress`/`buddyChallenges`, `invites`, `repo` (row→domain mappers), `dates`. **[SEC C1]** every mutation derives the alias from the cookie; admin actions verify the signed `admin` claim. **[SEC C2]** `display_password` gone; admin reset stores only a new hash. **[SEC H1]** points recomputed + clamped server-side; bingo/daily bonus logs created server-side from constants (bingo line-bonus clamped, full engine TODO in S9); completions idempotent. **[SEC M1]** photo bytes in Netlify Blobs, metadata + `blob_key` in DB, paginated list returns URLs, bytes auth-gated. **[SEC M3/M4]** rate limiting + generic client errors. Zod validates every body (~20 schemas). 66 Vitest tests (incl. authz + points + admin gating). Deleted `netlify/functions/`; `api.ts` base → `/api`. typecheck + lint + test + build all green. **Decision (Emil):** bonus-point authoritativeness = "move bonus creation server-side, clamp line bonus." **Next: Session 4 (app shell, file-based routing, middleware auth redirect, TanStack Query providers/hooks).**
+- **Workflow change (2026-05-30)** — Emil dropped per-session branches: from S3 onward all rewrite work is committed **directly on `rewrite/next`** (S1/S2 used `rewrite/next-sN-*` merged locally; those branches deleted). Still no pushing — Emil pushes/PRs at the very end.
+- **2026-05-30 (Session 3 ✅)** — Ported the entire backend off Netlify Functions onto 22 Next.js Route Handlers (committed on `rewrite/next`), landing the security-critical fixes. New `src/server/` layer: `db`, `auth` (PBKDF2), `session` (signed httpOnly HMAC cookie + `requireUser`/`requireAdmin`), `responses` (`ApiError` + generic-error `handle` wrapper), `rateLimit`, `points` (server-authoritative scoring), `photoStorage` (Blobs), `buddyProgress`/`buddyChallenges`, `invites`, `repo` (row→domain mappers), `dates`. **[SEC C1]** every mutation derives the alias from the cookie; admin actions verify the signed `admin` claim. **[SEC C2]** `display_password` gone; admin reset stores only a new hash. **[SEC H1]** points recomputed + clamped server-side; bingo/daily bonus logs created server-side from constants (bingo line-bonus clamped, full engine TODO in S9); completions idempotent. **[SEC M1]** photo bytes in Netlify Blobs, metadata + `blob_key` in DB, paginated list returns URLs, bytes auth-gated. **[SEC M3/M4]** rate limiting + generic client errors. Zod validates every body (~20 schemas). 66 Vitest tests (incl. authz + points + admin gating). Deleted `netlify/functions/`; `api.ts` base → `/api`. typecheck + lint + test + build all green. **Decision (Emil):** bonus-point authoritativeness = "move bonus creation server-side, clamp line bonus." Merged into `rewrite/next`.
+- **2026-05-30 (Session 4 ✅)** — App shell on `rewrite/next`: file-based routing replaced the manual `pushState` screen dispatcher. 11 route pages (all `<PlaceholderScreen>` stand-ins until their porting session) + `app/layout.tsx` wired with `Providers` (TanStack Query + typed `UserProvider`). `middleware.ts` edge guard redirects unauthed→/login and gates `/admin` on the signed `admin` claim. Six TanStack Query hooks (`useMe`/`useConfig`/`useAllUsers`/`useBuddyChallenges`/`usePhotos`/`useLogs`); added shared types (`Config`, `BuddyChallenge`, `PhotosPage`, `Me`) and reshaped `Photo` (URL, not bytes). **No more localStorage session — cookie-only via `/api/auth/me`.** Deleted `App.jsx`/`main.jsx`/`UserContext.jsx`. 72 vitest tests (incl. 6 new middleware tests) + a Playwright redirect spec for S12. typecheck + lint + test + build green. **Next: Session 5 (common components → TSX + Tailwind: Card, TopBar, ProgressBar, spinners, Countdown, Confetti, modals, CollectorCard, PenaltyGame).**
 
 ---
 

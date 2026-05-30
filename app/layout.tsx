@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Providers } from '@/providers';
 
 export const metadata: Metadata = {
   title: 'Högalid F15 — Sommarlovet 2026',
@@ -9,7 +10,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="sv">
-      <body>{children}</body>
+      <body>
+        <Providers>
+          {/* TopBar slot — the real <TopBar> lands in Session 5. */}
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }

@@ -53,17 +53,51 @@ export interface User {
   isAdmin?: boolean;
 }
 
-/** A photo in the team album. */
+/**
+ * A photo in the team album. Bytes are NOT inlined (SEC M1) — `url` points at
+ * the auth-gated bytes route (`/api/photos/:id`).
+ */
 export interface Photo {
   id: number;
   alias: string;
   uploaderName: string;
-  imageData: string;
   mimeType: string;
   weekStart: string;
   uploadedAt: string;
   date: string;
+  url: string;
 }
+
+/** One page of the paginated photo album. */
+export interface PhotosPage {
+  photos: Photo[];
+  nextOffset: number | null;
+}
+
+/** Season configuration returned by `/api/config`. */
+export interface Config {
+  seasonStart: string | null;
+  countdownDate: string | null;
+}
+
+/** A buddy challenge as returned by `/api/buddy-challenges`. */
+export interface BuddyChallenge {
+  id: string;
+  fromAlias: string;
+  toAlias: string;
+  exerciseId: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+  acceptedAt: string | null;
+  fromCompletedAt: string | null;
+  toCompletedAt: string | null;
+  fromProgress: number;
+  toProgress: number;
+}
+
+/** Current-session response from `/api/auth/me`: a user, or the admin marker. */
+export type Me = User | { alias: 'admin'; isAdmin: true };
 
 // ── Static data shapes (constants) ──────────────────────────────────────────
 
