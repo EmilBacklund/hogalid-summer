@@ -75,9 +75,9 @@ const RANGE_STYLE = {
 };
 
 export function LogScreen() {
-  const { user, setScreen, handleSaveLog, handleUpdateLog, handleRecordSecretProgress, isLeader } = useUser();
+  const { user, setScreen, handleSaveLog, handleUpdateLog, handleRecordSecretProgress, isLeader, isDemo } = useUser();
   useEffect(() => {
-    if (isLeader) setScreen('home');
+    if (isLeader) setScreen('home'); // leaders can't log, redirect to home
   }, [isLeader]);
 
   // === Write state ===
@@ -282,6 +282,25 @@ export function LogScreen() {
         @keyframes savePointsPop { 0% { opacity: 0; transform: scale(0.5); } 50% { transform: scale(1.15); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes saveFadeOut { 0% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
       `}</style>
+
+      {/* Demo mode notice */}
+      {isDemo && (
+        <div style={{
+          background: 'rgba(180,83,9,0.2)',
+          border: '1px solid rgba(251,191,36,0.4)',
+          borderRadius: 12,
+          padding: '10px 14px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>🎮</span>
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.4 }}>
+            Du är i demoläge — du kan fylla i formuläret och se hur det fungerar, men inget sparas.
+          </span>
+        </div>
+      )}
 
       {/* Save summary overlay */}
       {saveSummary && saved && (
@@ -844,7 +863,7 @@ export function LogScreen() {
         >
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || isDemo}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -854,16 +873,18 @@ export function LogScreen() {
               padding: '16px 0',
               borderRadius: 16,
               border: 'none',
-              background: saving ? 'rgba(240,220,0,0.5)' : COLORS.lime,
-              color: COLORS.dark,
+              background: isDemo ? 'rgba(180,83,9,0.4)' : saving ? 'rgba(240,220,0,0.5)' : COLORS.lime,
+              color: isDemo ? 'rgba(255,255,255,0.5)' : COLORS.dark,
               fontFamily: "'Fredoka One', cursive",
               fontSize: 20,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              boxShadow: `0 4px 24px ${COLORS.lime}55`,
+              cursor: saving || isDemo ? 'not-allowed' : 'pointer',
+              boxShadow: isDemo ? 'none' : `0 4px 24px ${COLORS.lime}55`,
               transition: 'background 0.3s',
             }}
           >
-            {saving ? (
+            {isDemo ? (
+              '🎮 Inget sparas i demoläge'
+            ) : saving ? (
               <>
                 <ButtonLoader color={COLORS.dark} /> Sparar...
               </>
