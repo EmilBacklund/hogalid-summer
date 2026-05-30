@@ -20,11 +20,12 @@ import {
 import { Card, ProgressBar, Confetti } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { DEMO_TEAM_USERS, DEMO_PHOTOS } from '../demo/demoData';
 import { ArrowLeft, ArrowRight, Camera } from 'lucide-react';
 import { PhotoAlbumModal } from './PhotoAlbumScreen';
 
 export function TeamScreen() {
-  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer, isLeader } = useUser();
+  const { user, setScreen, seasonStart, teamFeedOpen, setTeamFeedOpen, sendCheer, isLeader, isDemo } = useUser();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [teamPhotos, setTeamPhotos] = useState([]);
@@ -50,6 +51,14 @@ export function TeamScreen() {
   const getUserLabel = (u) => u.displayName || u.displayAlias || u.alias;
 
   useEffect(() => {
+    // Demo mode — use mock data, never touch real API or caches
+    if (isDemo) {
+      setAllUsers(DEMO_TEAM_USERS);
+      setTeamPhotos(DEMO_PHOTOS);
+      setLoadingTeam(false);
+      return;
+    }
+
     const stale = fetchAllUsersStale(fresh => {
       setAllUsers(fresh);
       setLoadingTeam(false);
@@ -75,13 +84,14 @@ export function TeamScreen() {
       const current = reactions[eventKey] || {};
       const myEmoji = current[user.alias];
       const removing = myEmoji === emoji;
-      // Optimistic update
+      // Optimistic update (runs in demo mode too so the UI responds)
       setReactions(prev => {
         const copy = { ...prev, [eventKey]: { ...(prev[eventKey] || {}) } };
         if (removing) delete copy[eventKey][user.alias];
         else copy[eventKey][user.alias] = emoji;
         return copy;
       });
+      if (isDemo) return; // demo mode — skip API calls, keep local update
       await apiPost('/users?action=react', { eventKey, alias: user.alias, emoji: removing ? null : emoji });
       const updated = await apiGet('/users?action=reactions');
       setReactions(updated);
@@ -175,6 +185,7 @@ export function TeamScreen() {
 
   // Save previous week's result to DB in the background
   useEffect(() => {
+    if (isDemo) return; // demo mode — never write mock data to DB
     if (!loadingTeam && allUsers.length > 0 && seasonStart) {
       saveWeeklyResult(allUsers, seasonStart).catch(() => {});
     }
