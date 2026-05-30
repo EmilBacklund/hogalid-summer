@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { COLORS, EXERCISES, PLAYER_CARDS, LEGEND_CARDS, TOTAL_PLAYER_CARDS, TOTAL_LEGEND_CARDS, CARD_PACK_COST, LEGEND_PACK_COST } from '../constants';
 import {
   getLevel,
@@ -14,7 +14,7 @@ import {
   computeWeeklyHistory,
   generateFeed,
 } from '../utils';
-import { Card, ProgressBar, Countdown } from '../components/common';
+import { Card, ProgressBar, Countdown, InstallPrompt } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -123,6 +123,26 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
   const isFirst = pageIndex === 0;
   const isLast = pageIndex === INTRO_PAGES.length - 1;
 
+  const touchStartX = useRef(null);
+
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 40) return; // too short, ignore
+    if (dx < 0) {
+      // swipe left → next
+      if (isLast) onClose(); else onNext();
+    } else {
+      // swipe right → prev
+      if (!isFirst) onPrev();
+    }
+  }
+
   return (
     <div
       onClick={onClose}
@@ -139,6 +159,8 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         style={{
           width: '100%',
           maxWidth: 380,
@@ -421,6 +443,7 @@ export function HomeScreen() {
           onClose={() => setShowIntro(false)}
         />
       )}
+      <InstallPrompt />
       <style>{`
         @keyframes fireGlow {
           0%, 100% { box-shadow: 0 0 16px 4px #ff6a00, 0 0 32px 8px #ff4500; }
