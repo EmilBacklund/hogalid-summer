@@ -17,6 +17,7 @@ import {
 import { Card, ProgressBar, Countdown, InstallPrompt } from '../components/common';
 import { AvatarSVG } from '../components/avatar';
 import { useUser } from '../context/UserContext';
+import { DEMO_TEAM_USERS, DEMO_PHOTOS } from '../demo/demoData';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 const INTRO_PAGES = [
@@ -323,7 +324,7 @@ function IntroModal({ pageIndex, onNext, onPrev, onClose }) {
 }
 
 export function HomeScreen() {
-  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget, pendingCheers, markCheersSeen, isLeader } = useUser();
+  const { user, stats, setScreen, seasonStart, setTeamFeedOpen, buddyChallenges, setChallengeScrollTarget, pendingCheers, markCheersSeen, isLeader, isDemo } = useUser();
   const displayName = user.displayName || user.displayAlias || user.alias;
 
   function goTo(target) {
@@ -345,6 +346,14 @@ export function HomeScreen() {
   const pendingModalShownRef = useRef(false);
 
   useEffect(() => {
+    // Demo mode — use mock data, never touch real API or caches
+    if (isDemo) {
+      setAllUsers(DEMO_TEAM_USERS);
+      setTeamPhotos(DEMO_PHOTOS);
+      setLoadingTeam(false);
+      return;
+    }
+
     const stale = fetchAllUsersStale(fresh => {
       setAllUsers(fresh);
       setLoadingTeam(false);
