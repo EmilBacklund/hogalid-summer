@@ -169,6 +169,29 @@ body {
     transform: scale(1);
   }
 }
+@keyframes daily-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes daily-slide {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 .animate-football-bounce {
   animation: football-bounce 0.8s ease-in-out infinite;
@@ -213,4 +236,11 @@ body {
 /* Staggered pop for the save-summary contents; delay set inline per element. */
 .animate-save-points-pop {
   animation: save-points-pop 0.5s ease-out both;
+}
+/* Daily-challenge completion celebration; stagger delay set inline per element. */
+.animate-daily-pop {
+  animation: daily-pop 0.5s ease-out both;
+}
+.animate-daily-slide {
+  animation: daily-slide 0.4s ease-out both;
 }

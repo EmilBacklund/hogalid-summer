@@ -10,3 +10,4 @@ export type { Cheer } from './useCheers';
 export { useLogMutations } from './useLogMutations';
 export type { TrainingLogInput } from './useLogMutations';
 export { useProfileMutations } from './useProfileMutations';
+export { useChallengeMutations } from './useChallengeMutations';
