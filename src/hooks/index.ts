@@ -4,3 +4,6 @@ export { useAllUsers } from './useAllUsers';
 export { useBuddyChallenges } from './useBuddyChallenges';
 export { usePhotos } from './usePhotos';
 export { useLogs } from './useLogs';
+export { useStats } from './useStats';
+export { useCheers } from './useCheers';
+export type { Cheer } from './useCheers';

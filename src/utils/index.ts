@@ -10,6 +10,7 @@ export {
   calcTeamProgress,
 } from './levels';
 export { computeStats } from './stats';
+export { computeCoins } from './cards';
 export {
   getDailyChallenge,
   getWeeklyChallenge,

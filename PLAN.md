@@ -237,13 +237,15 @@ Full file inventory is in the exploration notes (archived in git history of this
   - [x] Avatar shuffle on register (`AvatarBuilder` + `randomAvatarConfig`)
   - [x] Login/register POST the new cookie endpoints → invalidate `['me']` → redirect home
   - [x] Page test (login posts to `/auth/login`; register gated on invite)
-- [ ] `app/page.tsx` — port `HomeScreen.jsx` (1285 lines) **← deferred to its own focused session (S7b)**
-  - Extract: `IntroCarousel`, `DailyChallengeCard`, `WeeklyChallengeCard`, `StatTile`, `CountdownBanner`
-  - Eliminate all inline styles
-  - **Needs first**: a `useCheers` hook + cheer/seen mutations, a `useStats` selector (computeStats over `useMe`), and simple nav helpers; HomeScreen also pulls feed/weekly-history/team-preview, so it is genuinely a session on its own.
-- [ ] Playwright: login flow, home renders for authed user
+- [x] `app/page.tsx` — port `HomeScreen.jsx` (1285 lines) **(S7b ✅)**
+  - [x] Extracted into `src/components/home/`: `IntroCarousel`, `CheerToast`, `NewsTicker`, `ActionNudge`, `ChallengesWidget` (daily+weekly), `BuddyWidget`, `LastWeekResult`, `StatTiles` (streak + points/coins), `CollectorCardsCta`
+  - [x] All inline styles eliminated except genuinely-dynamic ones (per-ball `animationDelay`, nudge tint from `nudge.color`, ticker duration from item count); shared keyframes (`fire-glow`, `ticker`, `cheer-*`) moved to `globals.css`
+  - [x] New primitives: `useStats` (computeStats over `useMe`), `useCheers` (pending-cheers query + `markSeen`/`sendCheer` mutations), `computeCoins` util (points − pack costs, with tests); nav via `useRouter` (`/challenges?target=`, `/team?feed=open`)
+  - [x] Data via hooks: `useUser`/`useStats`/`useConfig`/`useAllUsers`/`usePhotos`/`useBuddyChallenges`/`useCheers` (replaces the old localStorage stale-while-revalidate caches); admin landing on `/` redirects to `/admin`
+  - [x] Page test (greets user, Dagbok → `/log`, bingo progress) — 3 tests
+- [ ] Playwright: login flow, home renders for authed user _(deferred to S12 E2E suite)_
 
-**End of session (login half ✅)**: you can register and log in in the new app. **HomeScreen port is the remaining S7 work (S7b).**
+**End of session (S7 ✅)**: you can register, log in, and land on a fully-ported HomeScreen in the new app. **Next: Session 8 (Log + Profile + Challenges screens).**
 
 ---
 
@@ -338,6 +340,7 @@ _Add a line here at the end of every session._
 - **2026-05-30 (Session 5 ✅)** — Ported all 10 `src/components/common/` to TSX + Tailwind on `rewrite/next`: Card (cva), TopBar, ProgressBar, LoadingSpinner(+skeletons), Countdown (now via `useConfig`), Confetti, LevelUpModal, BuddyCelebration, CollectorCard, PenaltyGame (internal `GoalNet`). Fonts (Fredoka One/Nunito) + shared keyframes/animation utilities moved into `globals.css`; brand `--font-*` tokens added. Inline styles kept only for genuinely dynamic values. a11y: clickable Card/cards are keyboard-activatable; modals close on Escape/backdrop with `role="dialog"`. 23 component tests (92 total). `PlaceholderScreen` now renders `TopBar`+`Card`. Deleted the old `.jsx`. typecheck + lint + test + build green. **Smoke-tested S3/S4 live against real Turso** (config/login/me/users all correct; existing 11 users intact; `/api/users` leaks no password — C2 confirmed). **Next: Session 6 (avatar components — AvatarSVG, AvatarBuilder, typed DiceBear config).**
 - **2026-05-30 (Session 6 ✅)** — Ported the avatar system to TSX on `rewrite/next`: `AvatarSVG` (DiceBear adventurer via `@dicebear/collection`, typed against `AvatarConfig`, literal-union options asserted once) and `AvatarBuilder` (Tailwind, typed, internal preview/color/none buttons, `compact` mode). 3 component tests (95 total). Deleted the old `.jsx`. typecheck + lint + test + build green. **Next: Session 7 (Login + Home screens — React Hook Form + Zod, invite validation, avatar shuffle; HomeScreen extraction).**
 - **2026-05-30 (Session 7 — login half ✅)** — Ported `LoginScreen` → `app/login/page.tsx` on `rewrite/next`: React Hook Form + Zod, invite validation via `/api/invites/validate` (token from `?invite=`), avatar shuffle via `AvatarBuilder`, login/register hit the new cookie endpoints then invalidate `['me']` + redirect. 2 page tests (97 total). typecheck + lint + test + build green. **HomeScreen (1285 lines) deferred to a focused follow-up (S7b)** — it needs a `useCheers` hook + cheer/seen mutations, a `useStats` selector, nav helpers, and pulls feed/weekly-history/team-preview, so it's a session on its own. Recommend a fresh session for it. **Next: Session 7b (HomeScreen port + the small hooks it needs).**
+- **2026-05-30 (Session 7b ✅ — HomeScreen)** — Ported `HomeScreen.jsx` (1285 lines) → `app/page.tsx` on `rewrite/next`, completing S7. Split into 9 components under `src/components/home/` (`IntroCarousel`, `CheerToast`, `NewsTicker`, `ActionNudge`, `ChallengesWidget`, `BuddyWidget`, `LastWeekResult`, `StatTiles`, `CollectorCardsCta`); `app/page.tsx` is the orchestrator (an inner `HomeContent` only mounts once a real user is loaded, so its hooks stay unconditional; splash + admin→/admin redirect otherwise). New primitives: `useStats` (computeStats selector over `useMe`), `useCheers` (pending-cheers query + `markSeen`/`sendCheer` mutations over `/api/cheers`), and a `computeCoins` util (points − opened-pack costs) with 4 tests. Data now flows through TanStack Query hooks instead of the old localStorage stale-while-revalidate caches (`fetchAllUsersStale`/`fetchTeamPhotosStale`); nav via `useRouter` with query params (`/challenges?target=…`, `/team?feed=open`) that S8/S10 will read. Inline styles eliminated except genuinely-dynamic ones; `fire-glow`/`ticker`/`cheer-*` keyframes moved to `globals.css`. 7 new tests (3 page + 4 coins) → 104 total. typecheck + lint + test + build all green; `/` prerenders at 13.7 kB. **Next: Session 8 (Log + Profile + Challenges screens).**
 
 ---
 
