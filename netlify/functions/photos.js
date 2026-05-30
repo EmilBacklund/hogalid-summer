@@ -6,7 +6,7 @@ function json(data, status = 200) {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
@@ -57,7 +57,7 @@ export default async (req) => {
       status: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
     });
@@ -119,6 +119,14 @@ export default async (req) => {
       });
 
       return json({ ok: true, photo: rowToPhoto(result.rows[0]) }, 201);
+    }
+
+    if (req.method === 'DELETE') {
+      const body = await req.json();
+      const id = body.id;
+      if (!id) return json({ error: 'missing_id' }, 400);
+      await db.execute({ sql: 'DELETE FROM album_photos WHERE id = ?', args: [Number(id)] });
+      return json({ ok: true });
     }
 
     return json({ error: 'method_not_allowed' }, 405);
