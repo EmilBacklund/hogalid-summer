@@ -99,6 +99,7 @@ export function AdminScreen({ onViewTeam }) {
   const [photos, setPhotos] = useState([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [deletingPhoto, setDeletingPhoto] = useState({});
+  const [approvingPhoto, setApprovingPhoto] = useState({});
   const [showPhotos, setShowPhotos] = useState(false);
 
   // Log viewer per player
@@ -269,6 +270,17 @@ export function AdminScreen({ onViewTeam }) {
       alert('Kunde inte ta bort foto: ' + e.message);
     }
     setDeletingPhoto(prev => ({ ...prev, [id]: false }));
+  }
+
+  async function handleApprovePhoto(id, status) {
+    setApprovingPhoto(prev => ({ ...prev, [id]: true }));
+    try {
+      await apiPut('/photos', { id, status });
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+    } catch (e) {
+      alert('Kunde inte uppdatera foto: ' + e.message);
+    }
+    setApprovingPhoto(prev => ({ ...prev, [id]: false }));
   }
 
   async function handleDeleteLog(alias, logId) {
@@ -609,28 +621,54 @@ export function AdminScreen({ onViewTeam }) {
                 <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '8px 0' }}>Inga foton uppladdade än.</div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {photos.map(photo => (
-                    <div key={photo.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.3)' }}>
+                  {photos.map(photo => {
+                    const isPending = photo.status === 'pending';
+                    return (
+                    <div key={photo.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.3)', opacity: isPending ? 0.85 : 1 }}>
+                      {isPending && (
+                        <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, background: 'rgba(200,150,0,0.9)', borderRadius: 6, padding: '2px 6px', fontSize: 10, fontWeight: 700, color: '#fff' }}>🕐 Väntar</div>
+                      )}
                       <img
                         src={photo.imageData}
                         alt=""
                         style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }}
                       />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.65)', padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{photo.alias}</div>
-                          <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{(photo.uploadedAt || '').slice(0, 10)}</div>
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.72)', padding: '6px 8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isPending ? 5 : 0 }}>
+                          <div>
+                            <div style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{photo.alias}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{(photo.uploadedAt || '').slice(0, 10)}</div>
+                          </div>
+                          <button
+                            onClick={() => handleDeletePhoto(photo.id)}
+                            disabled={deletingPhoto[photo.id]}
+                            style={{ background: 'rgba(220,40,40,0.85)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', cursor: deletingPhoto[photo.id] ? 'not-allowed' : 'pointer', opacity: deletingPhoto[photo.id] ? 0.6 : 1 }}
+                          >
+                            {deletingPhoto[photo.id] ? '...' : '🗑️'}
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleDeletePhoto(photo.id)}
-                          disabled={deletingPhoto[photo.id]}
-                          style={{ background: 'rgba(220,40,40,0.85)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', cursor: deletingPhoto[photo.id] ? 'not-allowed' : 'pointer', opacity: deletingPhoto[photo.id] ? 0.6 : 1 }}
-                        >
-                          {deletingPhoto[photo.id] ? '...' : '🗑️ Ta bort'}
-                        </button>
+                        {isPending && (
+                          <div style={{ display: 'flex', gap: 5 }}>
+                            <button
+                              onClick={() => handleApprovePhoto(photo.id, 'approved')}
+                              disabled={approvingPhoto[photo.id]}
+                              style={{ flex: 1, background: 'rgba(30,180,80,0.9)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 6px', cursor: approvingPhoto[photo.id] ? 'not-allowed' : 'pointer', opacity: approvingPhoto[photo.id] ? 0.6 : 1 }}
+                            >
+                              ✓ Godkänn
+                            </button>
+                            <button
+                              onClick={() => handleApprovePhoto(photo.id, 'rejected')}
+                              disabled={approvingPhoto[photo.id]}
+                              style={{ flex: 1, background: 'rgba(180,50,50,0.85)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 6px', cursor: approvingPhoto[photo.id] ? 'not-allowed' : 'pointer', opacity: approvingPhoto[photo.id] ? 0.6 : 1 }}
+                            >
+                              ✕ Neka
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
