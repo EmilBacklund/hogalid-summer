@@ -195,23 +195,24 @@ Full file inventory is in the exploration notes (archived in git history of this
 
 ---
 
-## Session 5 — Common components
+## Session 5 — Common components ✅
 
 **Goal**: port `src/components/common/` to TSX + Tailwind. Used everywhere, so they come first. Keep existing animations (CSS/canvas) — just port them.
 
-- [ ] `Card.tsx` — cva variants for elevation/glow
-- [ ] `TopBar.tsx` — logo, user pill, logout, nav
-- [ ] `ProgressBar.tsx`
-- [ ] `LoadingSpinner.tsx` + skeletons (Tailwind `animate-pulse`)
-- [ ] `Countdown.tsx`
-- [ ] `Confetti.tsx` — keep the existing canvas implementation
-- [ ] `LevelUpModal.tsx`
-- [ ] `BuddyCelebration.tsx`
-- [ ] `CollectorCard.tsx` — keep the existing CSS flip animation
-- [ ] `PenaltyGame.tsx` — 482 lines; split into `PenaltyGame`, `Goalie`, `BallTrajectory` if it falls out naturally
-- [ ] Component tests for each (render + one interaction)
+- [x] `Card.tsx` — cva variants (`elevation`/`glow`/`interactive`); keyboard-activatable when clickable.
+- [x] `TopBar.tsx` — logo (Link home), user pill, logout — driven by `useUser` (no props).
+- [x] `ProgressBar.tsx` — `role="progressbar"` + aria values; dynamic fill stays inline.
+- [x] `LoadingSpinner.tsx` + `SkeletonBar`/`TopLoadingBar`/`ButtonLoader` (animations moved to `globals.css`).
+- [x] `Countdown.tsx` — now reads the target from `useConfig` (was `UserContext`).
+- [x] `Confetti.tsx` — kept the DOM/CSS-keyframe implementation (per-piece timing via CSS vars).
+- [x] `LevelUpModal.tsx` + `BuddyCelebration.tsx` — focus-safe backdrop (close on direct click / Escape), `role="dialog"`.
+- [x] `CollectorCard.tsx` — `CardFront`/`CardBack`; size-scaled dimensions stay inline (genuinely dynamic).
+- [x] `PenaltyGame.tsx` — ported with the goal/keeper as an internal `GoalNet` (the natural "Goalie" split); no separate BallTrajectory — there isn't one.
+- [x] Component tests for each (render + interaction): 23 new tests.
+- [x] Fonts (Fredoka One + Nunito) + shared keyframes/animation utilities added to `globals.css`; brand `--font-*` tokens.
+- [x] `PlaceholderScreen` now uses `TopBar` + `Card` so the components are exercised in real pages.
 
-**End of session**: all common components used in Next pages. No inline styles left in this folder.
+**End of session**: ✅ common components ported, used in pages, and tested. Inline styles remain only for genuinely dynamic values (progress fill, confetti timing, size-scaled cards, keeper transform). typecheck + lint + test (92) + build all green.
 
 ---
 
@@ -332,6 +333,7 @@ _Add a line here at the end of every session._
 - **Workflow change (2026-05-30)** — Emil dropped per-session branches: from S3 onward all rewrite work is committed **directly on `rewrite/next`** (S1/S2 used `rewrite/next-sN-*` merged locally; those branches deleted). Still no pushing — Emil pushes/PRs at the very end.
 - **2026-05-30 (Session 3 ✅)** — Ported the entire backend off Netlify Functions onto 22 Next.js Route Handlers (committed on `rewrite/next`), landing the security-critical fixes. New `src/server/` layer: `db`, `auth` (PBKDF2), `session` (signed httpOnly HMAC cookie + `requireUser`/`requireAdmin`), `responses` (`ApiError` + generic-error `handle` wrapper), `rateLimit`, `points` (server-authoritative scoring), `photoStorage` (Blobs), `buddyProgress`/`buddyChallenges`, `invites`, `repo` (row→domain mappers), `dates`. **[SEC C1]** every mutation derives the alias from the cookie; admin actions verify the signed `admin` claim. **[SEC C2]** `display_password` gone; admin reset stores only a new hash. **[SEC H1]** points recomputed + clamped server-side; bingo/daily bonus logs created server-side from constants (bingo line-bonus clamped, full engine TODO in S9); completions idempotent. **[SEC M1]** photo bytes in Netlify Blobs, metadata + `blob_key` in DB, paginated list returns URLs, bytes auth-gated. **[SEC M3/M4]** rate limiting + generic client errors. Zod validates every body (~20 schemas). 66 Vitest tests (incl. authz + points + admin gating). Deleted `netlify/functions/`; `api.ts` base → `/api`. typecheck + lint + test + build all green. **Decision (Emil):** bonus-point authoritativeness = "move bonus creation server-side, clamp line bonus." Merged into `rewrite/next`.
 - **2026-05-30 (Session 4 ✅)** — App shell on `rewrite/next`: file-based routing replaced the manual `pushState` screen dispatcher. 11 route pages (all `<PlaceholderScreen>` stand-ins until their porting session) + `app/layout.tsx` wired with `Providers` (TanStack Query + typed `UserProvider`). `middleware.ts` edge guard redirects unauthed→/login and gates `/admin` on the signed `admin` claim. Six TanStack Query hooks (`useMe`/`useConfig`/`useAllUsers`/`useBuddyChallenges`/`usePhotos`/`useLogs`); added shared types (`Config`, `BuddyChallenge`, `PhotosPage`, `Me`) and reshaped `Photo` (URL, not bytes). **No more localStorage session — cookie-only via `/api/auth/me`.** Deleted `App.jsx`/`main.jsx`/`UserContext.jsx`. 72 vitest tests (incl. 6 new middleware tests) + a Playwright redirect spec for S12. typecheck + lint + test + build green. **Next: Session 5 (common components → TSX + Tailwind: Card, TopBar, ProgressBar, spinners, Countdown, Confetti, modals, CollectorCard, PenaltyGame).**
+- **2026-05-30 (Session 5 ✅)** — Ported all 10 `src/components/common/` to TSX + Tailwind on `rewrite/next`: Card (cva), TopBar, ProgressBar, LoadingSpinner(+skeletons), Countdown (now via `useConfig`), Confetti, LevelUpModal, BuddyCelebration, CollectorCard, PenaltyGame (internal `GoalNet`). Fonts (Fredoka One/Nunito) + shared keyframes/animation utilities moved into `globals.css`; brand `--font-*` tokens added. Inline styles kept only for genuinely dynamic values. a11y: clickable Card/cards are keyboard-activatable; modals close on Escape/backdrop with `role="dialog"`. 23 component tests (92 total). `PlaceholderScreen` now renders `TopBar`+`Card`. Deleted the old `.jsx`. typecheck + lint + test + build green. **Smoke-tested S3/S4 live against real Turso** (config/login/me/users all correct; existing 11 users intact; `/api/users` leaks no password — C2 confirmed). **Next: Session 6 (avatar components — AvatarSVG, AvatarBuilder, typed DiceBear config).**
 
 ---
 

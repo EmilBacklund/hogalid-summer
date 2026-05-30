@@ -1,10 +1,10 @@
-export { ProgressBar } from './ProgressBar';
-export { PenaltyGame, hasPenaltyPlayedToday, resetPenaltyToday } from './PenaltyGame';
 export { Card } from './Card';
+export { ProgressBar } from './ProgressBar';
 export { Confetti } from './Confetti';
-export { BuddyCelebration } from './BuddyCelebration';
 export { Countdown } from './Countdown';
 export { TopBar } from './TopBar';
 export { LoadingSpinner, SkeletonBar, TopLoadingBar, ButtonLoader } from './LoadingSpinner';
 export { LevelUpModal } from './LevelUpModal';
+export { BuddyCelebration } from './BuddyCelebration';
 export { CardFront, CardBack } from './CollectorCard';
+export { PenaltyGame, hasPenaltyPlayedToday, resetPenaltyToday } from './PenaltyGame';

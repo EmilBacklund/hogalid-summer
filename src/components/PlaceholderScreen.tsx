@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser } from '@/providers/UserProvider';
+import { Card, TopBar } from '@/components/common';
 
 const NAV: { label: string; href: string }[] = [
   { label: 'Hem', href: '/' },
@@ -17,39 +17,19 @@ const NAV: { label: string; href: string }[] = [
 ];
 
 /**
- * Temporary stand-in for a screen until it is ported in a later session. Shows
- * the session state (proving the providers + cookie auth work) and links to the
- * other routes so the new file-based routing can be walked manually.
+ * Temporary stand-in for a screen until it is ported in a later session. Uses
+ * the real common components (TopBar, Card) so they get exercised in-page, and
+ * links to the other routes so the new file-based routing can be walked.
  */
-export function PlaceholderScreen({ title, session }: { title: string; session?: string }) {
-  const { user, isAdmin, isAuthenticated, isLoading, logout } = useUser();
-
-  const who = isLoading
-    ? '…'
-    : isAdmin
-      ? 'admin'
-      : user
-        ? user.displayName || user.displayAlias || user.alias
-        : 'utloggad';
-
+export function PlaceholderScreen({ title }: { title: string }) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <span className="text-hogalid-yellow text-lg font-black">Högalid F15</span>
-        <span className="text-hogalid-sky text-sm">
-          {session ?? `Inloggad: ${who}`}
-          {isAuthenticated && (
-            <button onClick={() => void logout()} className="ml-3 underline">
-              Logga ut
-            </button>
-          )}
-        </span>
-      </header>
+    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 p-4">
+      <TopBar />
 
-      <div className="rounded-xl border border-white/10 p-6 text-center">
+      <Card className="text-center">
         <h1 className="text-2xl font-bold">{title}</h1>
         <p className="mt-2 text-sm text-white/60">Byggs i en kommande session 🚧</p>
-      </div>
+      </Card>
 
       <nav className="flex flex-wrap gap-2">
         {NAV.map((item) => (
