@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -77,6 +77,31 @@ export function IntroCarousel({ onClose }: { onClose: () => void }) {
   const page = INTRO_PAGES[pageIndex]!;
   const isFirst = pageIndex === 0;
   const isLast = pageIndex === INTRO_PAGES.length - 1;
+  const touchStartXRef = useRef<number | null>(null);
+
+  function goPrev() {
+    setPageIndex((p) => Math.max(0, p - 1));
+  }
+
+  function goNext() {
+    if (isLast) onClose();
+    else setPageIndex((p) => Math.min(INTRO_PAGES.length - 1, p + 1));
+  }
+
+  function handleTouchStart(event: React.TouchEvent) {
+    touchStartXRef.current = event.touches[0]?.clientX ?? null;
+  }
+
+  function handleTouchEnd(event: React.TouchEvent) {
+    if (touchStartXRef.current === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? touchStartXRef.current;
+    const deltaX = endX - touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (Math.abs(deltaX) < 50) return;
+    // Swipe right → previous page; swipe left → next page (or close on the last).
+    if (deltaX > 0) goPrev();
+    else goNext();
+  }
 
   return (
     <div
@@ -95,7 +120,9 @@ export function IntroCarousel({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label={page.title}
-        className="border-hogalid-yellow/30 w-full max-w-[380px] rounded-3xl border-2 bg-[linear-gradient(160deg,rgba(0,20,64,0.98)_0%,rgba(0,40,100,0.96)_58%,rgba(220,40,40,0.88)_100%)] px-5 pt-[22px] pb-[18px] shadow-[0_18px_70px_rgba(0,0,0,0.45)]"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="border-hogalid-yellow/30 w-full max-w-[380px] touch-pan-y rounded-3xl border-2 bg-[linear-gradient(160deg,rgba(0,20,64,0.98)_0%,rgba(0,40,100,0.96)_58%,rgba(220,40,40,0.88)_100%)] px-5 pt-[22px] pb-[18px] shadow-[0_18px_70px_rgba(0,0,0,0.45)]"
       >
         <div className="mb-[18px] flex items-start justify-between">
           <div>
@@ -144,7 +171,7 @@ export function IntroCarousel({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+            onClick={goPrev}
             disabled={isFirst}
             className="flex min-w-[92px] items-center justify-center gap-1.5 rounded-[14px] px-3.5 py-3 text-sm font-bold text-white enabled:bg-white/[0.14] disabled:cursor-default disabled:bg-white/[0.08] disabled:text-white/[0.28]"
           >
@@ -155,9 +182,7 @@ export function IntroCarousel({ onClose }: { onClose: () => void }) {
           </div>
           <button
             type="button"
-            onClick={() =>
-              isLast ? onClose() : setPageIndex((p) => Math.min(INTRO_PAGES.length - 1, p + 1))
-            }
+            onClick={goNext}
             className="bg-hogalid-yellow text-hogalid-dark font-display flex min-w-[108px] items-center justify-center gap-1.5 rounded-[14px] px-4 py-3 text-base"
           >
             {isLast ? (
