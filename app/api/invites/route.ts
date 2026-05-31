@@ -59,6 +59,11 @@ export function PUT(req: Request) {
         args: [restored, inviteId],
       });
     } else {
+      // Reset wipes used_by_alias, which is the only link from an invite to the
+      // account that redeemed it. Refuse to reset a redeemed invite — it would
+      // orphan a real player and let the code be reused for a different account.
+      // To recycle a used invite, delete the user first.
+      if (invite.used_at) throw new ApiError('invite_already_used', 409);
       await db.execute({
         sql: 'UPDATE invites SET status = ?, clicked_at = NULL, used_at = NULL, used_by_alias = NULL WHERE id = ?',
         args: ['active', inviteId],

@@ -18,6 +18,9 @@ test('admin generates an invite, new user registers with the code', async ({ pag
   expect(loginRes.ok(), `admin login (${loginRes.status()})`).toBeTruthy();
   await page.goto('/admin');
 
+  // The invite manager lives behind its own tab in the admin panel.
+  await page.getByRole('button', { name: /Inbjudningar/ }).click();
+
   // Create an invite and capture the generated code from the API response.
   await page.getByLabel('Namn på inbjudan').fill('E2E admin-invite');
   const [response] = await Promise.all([

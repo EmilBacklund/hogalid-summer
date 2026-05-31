@@ -198,15 +198,19 @@ export function InviteManager() {
                         ? 'Aktivera'
                         : 'Inaktivera'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleAction(invite.id, 'reset')}
-                    disabled={isBusy}
-                    className="rounded-lg bg-white/10 px-2.5 py-[7px] text-xs font-bold disabled:opacity-60"
-                    style={{ color: COLORS.accent }}
-                  >
-                    {isBusy && busy?.mode === 'reset' ? 'Återställer...' : 'Återställ'}
-                  </button>
+                  {/* Reset would unlink the player who redeemed this invite, so
+                      it is only offered for invites that have never been used. */}
+                  {!invite.usedAt && (
+                    <button
+                      type="button"
+                      onClick={() => void handleAction(invite.id, 'reset')}
+                      disabled={isBusy}
+                      className="rounded-lg bg-white/10 px-2.5 py-[7px] text-xs font-bold disabled:opacity-60"
+                      style={{ color: COLORS.accent }}
+                    >
+                      {isBusy && busy?.mode === 'reset' ? 'Återställer...' : 'Återställ'}
+                    </button>
+                  )}
                 </div>
               </div>
             );
