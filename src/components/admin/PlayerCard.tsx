@@ -12,6 +12,8 @@ interface PlayerCardProps {
   stats: Stats;
   lastActivity: string | null;
   today: string;
+  /** Label of the invite this player signed up with, if known. */
+  inviteLabel?: string | null;
 }
 
 function daysSince(today: string, dateStr: string | null): number | null {
@@ -33,7 +35,7 @@ const STAT_BOX = 'rounded-[10px] bg-white/5 px-1.5 py-[7px] text-center';
  * One player's admin card: stats, password reset, and delete. No password is
  * ever shown (SEC C2) — only a reset to a fresh hash.
  */
-export function PlayerCard({ player, stats, lastActivity, today }: PlayerCardProps) {
+export function PlayerCard({ player, stats, lastActivity, today, inviteLabel }: PlayerCardProps) {
   const { resetPassword, deleteUser } = useAdminMutations();
   const [showReset, setShowReset] = useState(false);
   const [newPw, setNewPw] = useState('');
@@ -82,6 +84,11 @@ export function PlayerCard({ player, stats, lastActivity, today }: PlayerCardPro
             <div className="text-xs text-white/40">
               {level.icon} {level.name}
             </div>
+            {inviteLabel && (
+              <div className="mt-0.5 text-[11px] text-white/40">
+                📨 Inbjuden som <span className="font-bold text-white/70">{inviteLabel}</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="text-right">
