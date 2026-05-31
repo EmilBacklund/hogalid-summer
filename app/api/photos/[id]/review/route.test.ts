@@ -46,9 +46,15 @@ afterEach(() => setPhotoStorageForTests(null));
 
 function dbWithPhoto(): FakeDb {
   return createFakeDb([
+    // deletePhotoById looks up the blob_key before removing the row.
     {
-      test: (sql) => /SELECT blob_key, status FROM album_photos/.test(sql),
-      result: { rows: [{ blob_key: 'maja/2026-06-01/abc', status: 'pending' } as never] },
+      test: (sql) => /SELECT blob_key FROM album_photos/.test(sql),
+      result: { rows: [{ blob_key: 'maja/2026-06-01/abc' } as never] },
+    },
+    // approve flips status; rowsAffected drives the 404 check.
+    {
+      test: (sql) => /UPDATE album_photos SET status = 'approved'/.test(sql),
+      result: { rowsAffected: 1 },
     },
   ]);
 }

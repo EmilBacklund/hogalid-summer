@@ -36,11 +36,22 @@ const STAT_BOX = 'rounded-[10px] bg-white/5 px-1.5 py-[7px] text-center';
  * ever shown (SEC C2) — only a reset to a fresh hash.
  */
 export function PlayerCard({ player, stats, lastActivity, today, inviteLabel }: PlayerCardProps) {
-  const { resetPassword, deleteUser } = useAdminMutations();
+  const { resetPassword, deleteUser, deleteLog } = useAdminMutations();
   const [showReset, setShowReset] = useState(false);
   const [newPw, setNewPw] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
+
+  const logs = [...(player.logs || [])].sort((a, b) => b.date.localeCompare(a.date));
+
+  async function handleDeleteLog(logId: number) {
+    try {
+      await deleteLog.mutateAsync(logId);
+    } catch (e) {
+      alert('Kunde inte ta bort logg: ' + (e instanceof Error ? e.message : ''));
+    }
+  }
 
   const days = daysSince(today, lastActivity);
   const level = getLevel(stats.totalPoints);
@@ -156,6 +167,52 @@ export function PlayerCard({ player, stats, lastActivity, today, inviteLabel }: 
           </div>
         )}
       </div>
+
+      {/* Per-player training log viewer with delete */}
+      <button
+        type="button"
+        onClick={() => setShowLogs((v) => !v)}
+        className="mt-2 flex w-full items-center justify-between rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-white/50"
+      >
+        <span>📋 Träningsloggar ({logs.length} st)</span>
+        <span>{showLogs ? '▲' : '▼'}</span>
+      </button>
+
+      {showLogs && (
+        <div className="mt-1.5 flex flex-col gap-1">
+          {logs.length === 0 ? (
+            <div className="px-2.5 py-1.5 text-xs text-white/30">Inga loggar.</div>
+          ) : (
+            logs.map((log) => {
+              const busy = deleteLog.isPending && deleteLog.variables === log.id;
+              return (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2.5 py-2"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-white">{log.date}</div>
+                    <div className="truncate text-[11px] text-white/40">
+                      {log.points}p · {log.minutes} min
+                      {log.title ? ` · ${log.title}` : ''}
+                      {log.bingo ? ' · Bingo' : ''}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Ta bort logg"
+                    onClick={() => void handleDeleteLog(log.id)}
+                    disabled={busy}
+                    className="shrink-0 rounded-md bg-[rgba(220,40,40,0.7)] px-2 py-1 text-[11px] font-bold text-white disabled:opacity-60"
+                  >
+                    {busy ? '...' : '🗑️'}
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {confirmDelete ? (
         <div className="mt-1.5 rounded-[10px] border border-[rgba(220,40,40,0.35)] bg-[rgba(220,40,40,0.1)] px-3 py-2.5">

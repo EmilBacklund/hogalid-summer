@@ -7,7 +7,13 @@ import { COLORS } from '@/constants';
 import { computeStats, localToday } from '@/utils';
 import { cn } from '@/lib/cn';
 import { LoadingSpinner } from '@/components/common';
-import { SeasonControls, InviteManager, LeaderManager, PlayerCard } from '@/components/admin';
+import {
+  SeasonControls,
+  InviteManager,
+  LeaderManager,
+  PhotoGallery,
+  PlayerCard,
+} from '@/components/admin';
 import { useUser } from '@/providers/UserProvider';
 import { useAllUsers } from '@/hooks/useAllUsers';
 import { useInvites } from '@/hooks/useAdmin';
@@ -114,6 +120,8 @@ function AdminContent({ onLogout }: { onLogout: () => void }) {
         <SeasonControls />
 
         <LeaderManager />
+
+        <PhotoGallery />
 
         <div className="mb-4 flex gap-2">
           {(
