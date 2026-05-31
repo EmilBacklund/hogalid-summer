@@ -162,7 +162,8 @@ export async function initDb(db: Client = getDb()): Promise<void> {
       blob_key TEXT NOT NULL,
       mime_type TEXT DEFAULT 'image/jpeg',
       week_start TEXT NOT NULL,
-      uploaded_at TEXT NOT NULL
+      uploaded_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending'
     );
   `);
 
@@ -177,6 +178,15 @@ export async function initDb(db: Client = getDb()): Promise<void> {
   // pre-existing account is a player; only admin-created accounts are leaders.
   try {
     await db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'player'");
+  } catch {
+    // column already exists
+  }
+
+  // Idempotent migration for DBs created before photo approval existed. Photos
+  // uploaded under the old instant-publish behaviour are grandfathered in as
+  // 'approved'; new uploads insert 'pending' explicitly and await a leader.
+  try {
+    await db.execute("ALTER TABLE album_photos ADD COLUMN status TEXT NOT NULL DEFAULT 'approved'");
   } catch {
     // column already exists
   }

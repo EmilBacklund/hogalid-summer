@@ -44,7 +44,14 @@ function PhotoAlbumContent({ user }: { user: User }) {
   const touchStartXRef = useRef<number | null>(null);
 
   const uploadsLeft = useMemo(() => getUploadsLeft(photos, user.alias), [photos, user.alias]);
-  const pages = useMemo(() => buildAlbumPages(photos), [photos]);
+  // The album shows approved photos only; the uploader's own pending shots are
+  // surfaced as a notice so they know the upload is queued for a leader.
+  const albumPhotos = useMemo(() => photos.filter((p) => p.status === 'approved'), [photos]);
+  const myPendingCount = useMemo(
+    () => photos.filter((p) => p.alias === user.alias && p.status === 'pending').length,
+    [photos, user.alias],
+  );
+  const pages = useMemo(() => buildAlbumPages(albumPhotos), [albumPhotos]);
   const safePageIndex = Math.min(pageIndex, Math.max(0, pages.length - 1));
 
   function goToPrevPage() {
@@ -107,11 +114,11 @@ function PhotoAlbumContent({ user }: { user: User }) {
       <TopBar />
       {lightboxIndex !== null && (
         <AlbumLightbox
-          photos={photos}
+          photos={albumPhotos}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
-          onPrev={() => setLightboxIndex((c) => (c! - 1 + photos.length) % photos.length)}
-          onNext={() => setLightboxIndex((c) => (c! + 1) % photos.length)}
+          onPrev={() => setLightboxIndex((c) => (c! - 1 + albumPhotos.length) % albumPhotos.length)}
+          onNext={() => setLightboxIndex((c) => (c! + 1) % albumPhotos.length)}
         />
       )}
 
@@ -139,8 +146,8 @@ function PhotoAlbumContent({ user }: { user: User }) {
             </div>
             <div className="font-display mt-1 text-2xl leading-[1.06] text-white">Fotoalbumet</div>
             <div className="mt-1.5 text-[13px] text-white/65">
-              {photos.length > 0
-                ? `${photos.length} bilder, fördelade på ${pages.length} sida${pages.length !== 1 ? 'r' : ''}.`
+              {albumPhotos.length > 0
+                ? `${albumPhotos.length} bilder, fördelade på ${pages.length} sida${pages.length !== 1 ? 'r' : ''}.`
                 : 'Här samlas lagets sommarminnen i ett riktigt fotoalbum.'}
             </div>
           </div>
@@ -175,10 +182,17 @@ function PhotoAlbumContent({ user }: { user: User }) {
           />
         </div>
 
+        {myPendingCount > 0 && (
+          <div className="border-hogalid-yellow/25 bg-hogalid-yellow/10 mb-4 rounded-2xl border px-4 py-3 text-[13px] text-white/80">
+            ⏳ Du har {myPendingCount} bild{myPendingCount !== 1 ? 'er' : ''} som väntar på att en
+            ledare godkänner den. Den syns i albumet så fort den är godkänd.
+          </div>
+        )}
+
         {/* Album */}
         {isLoading ? (
           <LoadingSpinner text="Laddar fotoalbumet..." />
-        ) : photos.length === 0 ? (
+        ) : albumPhotos.length === 0 ? (
           <div
             className="flex min-h-[360px] flex-col items-center justify-center rounded-[28px] px-6 py-9 text-center"
             style={{ background: 'linear-gradient(180deg, #fff9e8 0%, #fdf1d1 52%, #f8e7bf 100%)' }}
@@ -207,7 +221,7 @@ function PhotoAlbumContent({ user }: { user: User }) {
               <AlbumPage
                 page={pages[safePageIndex]!}
                 pageIndex={safePageIndex}
-                allPhotos={photos}
+                allPhotos={albumPhotos}
                 onOpenPhoto={setLightboxIndex}
               />
             </div>
