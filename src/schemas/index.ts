@@ -131,6 +131,11 @@ export const photoUploadSchema = z.object({
   mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']).optional(),
 });
 
+/** A leader's moderation decision on a pending photo. */
+export const photoReviewSchema = z.object({
+  action: z.enum(['approve', 'reject']),
+});
+
 // ── Weekly results ─────────────────────────────────────────────────────────────
 
 export const weeklyResultSchema = z.object({
@@ -183,4 +188,5 @@ export type BingoInput = z.infer<typeof bingoInputSchema>;
 export type DailyInput = z.infer<typeof dailyInputSchema>;
 export type BuddyCreateInput = z.infer<typeof buddyCreateSchema>;
 export type PhotoUploadInput = z.infer<typeof photoUploadSchema>;
+export type PhotoReviewInput = z.infer<typeof photoReviewSchema>;
 export type WeeklyResultInput = z.infer<typeof weeklyResultSchema>;

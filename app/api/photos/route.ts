@@ -20,14 +20,20 @@ interface PhotoMeta {
   weekStart: string;
   uploadedAt: string;
   date: string;
+  status: 'pending' | 'approved' | 'rejected';
   /** Auth-gated bytes endpoint — never the raw data (SEC M1). */
   url: string;
 }
 
-/** Paginated photo metadata. Returns URLs, never image bytes (SEC M1). */
+/**
+ * Paginated photo metadata. Returns URLs, never image bytes (SEC M1). The album
+ * only ever surfaces approved photos; an uploader additionally sees their own
+ * pending ones (badged as awaiting approval in the UI), so they know the upload
+ * landed and is queued for a leader.
+ */
 export function GET(req: Request) {
   return handle(async () => {
-    await requireUser(req);
+    const session = await requireUser(req);
     const url = new URL(req.url);
     const limit = Math.min(
       Math.max(Number(url.searchParams.get('limit')) || DEFAULT_LIMIT, 1),
@@ -38,18 +44,20 @@ export function GET(req: Request) {
     const db = getDb();
     await initDb(db);
     const result = await db.execute({
-      sql: `SELECT p.id, p.alias, p.mime_type, p.week_start, p.uploaded_at, u.display_name, u.display_alias
+      sql: `SELECT p.id, p.alias, p.mime_type, p.week_start, p.uploaded_at, p.status, u.display_name, u.display_alias
             FROM album_photos p
             LEFT JOIN users u ON u.alias = p.alias
+            WHERE p.status = 'approved' OR p.alias = ?
             ORDER BY p.uploaded_at DESC
             LIMIT ? OFFSET ?`,
-      args: [limit + 1, offset],
+      args: [session.alias, limit + 1, offset],
     });
 
     const rows = result.rows.slice(0, limit);
     const hasMore = result.rows.length > limit;
     const photos: PhotoMeta[] = rows.map((r) => {
       const id = Number(r.id);
+      const status = r.status === 'pending' || r.status === 'rejected' ? r.status : 'approved';
       return {
         id,
         alias: String(r.alias),
@@ -58,6 +66,7 @@ export function GET(req: Request) {
         weekStart: String(r.week_start),
         uploadedAt: String(r.uploaded_at),
         date: String(r.uploaded_at || '').slice(0, 10),
+        status,
         url: `/api/photos/${id}`,
       };
     });
@@ -96,15 +105,17 @@ export function POST(req: Request) {
     await getPhotoStorage().put(blobKey, bytes);
 
     const uploadedAt = new Date().toISOString();
-    // Legacy DBs still carry a NOT NULL `image_data` column; supply '' for it so
-    // the metadata-only insert satisfies the constraint (bytes live in storage).
+    // New uploads await a leader's approval before the team can see them
+    // (status='pending'); the literal keeps the args positions stable. Legacy
+    // DBs still carry a NOT NULL `image_data` column; supply '' for it so the
+    // metadata-only insert satisfies the constraint (bytes live in storage).
     const insert = albumPhotosNeedsImageData()
       ? await db.execute({
-          sql: 'INSERT INTO album_photos (alias, blob_key, mime_type, week_start, uploaded_at, image_data) VALUES (?, ?, ?, ?, ?, ?)',
+          sql: "INSERT INTO album_photos (alias, blob_key, mime_type, week_start, uploaded_at, status, image_data) VALUES (?, ?, ?, ?, ?, 'pending', ?)",
           args: [session.alias, blobKey, resolvedMime, weekStart, uploadedAt, ''],
         })
       : await db.execute({
-          sql: 'INSERT INTO album_photos (alias, blob_key, mime_type, week_start, uploaded_at) VALUES (?, ?, ?, ?, ?)',
+          sql: "INSERT INTO album_photos (alias, blob_key, mime_type, week_start, uploaded_at, status) VALUES (?, ?, ?, ?, ?, 'pending')",
           args: [session.alias, blobKey, resolvedMime, weekStart, uploadedAt],
         });
     const id = Number(insert.lastInsertRowid);
@@ -119,6 +130,7 @@ export function POST(req: Request) {
           weekStart,
           uploadedAt,
           date: uploadedAt.slice(0, 10),
+          status: 'pending',
           url: `/api/photos/${id}`,
         },
       },

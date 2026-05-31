@@ -6,7 +6,7 @@ vi.mock('@/server/db', () => ({
   albumPhotosNeedsImageData: vi.fn(() => false),
 }));
 
-import { POST } from './route';
+import { GET as getList, POST } from './route';
 import { GET as getBytes } from './[id]/route';
 import { getDb, albumPhotosNeedsImageData } from '@/server/db';
 import { signSession, SESSION_COOKIE } from '@/server/session';
@@ -67,13 +67,16 @@ describe('POST /api/photos (SEC M1 — bytes to Blobs, metadata to DB)', () => {
     const res = await POST(uploadReq(await cookie('maja')));
     expect(res.status).toBe(201);
     expect(storage.put).toHaveBeenCalledOnce();
-    const body = (await res.json()) as { photo: { id: number; url: string } };
+    const body = (await res.json()) as { photo: { id: number; url: string; status: string } };
     expect(body.photo.id).toBe(42);
     expect(body.photo.url).toBe('/api/photos/42');
-    // The DB row holds a blob_key, never the image bytes.
+    // New uploads await a leader's approval before the team can see them.
+    expect(body.photo.status).toBe('pending');
+    // The DB row holds a blob_key, never the image bytes, and lands as pending.
     const insert = db.calls.find((c) => /INSERT INTO album_photos/.test(c.sql));
     const blobKey = (insert!.args as unknown[])[1] as string;
     expect(blobKey).toContain('maja/');
+    expect(insert!.sql).toMatch(/'pending'/);
   });
 
   it('supplies image_data on legacy DBs that still have the NOT NULL column', async () => {
@@ -117,11 +120,20 @@ describe('GET /api/photos/[id] (SEC M1 — auth-gated bytes)', () => {
     expect(res.status).toBe(401);
   });
 
-  it('serves bytes with a private cache header for an authed user', async () => {
+  it('serves approved bytes with a private cache header for an authed user', async () => {
     const db = createFakeDb([
       {
-        test: (sql) => /SELECT blob_key, mime_type FROM album_photos/.test(sql),
-        result: { rows: [{ blob_key: 'maja/2026-06-01/abc', mime_type: 'image/png' } as never] },
+        test: (sql) => /SELECT .*blob_key.* FROM album_photos/.test(sql),
+        result: {
+          rows: [
+            {
+              alias: 'maja',
+              blob_key: 'maja/2026-06-01/abc',
+              mime_type: 'image/png',
+              status: 'approved',
+            } as never,
+          ],
+        },
       },
     ]);
     useDb(db);
@@ -133,5 +145,99 @@ describe('GET /api/photos/[id] (SEC M1 — auth-gated bytes)', () => {
     expect(res.headers.get('content-type')).toBe('image/png');
     expect(res.headers.get('cache-control')).toContain('private');
     expect(storage.get).toHaveBeenCalledWith('maja/2026-06-01/abc');
+  });
+
+  it('hides a pending photo from a non-owner (SEC — un-approved minors’ photos)', async () => {
+    const db = createFakeDb([
+      {
+        test: (sql) => /SELECT .*blob_key.* FROM album_photos/.test(sql),
+        result: {
+          rows: [
+            {
+              alias: 'maja',
+              blob_key: 'maja/2026-06-01/abc',
+              mime_type: 'image/png',
+              status: 'pending',
+            } as never,
+          ],
+        },
+      },
+    ]);
+    useDb(db);
+    const res = await getBytes(
+      new Request('http://localhost/api/photos/5', { headers: { cookie: await cookie('leo') } }),
+      { params: Promise.resolve({ id: '5' }) },
+    );
+    expect(res.status).toBe(404);
+    expect(storage.get).not.toHaveBeenCalled();
+  });
+
+  it('serves a pending photo to its own uploader', async () => {
+    const db = createFakeDb([
+      {
+        test: (sql) => /SELECT .*blob_key.* FROM album_photos/.test(sql),
+        result: {
+          rows: [
+            {
+              alias: 'maja',
+              blob_key: 'maja/2026-06-01/abc',
+              mime_type: 'image/png',
+              status: 'pending',
+            } as never,
+          ],
+        },
+      },
+    ]);
+    useDb(db);
+    const res = await getBytes(
+      new Request('http://localhost/api/photos/5', { headers: { cookie: await cookie('maja') } }),
+      { params: Promise.resolve({ id: '5' }) },
+    );
+    expect(res.status).toBe(200);
+    expect(storage.get).toHaveBeenCalledWith('maja/2026-06-01/abc');
+  });
+});
+
+describe('GET /api/photos (album visibility)', () => {
+  function listReq(cookieHeader?: string): Request {
+    const headers: Record<string, string> = {};
+    if (cookieHeader) headers.cookie = cookieHeader;
+    return new Request('http://localhost/api/photos', { headers });
+  }
+
+  it('rejects unauthenticated listing', async () => {
+    useDb(createFakeDb());
+    expect((await getList(listReq())).status).toBe(401);
+  });
+
+  it('filters to approved-or-own at the SQL level, scoped to the caller', async () => {
+    const db = createFakeDb([
+      {
+        test: (sql) => /FROM album_photos/.test(sql),
+        result: {
+          rows: [
+            {
+              id: 1,
+              alias: 'maja',
+              mime_type: 'image/jpeg',
+              week_start: '2026-06-01',
+              uploaded_at: '2026-06-02T00:00:00.000Z',
+              status: 'pending',
+              display_name: 'Maja',
+            } as never,
+          ],
+        },
+      },
+    ]);
+    useDb(db);
+    const res = await getList(listReq(await cookie('maja')));
+    expect(res.status).toBe(200);
+    // The query only exposes approved photos plus the caller's own, parameterised
+    // with the caller's alias so it can never leak another player's pending shot.
+    const select = db.calls.find((c) => /FROM album_photos/.test(c.sql));
+    expect(select!.sql).toMatch(/status = 'approved' OR .*alias = \?/);
+    expect((select!.args as unknown[])[0]).toBe('maja');
+    const body = (await res.json()) as { photos: { id: number; status: string }[] };
+    expect(body.photos[0]?.status).toBe('pending');
   });
 });
