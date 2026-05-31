@@ -13,10 +13,13 @@ function statusLabel(invite: Invite): string {
 }
 
 function statusColor(invite: Invite): string {
-  if (invite.status === 'used') return COLORS.lime;
-  if (invite.status === 'disabled') return '#f87171';
-  if (invite.status === 'clicked') return COLORS.accent;
-  return 'rgba(255,255,255,0.45)';
+  // Distinct hues so the states read at a glance: grey → yellow → green, red for
+  // disabled. (COLORS.lime and COLORS.accent are both the theme yellow now, so
+  // "used" and "clicked" must not share them — see colors.ts.)
+  if (invite.status === 'used') return '#4ade80'; // green — redeemed
+  if (invite.status === 'disabled') return '#f87171'; // red — revoked
+  if (invite.status === 'clicked') return COLORS.yellow; // yellow — opened
+  return 'rgba(255,255,255,0.45)'; // grey — never opened
 }
 
 function formatDateTime(value: string | null): string {
