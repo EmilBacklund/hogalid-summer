@@ -151,7 +151,7 @@ export const inviteCreateSchema = z.object({
 
 export const inviteUpdateSchema = z.object({
   inviteId: z.number().int().positive(),
-  mode: z.enum(['disable', 'enable', 'reset']),
+  mode: z.enum(['disable', 'enable']),
 });
 
 // ── Admin actions ──────────────────────────────────────────────────────────────

@@ -32,7 +32,7 @@ export function POST(req: Request) {
   });
 }
 
-/** Admin: change an invite's state (disable / enable / reset). */
+/** Admin: change an invite's state (disable / enable). */
 export function PUT(req: Request) {
   return handle(async () => {
     await requireAdmin(req);
@@ -52,21 +52,12 @@ export function PUT(req: Request) {
         sql: 'UPDATE invites SET status = ? WHERE id = ?',
         args: ['disabled', inviteId],
       });
-    } else if (mode === 'enable') {
+    } else {
+      // enable: restore to whatever state the timestamps imply.
       const restored = invite.used_at ? 'used' : invite.clicked_at ? 'clicked' : 'active';
       await db.execute({
         sql: 'UPDATE invites SET status = ? WHERE id = ?',
         args: [restored, inviteId],
-      });
-    } else {
-      // Reset wipes used_by_alias, which is the only link from an invite to the
-      // account that redeemed it. Refuse to reset a redeemed invite — it would
-      // orphan a real player and let the code be reused for a different account.
-      // To recycle a used invite, delete the user first.
-      if (invite.used_at) throw new ApiError('invite_already_used', 409);
-      await db.execute({
-        sql: 'UPDATE invites SET status = ?, clicked_at = NULL, used_at = NULL, used_by_alias = NULL WHERE id = ?',
-        args: ['active', inviteId],
       });
     }
 

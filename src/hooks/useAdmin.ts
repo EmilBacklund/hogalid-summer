@@ -54,7 +54,7 @@ export function useAdminMutations() {
   });
 
   const updateInvite = useMutation({
-    mutationFn: (input: { inviteId: number; mode: 'disable' | 'enable' | 'reset' }) =>
+    mutationFn: (input: { inviteId: number; mode: 'disable' | 'enable' }) =>
       apiPut('/invites', input),
     onSuccess: invalidateInvites,
   });
