@@ -22,6 +22,7 @@ function rowToUserBase(
 > {
   return {
     alias: String(row.alias),
+    role: row.role === 'leader' ? 'leader' : 'player',
     displayAlias: String(row.display_alias || row.alias),
     displayName: String(row.display_name || ''),
     avatarConfig: parseJson<AvatarConfig>(row.avatar_config, {}),

@@ -70,3 +70,56 @@ describe('POST /api/admin (SEC C1 — admin-claim gating)', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('POST /api/admin create-leader', () => {
+  it('rejects a non-admin session with 403', async () => {
+    const res = await POST(
+      req(
+        { action: 'create-leader', alias: 'tranare-anna', password: 'hejhej' },
+        await cookie('maja', false),
+      ),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('creates a leader account with role=leader and a hashed password (SEC C2)', async () => {
+    const res = await POST(
+      req(
+        { action: 'create-leader', alias: 'Tranare-Anna', password: 'hejhej' },
+        await cookie('admin', true),
+      ),
+    );
+    expect(res.status).toBe(201);
+    const insert = db.calls.find((c) => /INSERT INTO users/.test(c.sql));
+    expect(insert).toBeDefined();
+    // role lives in the SQL literal; alias is lowercased.
+    expect(insert!.sql).toMatch(/'leader'/);
+    const args = insert!.args as unknown[];
+    expect(args[0]).toBe('tranare-anna');
+    const stored = args[2] as string;
+    expect(stored).not.toContain('hejhej');
+    expect(stored).toMatch(/^[0-9a-f]+:[0-9a-f]+$/);
+  });
+
+  it('refuses to create a leader when the alias is taken (409)', async () => {
+    db = createFakeDb([
+      {
+        test: (sql) => /SELECT alias FROM users/.test(sql),
+        result: { rows: [{ alias: 'x' } as never] },
+      },
+    ]);
+    vi.mocked(getDb).mockReturnValue(db.client);
+    const res = await POST(
+      req({ action: 'create-leader', alias: 'x', password: 'hejhej' }, await cookie('admin', true)),
+    );
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: 'alias_taken' });
+  });
+
+  it('rejects a too-short password (400)', async () => {
+    const res = await POST(
+      req({ action: 'create-leader', alias: 'anna', password: 'ab' }, await cookie('admin', true)),
+    );
+    expect(res.status).toBe(400);
+  });
+});

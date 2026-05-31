@@ -11,6 +11,8 @@ interface UserContextValue {
   /** The signed-in player, or null when unauthenticated / admin. */
   user: User | null;
   isAdmin: boolean;
+  /** A coach account: moderates (e.g. approves photos) but does not play. */
+  isLeader: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
   /** Re-fetch the current session user (e.g. after a mutation). */
@@ -33,6 +35,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = !!data && 'isAdmin' in data && data.isAdmin === true;
   const user = data && 'logs' in data ? data : null;
+  const isLeader = user?.role === 'leader';
   const isAuthenticated = !!data && !isError;
 
   const refresh = useCallback(async () => {
@@ -51,8 +54,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [queryClient, router]);
 
   const value = useMemo<UserContextValue>(
-    () => ({ user, isAdmin, isAuthenticated, isLoading, refresh, logout }),
-    [user, isAdmin, isAuthenticated, isLoading, refresh, logout],
+    () => ({ user, isAdmin, isLeader, isAuthenticated, isLoading, refresh, logout }),
+    [user, isAdmin, isLeader, isAuthenticated, isLoading, refresh, logout],
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

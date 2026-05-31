@@ -8,6 +8,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn(), push: 
 const player: User = {
   alias: 'maja',
   displayAlias: 'Maja',
+  role: 'player',
   avatarConfig: {},
   unlockedItems: [],
   highscores: {},
@@ -55,6 +56,7 @@ vi.mock('@/hooks/useAdmin', () => ({
     setCountdownDate: mutation,
     createInvite: mutation,
     updateInvite: mutation,
+    createLeader: mutation,
   }),
 }));
 

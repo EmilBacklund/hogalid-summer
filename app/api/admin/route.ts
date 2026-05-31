@@ -6,6 +6,7 @@ import { getPhotoStorage } from '@/server/photoStorage';
 import { stockholmToday } from '@/server/dates';
 import {
   adminAliasSchema,
+  adminCreateLeaderSchema,
   adminDateSchema,
   adminFirstLogSchema,
   adminResetPasswordSchema,
@@ -18,6 +19,7 @@ const actionSchema = z.object({
   action: z.enum([
     'reset-season',
     'reset-password',
+    'create-leader',
     'delete-user',
     'season-start',
     'countdown-date',
@@ -91,6 +93,28 @@ export function POST(req: Request) {
           args: [hashed, alias.toLowerCase()],
         });
         return json({ ok: true });
+      }
+
+      case 'create-leader': {
+        // A coach account: can moderate (e.g. approve photos) but never plays,
+        // so it is excluded from leaderboards. Stored exactly like a player
+        // (PBKDF2 hash, SEC C2) but with role = 'leader'.
+        const { alias, password } = field(adminCreateLeaderSchema, raw);
+        const key = alias.toLowerCase();
+        const existing = await db.execute({
+          sql: 'SELECT alias FROM users WHERE alias = ?',
+          args: [key],
+        });
+        if (existing.rows.length > 0) throw new ApiError('alias_taken', 409);
+        const hashed = await hashPassword(password);
+        const joinedAt = new Date().toISOString();
+        await db.execute({
+          sql: `INSERT INTO users
+                (alias, display_alias, password, avatar_config, unlocked_items, highscores, secret_flags, joined_at, role)
+                VALUES (?, ?, ?, '{}', '[]', '{}', '{}', ?, 'leader')`,
+          args: [key, alias.trim() || key, hashed, joinedAt],
+        });
+        return json({ ok: true }, 201);
       }
 
       case 'delete-user': {

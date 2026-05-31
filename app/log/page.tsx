@@ -41,8 +41,15 @@ interface ExerciseField {
 }
 
 export default function LogPage() {
-  const { user, isLoading } = useUser();
-  if (isLoading || !user) {
+  const router = useRouter();
+  const { user, isLeader, isLoading } = useUser();
+
+  // Leaders (coaches) don't log training — send them to the team view.
+  useEffect(() => {
+    if (isLeader) router.replace('/team');
+  }, [isLeader, router]);
+
+  if (isLoading || !user || isLeader) {
     return (
       <main className="mx-auto min-h-screen max-w-md">
         <TopBar />

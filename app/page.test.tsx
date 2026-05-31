@@ -9,6 +9,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push, replace, refresh: 
 const fakeUser: User = {
   alias: 'maja',
   displayAlias: 'Maja',
+  role: 'player',
   avatarConfig: {},
   unlockedItems: [],
   highscores: {},

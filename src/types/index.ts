@@ -33,9 +33,14 @@ export interface SecretFlags {
   penaltyBest?: number;
 }
 
+/** A user's role. Players play the game; leaders are coach accounts that
+ * moderate (e.g. approve photos) but never appear in leaderboards. */
+export type Role = 'player' | 'leader';
+
 /** A player account, as returned by the API and consumed by the UI. */
 export interface User {
   alias: string;
+  role: Role;
   displayAlias: string;
   displayName?: string;
   avatarConfig: AvatarConfig;

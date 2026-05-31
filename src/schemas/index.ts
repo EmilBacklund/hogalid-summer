@@ -161,6 +161,11 @@ export const adminResetPasswordSchema = z.object({
   newPassword: z.string().min(4).max(200),
 });
 
+export const adminCreateLeaderSchema = z.object({
+  alias: aliasSchema,
+  password: z.string().min(4).max(200),
+});
+
 export const adminAliasSchema = z.object({ alias: aliasSchema });
 
 export const adminDateSchema = z.object({ date: dateSchema });

@@ -23,6 +23,7 @@ const log: Log = {
 const fakeUser = {
   alias: 'maja',
   displayAlias: 'Maja',
+  role: 'player',
   avatarConfig: {},
   unlockedItems: [],
   highscores: {},

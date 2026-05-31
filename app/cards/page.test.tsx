@@ -24,6 +24,7 @@ const richLog: Log = {
 const fakeUser: User = {
   alias: 'maja',
   displayAlias: 'Maja',
+  role: 'player',
   avatarConfig: {},
   unlockedItems: [],
   highscores: {},

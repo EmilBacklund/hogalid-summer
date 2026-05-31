@@ -36,13 +36,15 @@ import type { Stats, User } from '@/types';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, isAdmin, isLoading } = useUser();
+  const { user, isAdmin, isLeader, isLoading } = useUser();
   const stats = useStats();
 
   // The single admin has no player home — route them to their console.
+  // Leaders (coaches) don't play either; the team view is their landing page.
   useEffect(() => {
     if (isAdmin) router.replace('/admin');
-  }, [isAdmin, router]);
+    else if (isLeader) router.replace('/team');
+  }, [isAdmin, isLeader, router]);
 
   if (isLoading || !user || !stats) {
     return (
