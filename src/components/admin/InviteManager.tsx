@@ -180,24 +180,30 @@ export function InviteManager() {
                   >
                     Kopiera kod
                   </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void handleAction(
-                        invite.id,
-                        invite.status === 'disabled' ? 'enable' : 'disable',
-                      )
-                    }
-                    disabled={isBusy}
-                    className="rounded-lg bg-white/10 px-2.5 py-[7px] text-xs font-bold disabled:opacity-60"
-                    style={{ color: invite.status === 'disabled' ? COLORS.lime : '#fca5a5' }}
-                  >
-                    {isBusy && (busy?.mode === 'disable' || busy?.mode === 'enable')
-                      ? 'Sparar...'
-                      : invite.status === 'disabled'
-                        ? 'Aktivera'
-                        : 'Inaktivera'}
-                  </button>
+                  {/* Disabling only revokes an invite that has not been redeemed
+                      yet — a used invite is already permanently unusable, so the
+                      toggle is hidden for it. (A previously disabled invite still
+                      shows "Aktivera" so it is never stranded.) */}
+                  {invite.status !== 'used' && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleAction(
+                          invite.id,
+                          invite.status === 'disabled' ? 'enable' : 'disable',
+                        )
+                      }
+                      disabled={isBusy}
+                      className="rounded-lg bg-white/10 px-2.5 py-[7px] text-xs font-bold disabled:opacity-60"
+                      style={{ color: invite.status === 'disabled' ? COLORS.lime : '#fca5a5' }}
+                    >
+                      {isBusy && (busy?.mode === 'disable' || busy?.mode === 'enable')
+                        ? 'Sparar...'
+                        : invite.status === 'disabled'
+                          ? 'Aktivera'
+                          : 'Inaktivera'}
+                    </button>
+                  )}
                   {/* Reset would unlink the player who redeemed this invite, so
                       it is only offered for invites that have never been used. */}
                   {!invite.usedAt && (
