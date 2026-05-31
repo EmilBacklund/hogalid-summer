@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getDb, initDb } from '@/server/db';
-import { ApiError, handle, isModerator, requireUser } from '@/server/responses';
+import {
+  ApiError,
+  handle,
+  isModerator,
+  json,
+  requireLeader,
+  requireUser,
+} from '@/server/responses';
 import { getPhotoStorage } from '@/server/photoStorage';
+import { deletePhotoById } from '@/server/photos';
 
 export const runtime = 'nodejs';
 
@@ -41,5 +49,25 @@ export function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
         'Cache-Control': 'private, max-age=86400',
       },
     });
+  });
+}
+
+/**
+ * Remove a photo entirely (bytes + metadata) — the admin gallery's moderation
+ * action, e.g. taking down an inappropriate image after it was published.
+ * Restricted to moderators (admin or a leader account) via `requireLeader`;
+ * works regardless of the photo's approval status.
+ */
+export function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  return handle(async () => {
+    await requireLeader(req);
+    const { id } = await ctx.params;
+    const photoId = Number(id);
+    if (!Number.isInteger(photoId) || photoId <= 0) throw new ApiError('not_found', 404);
+
+    const db = getDb();
+    await initDb(db);
+    if (!(await deletePhotoById(db, photoId))) throw new ApiError('not_found', 404);
+    return json({ ok: true });
   });
 }

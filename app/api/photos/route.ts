@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { albumPhotosNeedsImageData, getDb, initDb } from '@/server/db';
-import { ApiError, handle, json, parseBody, requireUser } from '@/server/responses';
+import { ApiError, handle, isModerator, json, parseBody, requireUser } from '@/server/responses';
 import { getPhotoStorage } from '@/server/photoStorage';
 import { getWeekStart, stockholmToday } from '@/server/dates';
 import { photoUploadSchema } from '@/schemas';
@@ -43,14 +43,18 @@ export function GET(req: Request) {
 
     const db = getDb();
     await initDb(db);
+    // Moderators (admin / leaders) see every photo — including pending ones —
+    // so the admin gallery can manage the full album. Players only ever see
+    // approved photos plus their own (pending shots they uploaded).
+    const moderator = isModerator(session);
     const result = await db.execute({
       sql: `SELECT p.id, p.alias, p.mime_type, p.week_start, p.uploaded_at, p.status, u.display_name, u.display_alias
             FROM album_photos p
             LEFT JOIN users u ON u.alias = p.alias
-            WHERE p.status = 'approved' OR p.alias = ?
+            ${moderator ? '' : "WHERE p.status = 'approved' OR p.alias = ?"}
             ORDER BY p.uploaded_at DESC
             LIMIT ? OFFSET ?`,
-      args: [session.alias, limit + 1, offset],
+      args: moderator ? [limit + 1, offset] : [session.alias, limit + 1, offset],
     });
 
     const rows = result.rows.slice(0, limit);

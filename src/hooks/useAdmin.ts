@@ -46,6 +46,11 @@ export function useAdminMutations() {
     onSuccess: invalidateUsers,
   });
 
+  const deleteLog = useMutation({
+    mutationFn: (logId: number) => apiPost('/admin', { action: 'delete-log', logId }),
+    onSuccess: invalidateUsers,
+  });
+
   const setSeasonStart = useMutation({
     mutationFn: (date: string) => apiPost('/admin', { action: 'season-start', date }),
     onSuccess: invalidateConfig,
@@ -72,6 +77,7 @@ export function useAdminMutations() {
     resetPassword,
     createLeader,
     deleteUser,
+    deleteLog,
     setSeasonStart,
     setCountdownDate,
     createInvite,

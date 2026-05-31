@@ -52,12 +52,16 @@ vi.mock('@/hooks/useAdmin', () => ({
     resetSeason: mutation,
     resetPassword: mutation,
     deleteUser: mutation,
+    deleteLog: mutation,
     setSeasonStart: mutation,
     setCountdownDate: mutation,
     createInvite: mutation,
     updateInvite: mutation,
     createLeader: mutation,
   }),
+}));
+vi.mock('@/hooks/useAdminPhotos', () => ({
+  useAdminPhotos: () => ({ photos: [], isLoading: false, remove: mutation }),
 }));
 
 import AdminPage from './page';

@@ -8,6 +8,7 @@ import {
   adminAliasSchema,
   adminCreateLeaderSchema,
   adminDateSchema,
+  adminDeleteLogSchema,
   adminFirstLogSchema,
   adminResetPasswordSchema,
 } from '@/schemas';
@@ -24,6 +25,7 @@ const actionSchema = z.object({
     'season-start',
     'countdown-date',
     'first-log',
+    'delete-log',
   ]),
 });
 
@@ -182,6 +184,18 @@ export function POST(req: Request) {
           sql: 'UPDATE logs SET date = ? WHERE id = ?',
           args: [date, Number(row.id)],
         });
+        return json({ ok: true });
+      }
+
+      case 'delete-log': {
+        // Remove a single training log on a player's behalf (e.g. a mistaken or
+        // inappropriate entry). Admin-only — never trusted from the client.
+        const { logId } = field(adminDeleteLogSchema, raw);
+        const result = await db.execute({
+          sql: 'DELETE FROM logs WHERE id = ?',
+          args: [logId],
+        });
+        if (result.rowsAffected === 0) throw new ApiError('not_found', 404);
         return json({ ok: true });
       }
     }
