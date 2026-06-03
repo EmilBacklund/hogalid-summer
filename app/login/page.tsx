@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { ArrowRight } from 'lucide-react';
 import { STARTER_OPTIONS, randomAvatarConfig } from '@/constants';
 import { apiGet, apiPost } from '@/utils/api';
+import { enterDemo, exitDemo } from '@/demo/demoMode';
 import { Card } from '@/components/common';
 import { AvatarSVG, AvatarBuilder } from '@/components/avatar';
 import { cn } from '@/lib/cn';
@@ -108,8 +109,23 @@ export default function LoginPage() {
     void validateInvite({ token });
   }, []);
 
+  async function startDemo() {
+    setError('');
+    // Drop any prior real-session cache before entering the demo fixture.
+    queryClient.clear();
+    enterDemo();
+    await queryClient.invalidateQueries({ queryKey: ['me'] });
+    router.push('/');
+    router.refresh();
+  }
+
   async function onSubmit(values: FormValues) {
     setError('');
+    // Leaving demo before any real auth guarantees the demo flag + in-memory
+    // user can never coexist with a real session on this tab. Clearing the
+    // query cache drops any demo data still held by React Query.
+    exitDemo();
+    queryClient.clear();
     try {
       if (mode === 'register') {
         if (!validatedInvite) {
@@ -292,6 +308,19 @@ export default function LoginPage() {
               Glömt lösenordet? Fråga tränaren!
             </div>
           )}
+
+          <div className="mt-5 border-t border-white/10 pt-4">
+            <button
+              type="button"
+              onClick={() => void startDemo()}
+              className="w-full rounded-[14px] bg-white/10 py-3 text-sm font-bold text-white/90 transition-all hover:bg-white/15"
+            >
+              🎮 Prova appen som förälder
+            </button>
+            <div className="mt-2 text-center text-xs text-white/40">
+              Utforska appen utan konto — inget sparas.
+            </div>
+          </div>
         </Card>
       </div>
     </div>
