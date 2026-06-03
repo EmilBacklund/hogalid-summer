@@ -42,7 +42,7 @@ export function POST(req: Request) {
     const user = await loadUser(db, key);
     if (!user) throw new ApiError('invalid_credentials', 401);
     const res = json(user);
-    await setSessionCookie(res, { alias: key, admin: false });
+    await setSessionCookie(res, { alias: key, admin: false, role: user.role });
     return res;
   });
 }

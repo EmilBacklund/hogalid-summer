@@ -33,6 +33,14 @@ export function useAdminMutations() {
       apiPost('/admin', { action: 'reset-password', ...input }),
   });
 
+  const createLeader = useMutation({
+    mutationFn: (input: { alias: string; password: string }) =>
+      apiPost('/admin', { action: 'create-leader', ...input }),
+    // Leaders are excluded from /users, but invalidate anyway so any roster the
+    // admin views stays consistent.
+    onSuccess: invalidateUsers,
+  });
+
   const deleteUser = useMutation({
     mutationFn: (alias: string) => apiPost('/admin', { action: 'delete-user', alias }),
     onSuccess: invalidateUsers,
@@ -62,6 +70,7 @@ export function useAdminMutations() {
   return {
     resetSeason,
     resetPassword,
+    createLeader,
     deleteUser,
     setSeasonStart,
     setCountdownDate,

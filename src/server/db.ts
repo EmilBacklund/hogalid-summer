@@ -45,7 +45,8 @@ export async function initDb(db: Client = getDb()): Promise<void> {
       unlocked_items TEXT DEFAULT '[]',
       highscores TEXT DEFAULT '{}',
       secret_flags TEXT DEFAULT '{}',
-      joined_at TEXT
+      joined_at TEXT,
+      role TEXT NOT NULL DEFAULT 'player'
     );
 
     CREATE TABLE IF NOT EXISTS logs (
@@ -168,6 +169,14 @@ export async function initDb(db: Client = getDb()): Promise<void> {
   // Idempotent migration for DBs created before photos moved to Netlify Blobs.
   try {
     await db.execute("ALTER TABLE album_photos ADD COLUMN blob_key TEXT DEFAULT ''");
+  } catch {
+    // column already exists
+  }
+
+  // Idempotent migration for DBs created before leader accounts existed. Every
+  // pre-existing account is a player; only admin-created accounts are leaders.
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'player'");
   } catch {
     // column already exists
   }

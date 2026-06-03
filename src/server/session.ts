@@ -17,6 +17,11 @@ export interface Session {
   alias: string;
   /** True only for the single env-var admin (SEC C1). */
   admin: boolean;
+  /**
+   * The acting account's role. Absent on the admin and on cookies issued before
+   * leader accounts existed — consumers treat a missing role as `player`.
+   */
+  role?: 'player' | 'leader';
   /** Issued-at (epoch seconds). */
   iat: number;
 }
@@ -99,7 +104,14 @@ export async function verifySessionValue(value: string | undefined): Promise<Ses
     const json = new TextDecoder().decode(fromBase64Url(payload));
     const parsed = JSON.parse(json) as Partial<Session>;
     if (typeof parsed.alias !== 'string' || typeof parsed.admin !== 'boolean') return null;
-    return { alias: parsed.alias, admin: parsed.admin, iat: Number(parsed.iat) || 0 };
+    const role =
+      parsed.role === 'leader' ? 'leader' : parsed.role === 'player' ? 'player' : undefined;
+    return {
+      alias: parsed.alias,
+      admin: parsed.admin,
+      ...(role ? { role } : {}),
+      iat: Number(parsed.iat) || 0,
+    };
   } catch {
     return null;
   }

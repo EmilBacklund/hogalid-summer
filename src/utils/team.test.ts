@@ -25,6 +25,7 @@ function user(alias: string, partial: Partial<User>): User {
   return {
     alias,
     displayAlias: alias,
+    role: 'player',
     avatarConfig: {},
     unlockedItems: [],
     highscores: {},

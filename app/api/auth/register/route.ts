@@ -58,7 +58,7 @@ export function POST(req: Request) {
 
     const user = await loadUser(db, key);
     const res = json(user, 201);
-    await setSessionCookie(res, { alias: key, admin: false });
+    await setSessionCookie(res, { alias: key, admin: false, role: 'player' });
     return res;
   });
 }

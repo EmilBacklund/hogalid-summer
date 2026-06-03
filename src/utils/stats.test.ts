@@ -6,6 +6,7 @@ function makeUser(partial: Partial<User> = {}): User {
   return {
     alias: 'test',
     displayAlias: 'Test',
+    role: 'player',
     avatarConfig: {},
     unlockedItems: [],
     highscores: {},

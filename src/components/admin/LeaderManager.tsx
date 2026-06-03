@@ -1,0 +1,89 @@
+'use client';
+
+import { useState } from 'react';
+import { useAdminMutations } from '@/hooks/useAdmin';
+import { cn } from '@/lib/cn';
+
+const PANEL = 'mb-4 rounded-2xl border border-white/12 bg-white/[0.06] px-4 py-3.5';
+const LABEL = 'mb-1 text-xs font-bold tracking-wider text-white/50 uppercase';
+const INPUT =
+  'flex-1 rounded-[10px] border border-white/20 bg-white/[0.08] px-3 py-2 text-[13px] text-white';
+
+/**
+ * Create a leader (coach) account. Leaders sign in with these credentials but
+ * never play — they are excluded from leaderboards and can moderate (e.g.
+ * approve photos). Server re-verifies the admin claim (SEC C1).
+ */
+export function LeaderManager() {
+  const { createLeader } = useAdminMutations();
+  const [alias, setAlias] = useState('');
+  const [password, setPassword] = useState('');
+  const [done, setDone] = useState('');
+
+  const canSubmit = alias.trim().length > 0 && password.length >= 4 && !createLeader.isPending;
+
+  async function handleCreate() {
+    if (!canSubmit) return;
+    const name = alias.trim();
+    try {
+      await createLeader.mutateAsync({ alias: name, password });
+      setDone(name);
+      setAlias('');
+      setPassword('');
+      setTimeout(() => setDone(''), 4000);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      alert(
+        msg.includes('alias_taken')
+          ? 'Det finns redan ett konto med det namnet.'
+          : 'Kunde inte skapa ledare: ' + msg,
+      );
+    }
+  }
+
+  return (
+    <div className={PANEL}>
+      <div className={LABEL}>👤 Skapa ledarkonto</div>
+      <div className="mb-2.5 text-xs leading-snug text-white/40">
+        Ledare loggar in som vanligt men spelar inte — de syns inte i topplistan och kan godkänna
+        bilder. Välj ett namn och ett lösenord och dela med tränaren.
+      </div>
+      <div className="flex flex-col gap-2">
+        <input
+          type="text"
+          value={alias}
+          onChange={(e) => setAlias(e.target.value)}
+          placeholder="Ledarnamn (t.ex. tranare-anna)"
+          autoComplete="off"
+          className={INPUT}
+        />
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Lösenord (minst 4 tecken)"
+            autoComplete="off"
+            className={INPUT}
+          />
+          <button
+            type="button"
+            onClick={() => void handleCreate()}
+            disabled={!canSubmit}
+            className={cn(
+              'rounded-[10px] px-4 py-2 text-[13px] font-bold whitespace-nowrap',
+              !canSubmit ? 'bg-white/10 text-white/35' : 'bg-hogalid-yellow text-hogalid-dark',
+            )}
+          >
+            {createLeader.isPending ? 'Skapar...' : 'Skapa'}
+          </button>
+        </div>
+      </div>
+      {done && (
+        <div className="text-hogalid-yellow mt-2.5 text-[13px] font-bold">
+          ✅ Ledaren &quot;{done}&quot; är skapad.
+        </div>
+      )}
+    </div>
+  );
+}

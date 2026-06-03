@@ -50,3 +50,38 @@ describe('session signing', () => {
     expect(await getSession(req)).toBeNull();
   });
 });
+
+describe('session role claim', () => {
+  it('round-trips a leader role', async () => {
+    const value = await signSession({
+      alias: 'tranare-anna',
+      admin: false,
+      role: 'leader',
+      iat: 1,
+    });
+    expect((await verifySessionValue(value))?.role).toBe('leader');
+  });
+
+  it('round-trips a player role', async () => {
+    const value = await signSession({ alias: 'maja', admin: false, role: 'player', iat: 1 });
+    expect((await verifySessionValue(value))?.role).toBe('player');
+  });
+
+  it('treats a legacy cookie with no role as role-less (backwards compatible)', async () => {
+    const value = await signSession({ alias: 'maja', admin: false, iat: 1 });
+    const parsed = await verifySessionValue(value);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.role).toBeUndefined();
+  });
+
+  it('ignores an unknown/tampered role value', async () => {
+    const value = await signSession({
+      alias: 'maja',
+      admin: false,
+      // @ts-expect-error — exercising a malformed payload
+      role: 'superadmin',
+      iat: 1,
+    });
+    expect((await verifySessionValue(value))?.role).toBeUndefined();
+  });
+});

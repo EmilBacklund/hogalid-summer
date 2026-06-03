@@ -53,6 +53,16 @@ export async function requireAdmin(req: Request): Promise<Session> {
   return session;
 }
 
+/**
+ * Require a moderator — the admin or a leader account — else throw (401 with no
+ * session, 403 otherwise). Used by moderation endpoints (e.g. photo approval).
+ */
+export async function requireLeader(req: Request): Promise<Session> {
+  const session = await requireUser(req);
+  if (!session.admin && session.role !== 'leader') throw new ApiError('forbidden', 403);
+  return session;
+}
+
 /** Parse + validate a JSON body with a Zod schema, throwing a clean 400. */
 export async function parseBody<T>(
   req: Request,
