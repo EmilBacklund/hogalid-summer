@@ -56,6 +56,7 @@ describe('PhotoAlbumPage', () => {
         weekStart: '2026-06-01',
         uploadedAt: '2026-06-02T00:00:00.000Z',
         date: '2026-06-02',
+        status: 'approved',
         url: '/api/photos/1',
       },
     ];

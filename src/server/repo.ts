@@ -77,8 +77,10 @@ export async function getCompletedDaily(
 }
 
 export async function getPhotoCount(db: Client, alias: string): Promise<number> {
+  // Only approved photos count toward the public stat; pending uploads are not
+  // yet visible to the team.
   const result = await db.execute({
-    sql: 'SELECT COUNT(*) AS count FROM album_photos WHERE alias = ?',
+    sql: "SELECT COUNT(*) AS count FROM album_photos WHERE alias = ? AND status = 'approved'",
     args: [alias],
   });
   return Number(result.rows[0]?.count ?? 0);

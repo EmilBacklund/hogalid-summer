@@ -21,6 +21,7 @@ import { apiPost } from '@/utils/api';
 import { Confetti, LoadingSpinner, TopBar } from '@/components/common';
 import {
   PhotoAlbumCard,
+  PhotoModeration,
   RosterCard,
   ActivityFeed,
   WeeklyTeamChallenge,
@@ -55,6 +56,7 @@ export default function TeamPage() {
 
 function TeamContent({ user }: { user: User }) {
   const router = useRouter();
+  const { isAdmin, isLeader } = useUser();
   const { data: config } = useConfig();
   const { data: allUsersData, isLoading: loadingTeam } = useAllUsers();
   const { data: photosPage } = usePhotos();
@@ -62,7 +64,13 @@ function TeamContent({ user }: { user: User }) {
 
   const seasonStart = config?.seasonStart ?? null;
   const allUsers = useMemo(() => allUsersData ?? [], [allUsersData]);
-  const photos = photosPage?.photos ?? [];
+  // The shared album/feed only ever show approved photos; an uploader's own
+  // pending shots live on the dedicated /team/photos page (badged as awaiting).
+  const photos = useMemo(
+    () => (photosPage?.photos ?? []).filter((p) => p.status === 'approved'),
+    [photosPage],
+  );
+  const canModerate = isAdmin || isLeader;
 
   const [showConfetti, setShowConfetti] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -186,6 +194,8 @@ function TeamContent({ user }: { user: User }) {
 
         <div className="font-display mb-1 text-[26px] text-white">Högalid F15 💪</div>
         <div className="mb-5 text-[13px] text-white/50">Träna mer — klättra upp i nivåer!</div>
+
+        {canModerate && <PhotoModeration />}
 
         <PhotoAlbumCard photos={photos} onOpen={openAlbum} />
 

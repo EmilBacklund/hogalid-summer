@@ -53,13 +53,18 @@ export async function requireAdmin(req: Request): Promise<Session> {
   return session;
 }
 
+/** True for the admin or a leader account — the identities allowed to moderate. */
+export function isModerator(session: Session): boolean {
+  return session.admin || session.role === 'leader';
+}
+
 /**
  * Require a moderator — the admin or a leader account — else throw (401 with no
  * session, 403 otherwise). Used by moderation endpoints (e.g. photo approval).
  */
 export async function requireLeader(req: Request): Promise<Session> {
   const session = await requireUser(req);
-  if (!session.admin && session.role !== 'leader') throw new ApiError('forbidden', 403);
+  if (!isModerator(session)) throw new ApiError('forbidden', 403);
   return session;
 }
 

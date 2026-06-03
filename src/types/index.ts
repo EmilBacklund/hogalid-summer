@@ -59,6 +59,13 @@ export interface User {
 }
 
 /**
+ * Approval state of an album photo. Uploads start as `pending` and only become
+ * visible to the team once a leader (or the admin) approves them; rejected
+ * photos are removed entirely, so `rejected` is transient and never listed.
+ */
+export type PhotoStatus = 'pending' | 'approved' | 'rejected';
+
+/**
  * A photo in the team album. Bytes are NOT inlined (SEC M1) — `url` points at
  * the auth-gated bytes route (`/api/photos/:id`).
  */
@@ -71,6 +78,9 @@ export interface Photo {
   uploadedAt: string;
   date: string;
   url: string;
+  /** Approval state. The team album only ever shows `approved` photos; an
+   * uploader additionally sees their own `pending` ones (badged as awaiting). */
+  status: PhotoStatus;
 }
 
 /** One page of the paginated photo album. */
