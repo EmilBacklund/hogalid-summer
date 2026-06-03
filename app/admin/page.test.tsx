@@ -61,7 +61,15 @@ vi.mock('@/hooks/useAdmin', () => ({
   }),
 }));
 vi.mock('@/hooks/useAdminPhotos', () => ({
-  useAdminPhotos: () => ({ photos: [], isLoading: false, remove: mutation }),
+  useAdminPhotos: () => ({ photos: [], isLoading: false, remove: mutation, approve: mutation }),
+}));
+vi.mock('@/hooks/usePhotoModeration', () => ({
+  usePhotoModeration: () => ({
+    pending: [],
+    isLoading: false,
+    approve: mutation,
+    reject: mutation,
+  }),
 }));
 vi.mock('@/hooks/useTeamMessages', () => ({
   useTeamMessages: () => ({ messages: [], post: mutation, remove: mutation }),

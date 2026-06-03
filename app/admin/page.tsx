@@ -14,7 +14,7 @@ import {
   PhotoGallery,
   PlayerCard,
 } from '@/components/admin';
-import { MessageComposer } from '@/components/team';
+import { MessageComposer, PhotoModeration } from '@/components/team';
 import { useUser } from '@/providers/UserProvider';
 import { useAllUsers } from '@/hooks/useAllUsers';
 import { useInvites } from '@/hooks/useAdmin';
@@ -117,6 +117,10 @@ function AdminContent({ onLogout }: { onLogout: () => void }) {
             </div>
           ))}
         </div>
+
+        {/* Moderation queue — same banner leaders see, so the admin gets nagged
+            about pending photos too (hidden when the queue is empty). */}
+        <PhotoModeration />
 
         <MessageComposer />
 
