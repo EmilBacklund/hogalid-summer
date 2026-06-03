@@ -10,12 +10,20 @@
 //     `fetch()` — the backend is physically unreachable, so no demo write can
 //     ever reach the database. Writes only mutate the in-memory `demoUser`.
 //  4. `exitDemo()` resets `demoUser` to a fresh clone, so nothing lingers.
+//  5. A matching `hf_demo` *cookie* lets the route-guard middleware tell that a
+//     visitor is in demo, so it stops bouncing them to /login. The cookie is
+//     never a session — it's unsigned, grants no API access (every API route
+//     still demands the real signed session and would 401), and /admin stays
+//     blocked. It only relaxes the client-page guard so the demo pages, which
+//     fetch their data from the in-memory fixture, are allowed to render.
 
 import { DEMO_CONFIG, DEMO_PHOTOS, DEMO_TEAM_USERS, DEMO_USER } from './demoData';
 import type { BingoBoardKey } from '@/hooks/useBingoMutations';
 import type { AvatarConfig, User } from '@/types';
 
 const DEMO_KEY = 'hf_demo';
+/** Cookie the middleware reads — must match `DEMO_COOKIE` in middleware.ts. */
+const DEMO_COOKIE = 'hf_demo';
 
 /** True only in the browser tab that entered demo mode. SSR-safe. */
 export function isDemoActive(): boolean {
@@ -25,6 +33,19 @@ export function isDemoActive(): boolean {
   } catch {
     return false;
   }
+}
+
+// Session cookie (no Max-Age → cleared when the browser closes), scoped to the
+// whole site, Lax so normal top-level navigations send it. Not HttpOnly — it
+// carries no secret and the client sets it.
+function setDemoCookie(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${DEMO_COOKIE}=1; path=/; SameSite=Lax`;
+}
+
+function clearDemoCookie(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${DEMO_COOKIE}=; path=/; Max-Age=0; SameSite=Lax`;
 }
 
 function freshUser(): User {
@@ -43,6 +64,7 @@ export function enterDemo(): void {
   } catch {
     // ignore — demo just won't persist across reloads, which is fine.
   }
+  setDemoCookie();
   demoUser = freshUser();
 }
 
@@ -54,6 +76,7 @@ export function exitDemo(): void {
       // ignore
     }
   }
+  clearDemoCookie();
   demoUser = freshUser();
 }
 
