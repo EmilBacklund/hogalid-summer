@@ -136,6 +136,13 @@ export const photoReviewSchema = z.object({
   action: z.enum(['approve', 'reject']),
 });
 
+// ── Team messages (leader/admin announcements) ──────────────────────────────────
+
+/** A short announcement a leader/admin posts to the team feed. */
+export const teamMessageSchema = z.object({
+  body: z.string().trim().min(1).max(280),
+});
+
 // ── Weekly results ─────────────────────────────────────────────────────────────
 
 export const weeklyResultSchema = z.object({
@@ -192,3 +199,4 @@ export type BuddyCreateInput = z.infer<typeof buddyCreateSchema>;
 export type PhotoUploadInput = z.infer<typeof photoUploadSchema>;
 export type PhotoReviewInput = z.infer<typeof photoReviewSchema>;
 export type WeeklyResultInput = z.infer<typeof weeklyResultSchema>;
+export type TeamMessageInput = z.infer<typeof teamMessageSchema>;

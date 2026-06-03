@@ -63,6 +63,9 @@ vi.mock('@/hooks/useAdmin', () => ({
 vi.mock('@/hooks/useAdminPhotos', () => ({
   useAdminPhotos: () => ({ photos: [], isLoading: false, remove: mutation }),
 }));
+vi.mock('@/hooks/useTeamMessages', () => ({
+  useTeamMessages: () => ({ messages: [], post: mutation, remove: mutation }),
+}));
 
 import AdminPage from './page';
 

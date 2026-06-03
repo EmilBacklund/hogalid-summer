@@ -22,6 +22,7 @@ import { Confetti, LoadingSpinner, TopBar } from '@/components/common';
 import {
   PhotoAlbumCard,
   PhotoModeration,
+  MessageComposer,
   RosterCard,
   ActivityFeed,
   WeeklyTeamChallenge,
@@ -36,6 +37,7 @@ import { useUser } from '@/providers/UserProvider';
 import { useConfig } from '@/hooks/useConfig';
 import { useAllUsers } from '@/hooks/useAllUsers';
 import { usePhotos } from '@/hooks/usePhotos';
+import { useTeamMessages } from '@/hooks/useTeamMessages';
 import { useReactions } from '@/hooks/useReactions';
 import type { User } from '@/types';
 
@@ -60,6 +62,7 @@ function TeamContent({ user }: { user: User }) {
   const { data: config } = useConfig();
   const { data: allUsersData, isLoading: loadingTeam } = useAllUsers();
   const { data: photosPage } = usePhotos();
+  const { messages } = useTeamMessages();
   const { reactions, toggle } = useReactions(user.alias);
 
   const seasonStart = config?.seasonStart ?? null;
@@ -157,7 +160,7 @@ function TeamContent({ user }: { user: User }) {
   const weekDone = weekValue >= weekly.goal;
   const levelInfo = getWeeklyLevelInfo(weekValue, weekly.goal);
 
-  const feed = generateFeed(allUsers, user.alias, seasonStart, photos);
+  const feed = generateFeed(allUsers, user.alias, seasonStart, photos, messages);
   const history = computeWeeklyHistory(allUsers, seasonStart);
   const myStats = agg.allStats.find((u) => u.alias === user.alias);
   const openAlbum = () => router.push('/team/photos');
@@ -195,6 +198,7 @@ function TeamContent({ user }: { user: User }) {
         <div className="font-display mb-1 text-[26px] text-white">Högalid F15 💪</div>
         <div className="mb-5 text-[13px] text-white/50">Träna mer — klättra upp i nivåer!</div>
 
+        {canModerate && <MessageComposer />}
         {canModerate && <PhotoModeration />}
 
         <PhotoAlbumCard photos={photos} onOpen={openAlbum} />

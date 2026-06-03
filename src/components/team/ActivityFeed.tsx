@@ -34,6 +34,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(functi
   const paginated = feed.slice(pageStart, pageStart + FEED_PAGE_SIZE);
 
   function renderEvent(e: FeedEvent, idx: number) {
+    const isAnnouncement = e.type === 'announcement';
     const isMaxLevel = e.type === 'weeklylevel' && e.text.includes('Nivå 10');
     const isTeamLevel = e.type === 'teamlevel';
     const isTeamEvent = e.type === 'weeklylevel' || e.type === 'weeklyend' || isTeamLevel;
@@ -44,40 +45,48 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(functi
       counts[em] = (counts[em] || 0) + 1;
     });
     const myReaction = eventReactions[myAlias];
-    const bg = isMaxLevel
-      ? 'rgba(255,100,0,0.1)'
-      : isTeamLevel
-        ? 'rgba(139,92,246,0.1)'
-        : isTeamEvent
-          ? 'rgba(255,255,255,0.06)'
+    const bg = isAnnouncement
+      ? 'rgba(240,220,0,0.12)'
+      : isMaxLevel
+        ? 'rgba(255,100,0,0.1)'
+        : isTeamLevel
+          ? 'rgba(139,92,246,0.1)'
+          : isTeamEvent
+            ? 'rgba(255,255,255,0.06)'
+            : e.isMe
+              ? 'rgba(240,220,0,0.08)'
+              : 'rgba(255,255,255,0.04)';
+    const border = isAnnouncement
+      ? '1.5px solid rgba(240,220,0,0.45)'
+      : isMaxLevel
+        ? '2px solid #ff6a00'
+        : isTeamLevel
+          ? '1px solid rgba(139,92,246,0.5)'
+          : isTeamEvent
+            ? '1px solid rgba(255,255,255,0.12)'
+            : e.isMe
+              ? '1px solid rgba(240,220,0,0.25)'
+              : '1px solid transparent';
+    const aliasColor = isAnnouncement
+      ? COLORS.yellow
+      : isMaxLevel
+        ? '#ff6a00'
+        : isTeamLevel
+          ? '#a78bfa'
+          : isTeamEvent
+            ? COLORS.lime
+            : e.isMe
+              ? COLORS.yellow
+              : COLORS.lime;
+    const textColor = isAnnouncement
+      ? 'rgba(255,255,255,0.92)'
+      : isMaxLevel
+        ? 'rgba(255,100,0,0.9)'
+        : isTeamLevel
+          ? 'rgba(167,139,250,0.9)'
           : e.isMe
-            ? 'rgba(240,220,0,0.08)'
-            : 'rgba(255,255,255,0.04)';
-    const border = isMaxLevel
-      ? '2px solid #ff6a00'
-      : isTeamLevel
-        ? '1px solid rgba(139,92,246,0.5)'
-        : isTeamEvent
-          ? '1px solid rgba(255,255,255,0.12)'
-          : e.isMe
-            ? '1px solid rgba(240,220,0,0.25)'
-            : '1px solid transparent';
-    const aliasColor = isMaxLevel
-      ? '#ff6a00'
-      : isTeamLevel
-        ? '#a78bfa'
-        : isTeamEvent
-          ? COLORS.lime
-          : e.isMe
-            ? COLORS.yellow
-            : COLORS.lime;
-    const textColor = isMaxLevel
-      ? 'rgba(255,100,0,0.9)'
-      : isTeamLevel
-        ? 'rgba(167,139,250,0.9)'
-        : e.isMe
-          ? 'rgba(240,220,0,0.8)'
-          : 'rgba(255,255,255,0.7)';
+            ? 'rgba(240,220,0,0.8)'
+            : 'rgba(255,255,255,0.7)';
 
     const isPhoto = e.type === 'photo';
     return (
@@ -104,6 +113,7 @@ export const ActivityFeed = forwardRef<HTMLDivElement, ActivityFeedProps>(functi
           <div className="flex-1">
             <span className="text-[13px] font-bold" style={{ color: aliasColor }}>
               {e.alias}
+              {isAnnouncement ? ':' : ''}
             </span>
             <span className="text-[13px]" style={{ color: textColor }}>
               {' '}

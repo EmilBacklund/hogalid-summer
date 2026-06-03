@@ -165,6 +165,13 @@ export async function initDb(db: Client = getDb()): Promise<void> {
       uploaded_at TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending'
     );
+
+    CREATE TABLE IF NOT EXISTS team_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alias TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `);
 
   // Idempotent migration for DBs created before photos moved to Netlify Blobs.
