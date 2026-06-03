@@ -22,8 +22,15 @@ const fakeUser: User = {
   completedDaily: {},
 };
 
+let userCtx = {
+  user: fakeUser,
+  isAdmin: false,
+  isLeader: false,
+  isAuthenticated: true,
+  isLoading: false,
+};
 vi.mock('@/providers/UserProvider', () => ({
-  useUser: () => ({ user: fakeUser, isAdmin: false, isAuthenticated: true, isLoading: false }),
+  useUser: () => userCtx,
 }));
 
 let photos: Photo[] = [];
@@ -37,6 +44,13 @@ import PhotoAlbumPage from './page';
 beforeEach(() => {
   vi.clearAllMocks();
   photos = [];
+  userCtx = {
+    user: fakeUser,
+    isAdmin: false,
+    isLeader: false,
+    isAuthenticated: true,
+    isLoading: false,
+  };
 });
 
 describe('PhotoAlbumPage', () => {
@@ -44,6 +58,20 @@ describe('PhotoAlbumPage', () => {
     render(<PhotoAlbumPage />);
     expect(screen.getByText('Fotoalbumet')).toBeInTheDocument();
     expect(screen.getByText('Albumet väntar på första bilden')).toBeInTheDocument();
+  });
+
+  it('lets a player upload (shows the upload control)', () => {
+    render(<PhotoAlbumPage />);
+    expect(screen.getByText('Lägg till bild')).toBeInTheDocument();
+  });
+
+  it('hides the upload control from leaders (they curate, never upload)', () => {
+    userCtx = { ...userCtx, isLeader: true };
+    render(<PhotoAlbumPage />);
+    expect(screen.queryByText('Lägg till bild')).not.toBeInTheDocument();
+    expect(screen.queryByText(/uppladdning/)).not.toBeInTheDocument();
+    // The album itself is still visible to them.
+    expect(screen.getByText('Fotoalbumet')).toBeInTheDocument();
   });
 
   it('renders the uploaded photos as album pages', () => {

@@ -13,7 +13,7 @@ import { cn } from '@/lib/cn';
  */
 export function PhotoGallery() {
   const [open, setOpen] = useState(false);
-  const { photos, isLoading, remove } = useAdminPhotos(open);
+  const { photos, isLoading, remove, approve } = useAdminPhotos(open);
 
   return (
     <div className="mb-4">
@@ -44,7 +44,9 @@ export function PhotoGallery() {
           ) : (
             <div className="grid grid-cols-2 gap-2.5">
               {photos.map((photo) => {
-                const busy = remove.isPending && remove.variables === photo.id;
+                const busy =
+                  (remove.isPending && remove.variables === photo.id) ||
+                  (approve.isPending && approve.variables === photo.id);
                 return (
                   <div key={photo.id} className="relative overflow-hidden rounded-xl bg-black/30">
                     <div className="relative aspect-square w-full">
@@ -70,17 +72,36 @@ export function PhotoGallery() {
                         </div>
                         <div className="text-[10px] text-white/45">{photo.date}</div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => remove.mutate(photo.id)}
-                        disabled={busy}
-                        className={cn(
-                          'shrink-0 rounded-md px-2 py-1 text-[11px] font-bold text-white',
-                          busy ? 'bg-white/20' : 'bg-[rgba(220,40,40,0.85)]',
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {photo.status === 'pending' && (
+                          <button
+                            type="button"
+                            aria-label="Godkänn"
+                            onClick={() => approve.mutate(photo.id)}
+                            disabled={busy}
+                            className={cn(
+                              'rounded-md px-2 py-1 text-[11px] font-bold',
+                              busy
+                                ? 'bg-white/20 text-white/50'
+                                : 'bg-hogalid-yellow text-hogalid-dark',
+                            )}
+                          >
+                            ✓
+                          </button>
                         )}
-                      >
-                        {busy ? '...' : '🗑️'}
-                      </button>
+                        <button
+                          type="button"
+                          aria-label="Ta bort"
+                          onClick={() => remove.mutate(photo.id)}
+                          disabled={busy}
+                          className={cn(
+                            'rounded-md px-2 py-1 text-[11px] font-bold text-white',
+                            busy ? 'bg-white/20' : 'bg-[rgba(220,40,40,0.85)]',
+                          )}
+                        >
+                          {busy ? '...' : '🗑️'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
