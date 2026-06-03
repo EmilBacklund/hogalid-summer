@@ -25,6 +25,14 @@ describe('demo flag (per-tab sessionStorage isolation)', () => {
     expect(window.sessionStorage.getItem('hf_demo')).toBe('1');
     expect(window.localStorage.getItem('hf_demo')).toBeNull();
   });
+
+  it('sets an hf_demo cookie so the route guard lets the demo pages load', () => {
+    expect(document.cookie).not.toContain('hf_demo=1');
+    enterDemo();
+    expect(document.cookie).toContain('hf_demo=1');
+    exitDemo();
+    expect(document.cookie).not.toContain('hf_demo=1');
+  });
 });
 
 describe('demoHandle GET routing', () => {
