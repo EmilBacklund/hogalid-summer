@@ -35,6 +35,7 @@ export default function PhotoAlbumPage() {
 
 function PhotoAlbumContent({ user }: { user: User }) {
   const router = useRouter();
+  const { isDemo } = useUser();
   const { photos, isLoading, upload } = usePhotoAlbum();
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -153,34 +154,36 @@ function PhotoAlbumContent({ user }: { user: User }) {
           </div>
         </div>
 
-        {/* Upload row */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-white/75">
-            Du har <strong className="text-white">{uploadsLeft}</strong> uppladdning
-            {uploadsLeft !== 1 ? 'ar' : ''} kvar den här veckan
+        {/* Upload row — hidden in demo: uploads need a real account + moderation. */}
+        {!isDemo && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs text-white/75">
+              Du har <strong className="text-white">{uploadsLeft}</strong> uppladdning
+              {uploadsLeft !== 1 ? 'ar' : ''} kvar den här veckan
+            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || uploadsLeft <= 0}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-2xl px-4 py-3 font-black',
+                uploadsLeft > 0
+                  ? 'from-hogalid-yellow text-hogalid-navy cursor-pointer bg-gradient-to-br to-[#ffe760]'
+                  : 'cursor-default bg-white/[0.08] text-white/[0.42]',
+              )}
+            >
+              {uploading ? <ButtonLoader color={COLORS.navy} /> : <ImagePlus size={18} />}
+              {uploading ? 'Laddar upp...' : uploadsLeft > 0 ? 'Lägg till bild' : 'Veckan är full'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={onFileChange}
+              className="hidden"
+            />
           </div>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading || uploadsLeft <= 0}
-            className={cn(
-              'inline-flex items-center gap-2 rounded-2xl px-4 py-3 font-black',
-              uploadsLeft > 0
-                ? 'from-hogalid-yellow text-hogalid-navy cursor-pointer bg-gradient-to-br to-[#ffe760]'
-                : 'cursor-default bg-white/[0.08] text-white/[0.42]',
-            )}
-          >
-            {uploading ? <ButtonLoader color={COLORS.navy} /> : <ImagePlus size={18} />}
-            {uploading ? 'Laddar upp...' : uploadsLeft > 0 ? 'Lägg till bild' : 'Veckan är full'}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={onFileChange}
-            className="hidden"
-          />
-        </div>
+        )}
 
         {myPendingCount > 0 && (
           <div className="border-hogalid-yellow/25 bg-hogalid-yellow/10 mb-4 rounded-2xl border px-4 py-3 text-[13px] text-white/80">
