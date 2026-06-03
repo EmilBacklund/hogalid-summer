@@ -13,8 +13,8 @@ import { signSession, SESSION_COOKIE } from '@/server/session';
 import { setPhotoStorageForTests, type PhotoStorage } from '@/server/photoStorage';
 import { createFakeDb, type FakeDb } from '@/test/fakeDb';
 
-async function cookie(alias: string, admin = false): Promise<string> {
-  const value = await signSession({ alias, admin, iat: 1 });
+async function cookie(alias: string, admin = false, role?: 'player' | 'leader'): Promise<string> {
+  const value = await signSession({ alias, admin, iat: 1, ...(role ? { role } : {}) });
   return `${SESSION_COOKIE}=${encodeURIComponent(value)}`;
 }
 
@@ -53,6 +53,20 @@ describe('POST /api/photos (SEC M1 — bytes to Blobs, metadata to DB)', () => {
   it('rejects unauthenticated uploads', async () => {
     useDb(createFakeDb());
     expect((await POST(uploadReq())).status).toBe(401);
+  });
+
+  it('rejects uploads from the admin (moderators curate, never publish)', async () => {
+    useDb(createFakeDb());
+    const res = await POST(uploadReq(await cookie('admin', true)));
+    expect(res.status).toBe(403);
+    expect(storage.put).not.toHaveBeenCalled();
+  });
+
+  it('rejects uploads from a leader account (moderators curate, never publish)', async () => {
+    useDb(createFakeDb());
+    const res = await POST(uploadReq(await cookie('coach', false, 'leader')));
+    expect(res.status).toBe(403);
+    expect(storage.put).not.toHaveBeenCalled();
   });
 
   it('stores bytes in blob storage and metadata in the DB', async () => {
