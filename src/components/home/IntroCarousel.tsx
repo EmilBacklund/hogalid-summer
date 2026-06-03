@@ -61,6 +61,12 @@ const INTRO_PAGES: IntroPage[] = [
     body: 'I Din profil kan du bygga din egen avatar. När du spelar och tränar kan du låsa upp fler saker.',
   },
   {
+    eyebrow: 'Tips',
+    icon: '📲',
+    title: 'Lägg appen på hemskärmen',
+    body: 'Vill du öppna Sommarlovet som en riktig app? På iPhone: tryck på Dela-knappen i webbläsaren och välj ”Lägg till på hemskärmen”. På Android: öppna webbläsarens meny (⋮) och välj ”Lägg till på hemskärmen” eller ”Installera app”. Då får du en egen ikon på mobilen!',
+  },
+  {
     eyebrow: 'Nu kör vi',
     icon: '🚀',
     title: 'Allt du gör räknas',
