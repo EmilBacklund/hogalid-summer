@@ -82,7 +82,9 @@ export function GET(req: Request) {
 export function POST(req: Request) {
   return handle(async () => {
     const session = await requireUser(req);
-    if (session.admin) throw new ApiError('forbidden', 403);
+    // Only players upload to the album. Moderators (admin + leaders) curate it
+    // but never publish their own shots, so reject their uploads outright.
+    if (isModerator(session)) throw new ApiError('forbidden', 403);
     const { imageData, mimeType } = await parseBody(req, photoUploadSchema);
 
     const commaIdx = imageData.indexOf(',');
