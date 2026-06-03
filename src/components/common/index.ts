@@ -8,3 +8,4 @@ export { LevelUpModal } from './LevelUpModal';
 export { BuddyCelebration } from './BuddyCelebration';
 export { CardFront, CardBack } from './CollectorCard';
 export { PenaltyGame, hasPenaltyPlayedToday, resetPenaltyToday } from './PenaltyGame';
+export { InstallPrompt } from './InstallPrompt';
