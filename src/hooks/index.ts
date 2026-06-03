@@ -4,6 +4,7 @@ export { useAllUsers } from './useAllUsers';
 export { useBuddyChallenges } from './useBuddyChallenges';
 export { usePhotos } from './usePhotos';
 export { usePhotoModeration } from './usePhotoModeration';
+export { useAdminPhotos } from './useAdminPhotos';
 export { useLogs } from './useLogs';
 export { useStats } from './useStats';
 export { useCheers } from './useCheers';

@@ -177,6 +177,8 @@ export const adminDateSchema = z.object({ date: dateSchema });
 
 export const adminFirstLogSchema = z.object({ alias: aliasSchema, date: dateSchema });
 
+export const adminDeleteLogSchema = z.object({ logId: z.number().int().positive() });
+
 // ── Inferred types ─────────────────────────────────────────────────────────────
 
 export type LoginInput = z.infer<typeof loginInputSchema>;

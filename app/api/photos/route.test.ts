@@ -7,7 +7,7 @@ vi.mock('@/server/db', () => ({
 }));
 
 import { GET as getList, POST } from './route';
-import { GET as getBytes } from './[id]/route';
+import { GET as getBytes, DELETE as deleteBytes } from './[id]/route';
 import { getDb, albumPhotosNeedsImageData } from '@/server/db';
 import { signSession, SESSION_COOKIE } from '@/server/session';
 import { setPhotoStorageForTests, type PhotoStorage } from '@/server/photoStorage';
@@ -239,5 +239,63 @@ describe('GET /api/photos (album visibility)', () => {
     expect((select!.args as unknown[])[0]).toBe('maja');
     const body = (await res.json()) as { photos: { id: number; status: string }[] };
     expect(body.photos[0]?.status).toBe('pending');
+  });
+
+  it('returns every photo (no status filter) for a moderator', async () => {
+    const db = createFakeDb([
+      { test: (sql) => /FROM album_photos/.test(sql), result: { rows: [] } },
+    ]);
+    useDb(db);
+    const res = await getList(listReq(await cookie('admin', true)));
+    expect(res.status).toBe(200);
+    const select = db.calls.find((c) => /FROM album_photos/.test(c.sql));
+    // Moderators get the whole album — no WHERE clause scoping by status/alias.
+    expect(select!.sql).not.toMatch(/WHERE/);
+  });
+});
+
+describe('DELETE /api/photos/[id] (admin gallery moderation)', () => {
+  function delReq(id: string, cookieHeader?: string): Request {
+    const headers: Record<string, string> = {};
+    if (cookieHeader) headers.cookie = cookieHeader;
+    return new Request(`http://localhost/api/photos/${id}`, { method: 'DELETE', headers });
+  }
+
+  it('rejects unauthenticated callers with 401', async () => {
+    useDb(createFakeDb());
+    const res = await deleteBytes(delReq('5'), { params: Promise.resolve({ id: '5' }) });
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a plain player with 403', async () => {
+    useDb(createFakeDb());
+    const res = await deleteBytes(delReq('5', await cookie('maja')), {
+      params: Promise.resolve({ id: '5' }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('lets the admin delete any photo, removing bytes and row', async () => {
+    const db = createFakeDb([
+      {
+        test: (sql) => /SELECT blob_key FROM album_photos/.test(sql),
+        result: { rows: [{ blob_key: 'maja/2026-06-01/abc' } as never] },
+      },
+    ]);
+    useDb(db);
+    const res = await deleteBytes(delReq('5', await cookie('admin', true)), {
+      params: Promise.resolve({ id: '5' }),
+    });
+    expect(res.status).toBe(200);
+    expect(storage.delete).toHaveBeenCalledWith('maja/2026-06-01/abc');
+    expect(db.calls.some((c) => /DELETE FROM album_photos/.test(c.sql))).toBe(true);
+  });
+
+  it('returns 404 for a missing photo', async () => {
+    useDb(createFakeDb());
+    const res = await deleteBytes(delReq('5', await cookie('admin', true)), {
+      params: Promise.resolve({ id: '5' }),
+    });
+    expect(res.status).toBe(404);
   });
 });

@@ -123,3 +123,35 @@ describe('POST /api/admin create-leader', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('POST /api/admin delete-log (per-player log moderation)', () => {
+  it('rejects a non-admin session with 403', async () => {
+    const res = await POST(req({ action: 'delete-log', logId: 5 }, await cookie('maja', false)));
+    expect(res.status).toBe(403);
+  });
+
+  it('lets the admin delete a training log by id', async () => {
+    db = createFakeDb([
+      {
+        test: (sql) => /DELETE FROM logs/.test(sql),
+        result: { rowsAffected: 1 },
+      },
+    ]);
+    vi.mocked(getDb).mockReturnValue(db.client);
+    const res = await POST(req({ action: 'delete-log', logId: 5 }, await cookie('admin', true)));
+    expect(res.status).toBe(200);
+    const del = db.calls.find((c) => /DELETE FROM logs WHERE id = \?/.test(c.sql));
+    expect(del).toBeDefined();
+    expect((del!.args as unknown[])[0]).toBe(5);
+  });
+
+  it('returns 404 when the log does not exist', async () => {
+    const res = await POST(req({ action: 'delete-log', logId: 999 }, await cookie('admin', true)));
+    expect(res.status).toBe(404);
+  });
+
+  it('rejects a non-positive log id (400)', async () => {
+    const res = await POST(req({ action: 'delete-log', logId: 0 }, await cookie('admin', true)));
+    expect(res.status).toBe(400);
+  });
+});
