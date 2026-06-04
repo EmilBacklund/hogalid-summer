@@ -2,9 +2,30 @@ node_modules
 dist
 .env
 .env.local
+.env*.local
+
+# Next.js
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Test / coverage artifacts
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Sentry
+.sentryclirc
 
 # Local Netlify folder
 .netlify
 
 # Claude Code session memory and local settings
 .claude/
+
+# Local-only security review (documents vulnerabilities — keep out of git)
+SHIP_REVIEW.md
+
+# Local photo storage (dev/E2E fallback for Netlify Blobs)
+.photos-dev/

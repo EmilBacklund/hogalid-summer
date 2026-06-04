@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [rewrite/next]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:coverage
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Needs DB + admin secrets. Skipped automatically when they aren't configured
+    # (e.g. fork PRs), so the suite never fails for lack of credentials.
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    env:
+      TURSO_URL: ${{ secrets.TURSO_URL }}
+      TURSO_TOKEN: ${{ secrets.TURSO_TOKEN }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+      ADMIN_ALIAS: ${{ secrets.ADMIN_ALIAS }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Check E2E secrets
+        id: secrets
+        run: |
+          if [ -n "$TURSO_URL" ] && [ -n "$SESSION_SECRET" ] && [ -n "$ADMIN_ALIAS" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::E2E secrets not configured — skipping Playwright suite."
+          fi
+      - name: Install Playwright browsers
+        if: steps.secrets.outputs.ready == 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E
+        if: steps.secrets.outputs.ready == 'true'
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.secrets.outputs.ready == 'true' }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
