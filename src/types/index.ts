@@ -89,6 +89,18 @@ export interface PhotosPage {
   nextOffset: number | null;
 }
 
+/**
+ * A short announcement posted by a leader/admin, surfaced in the team feed.
+ * `authorName` is the poster's display name (resolved server-side from `alias`).
+ */
+export interface TeamMessage {
+  id: number;
+  alias: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
 /** Season configuration returned by `/api/config`. */
 export interface Config {
   seasonStart: string | null;

@@ -4,7 +4,7 @@ import { computeStats } from './stats';
 import { localToday, getWeekStart } from './date';
 import { computeWeeklyHistory, getWeeklyChallengeForDate } from './weeklyHistory';
 import { getWeeklyLevelInfo, WEEKLY_LEVEL_NAMES } from './challenges';
-import type { FeedEvent, Photo, User } from '../types';
+import type { FeedEvent, Photo, TeamMessage, User } from '../types';
 
 const STREAK_MILESTONES = [3, 5, 7, 10, 14, 21, 30];
 
@@ -13,9 +13,24 @@ export function generateFeed(
   myAlias: string,
   seasonStart: string | null,
   photos: Photo[] = [],
+  messages: TeamMessage[] = [],
 ): FeedEvent[] {
   const events: FeedEvent[] = [];
   const today = localToday();
+
+  // Leader/admin announcements. Surfaced as feed events; sorted by date with
+  // everything else so the newest one naturally floats to the top.
+  messages.forEach((m) => {
+    events.push({
+      date: (m.createdAt || '').slice(0, 10) || today,
+      createdAt: m.createdAt || '',
+      type: 'announcement',
+      alias: m.authorName || m.alias,
+      isMe: m.alias === myAlias,
+      text: m.body,
+      icon: '📣',
+    });
+  });
   const nameByAlias: Record<string, string> = Object.fromEntries(
     allUsers.map((u) => [u.alias, u.displayName || u.displayAlias || u.alias]),
   );

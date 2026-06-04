@@ -64,6 +64,9 @@ vi.mock('@/hooks/useAllUsers', () => ({
 vi.mock('@/hooks/usePhotos', () => ({
   usePhotos: () => ({ data: { photos: [], nextOffset: null } }),
 }));
+vi.mock('@/hooks/useTeamMessages', () => ({
+  useTeamMessages: () => ({ messages: [], isLoading: false }),
+}));
 vi.mock('@/hooks/useBuddyChallenges', () => ({ useBuddyChallenges: () => ({ data: [] }) }));
 vi.mock('@/hooks/useCheers', () => ({
   useCheers: () => ({ cheers: [], markSeen: vi.fn(), sendCheer: vi.fn() }),

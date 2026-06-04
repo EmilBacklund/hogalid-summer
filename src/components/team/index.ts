@@ -1,5 +1,6 @@
 export { PhotoAlbumCard } from './PhotoAlbumCard';
 export { PhotoModeration } from './PhotoModeration';
+export { MessageComposer } from './MessageComposer';
 export { RosterCard } from './RosterCard';
 export { ActivityFeed } from './ActivityFeed';
 export { WeeklyTeamChallenge } from './WeeklyTeamChallenge';

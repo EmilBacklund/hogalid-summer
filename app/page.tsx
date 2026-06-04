@@ -30,6 +30,7 @@ import { useStats } from '@/hooks/useStats';
 import { useConfig } from '@/hooks/useConfig';
 import { useAllUsers } from '@/hooks/useAllUsers';
 import { usePhotos } from '@/hooks/usePhotos';
+import { useTeamMessages } from '@/hooks/useTeamMessages';
 import { useBuddyChallenges } from '@/hooks/useBuddyChallenges';
 import { useCheers } from '@/hooks/useCheers';
 import type { Stats, User } from '@/types';
@@ -63,6 +64,7 @@ function HomeContent({ user, stats }: { user: User; stats: Stats }) {
   const { data: config } = useConfig();
   const { data: allUsersData, isLoading: loadingTeam } = useAllUsers();
   const { data: photosPage } = usePhotos();
+  const { messages } = useTeamMessages();
   const { data: buddyData } = useBuddyChallenges();
   const { cheers, markSeen } = useCheers();
 
@@ -92,8 +94,8 @@ function HomeContent({ user, stats }: { user: User; stats: Stats }) {
 
   const feedItems = useMemo(() => {
     if (allUsers.length === 0) return [];
-    return generateFeed(allUsers, user.alias, seasonStart, teamPhotos).slice(0, 5);
-  }, [allUsers, user.alias, seasonStart, teamPhotos]);
+    return generateFeed(allUsers, user.alias, seasonStart, teamPhotos, messages).slice(0, 5);
+  }, [allUsers, user.alias, seasonStart, teamPhotos, messages]);
 
   const playersLoggedToday = useMemo(
     () =>
