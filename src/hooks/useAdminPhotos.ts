@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiDelete, apiGet } from '@/utils/api';
+import { apiDelete, apiGet, apiPost } from '@/utils/api';
 import type { Photo, PhotosPage } from '@/types';
 
 /**
@@ -34,9 +34,17 @@ export function useAdminPhotos(enabled = true) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['photos'] }),
   });
 
+  // Approve a still-pending photo straight from the gallery, so the admin
+  // doesn't have to bounce to the team page to publish one.
+  const approve = useMutation({
+    mutationFn: (id: number) => apiPost(`/photos/${id}/review`, { action: 'approve' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['photos'] }),
+  });
+
   return {
     photos,
     isLoading: query.isLoading,
     remove,
+    approve,
   };
 }

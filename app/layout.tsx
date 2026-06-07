@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from '@/providers';
-import { InstallPrompt } from '@/components/common';
 
 export const metadata: Metadata = {
   title: 'Högalid F15 — Sommarlovet 2026',
@@ -27,7 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="sv">
       <body>
         <Providers>{children}</Providers>
-        <InstallPrompt />
       </body>
     </html>
   );

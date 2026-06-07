@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, verifySessionValue } from '@/server/session';
 
+/** Unsigned flag the client sets in demo mode — must match `DEMO_COOKIE` in
+ * src/demo/demoMode.ts. It is NOT a session: it grants no API access (every API
+ * route still requires the real signed session) and never satisfies the admin
+ * check below. It only lets a demo visitor past the page guard so the
+ * client-rendered demo pages can load their in-memory fixture. */
+const DEMO_COOKIE = 'hf_demo';
+
 /**
  * Route guard (SEC C1). Unauthenticated users are bounced to /login; /admin
  * additionally requires the signed `admin` claim. API routes enforce their own
@@ -12,18 +19,23 @@ import { SESSION_COOKIE, verifySessionValue } from '@/server/session';
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const session = await verifySessionValue(req.cookies.get(SESSION_COOKIE)?.value);
+  const isDemo = req.cookies.get(DEMO_COOKIE)?.value === '1';
 
   if (pathname === '/login') {
-    // Already signed in → no reason to see the login screen.
+    // Already signed in → no reason to see the login screen. (Demo visitors stay
+    // free to revisit /login so they can leave the demo and sign in for real.)
     return session ? NextResponse.redirect(new URL('/', req.url)) : NextResponse.next();
   }
 
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', req.url));
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    // Admin always demands the real signed admin claim — demo never qualifies.
+    if (!session?.admin) return NextResponse.redirect(new URL(session ? '/' : '/login', req.url));
+    return NextResponse.next();
   }
 
-  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-    if (!session.admin) return NextResponse.redirect(new URL('/', req.url));
+  // Real session or a demo visitor may view the (client-rendered) app pages.
+  if (!session && !isDemo) {
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   return NextResponse.next();
