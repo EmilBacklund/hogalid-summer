@@ -49,19 +49,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const logout = useCallback(async () => {
-    const wasDemo = isDemoActive();
     // Always drop demo state first; in demo there is no real session to clear.
     exitDemo();
     try {
-      // In demo there is no server session — skip the network call entirely.
-      if (!wasDemo) await apiPost('/auth/logout', {});
+      // Skip the network call only for a *confirmed* demo session (flag agrees
+      // with the demo fixture). Branching on the raw flag alone would let a
+      // stale flag suppress logout for a real user, leaving the cookie intact.
+      if (!isDemo) await apiPost('/auth/logout', {});
     } catch {
       // Best-effort — clear locally regardless.
     }
     queryClient.clear();
     router.push('/login');
     router.refresh();
-  }, [queryClient, router]);
+  }, [isDemo, queryClient, router]);
 
   const value = useMemo<UserContextValue>(
     () => ({ user, isAdmin, isLeader, isDemo, isAuthenticated, isLoading, refresh, logout }),
