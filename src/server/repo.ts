@@ -30,6 +30,7 @@ function rowToUserBase(
     highscores: parseJson<Record<string, number>>(row.highscores, {}),
     secretFlags: parseJson<SecretFlags>(row.secret_flags, {}),
     joinedAt: row.joined_at ? String(row.joined_at) : null,
+    mustChangePassword: Number(row.must_change_password) === 1,
   };
 }
 

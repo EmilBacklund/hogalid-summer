@@ -56,6 +56,9 @@ export interface User {
   adultBingo: string[];
   completedDaily: Record<string, string>; // date → challengeId
   isAdmin?: boolean;
+  /** Set for leaders created by the admin who have not yet picked their own
+   * password. While true, the UI forces a password change on first login. */
+  mustChangePassword?: boolean;
 }
 
 /**

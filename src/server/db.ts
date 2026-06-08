@@ -46,7 +46,8 @@ export async function initDb(db: Client = getDb()): Promise<void> {
       highscores TEXT DEFAULT '{}',
       secret_flags TEXT DEFAULT '{}',
       joined_at TEXT,
-      role TEXT NOT NULL DEFAULT 'player'
+      role TEXT NOT NULL DEFAULT 'player',
+      must_change_password INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS logs (
@@ -178,6 +179,18 @@ export async function initDb(db: Client = getDb()): Promise<void> {
   // pre-existing account is a player; only admin-created accounts are leaders.
   try {
     await db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'player'");
+  } catch {
+    // column already exists
+  }
+
+  // Idempotent migration for the forced first-login password change. Leaders are
+  // created by the admin with a temporary password and must_change_password = 1;
+  // they pick their own password on first login. Pre-existing accounts default to
+  // 0 (no forced change).
+  try {
+    await db.execute(
+      'ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0',
+    );
   } catch {
     // column already exists
   }
