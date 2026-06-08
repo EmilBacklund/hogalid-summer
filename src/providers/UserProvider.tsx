@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useMe } from '@/hooks/useMe';
 import { apiPost } from '@/utils/api';
+import { exitDemo, isDemoActive } from '@/demo/demoMode';
 import type { User } from '@/types';
 
 interface UserContextValue {
@@ -13,6 +14,8 @@ interface UserContextValue {
   isAdmin: boolean;
   /** A coach account: moderates (e.g. approves photos) but does not play. */
   isLeader: boolean;
+  /** True while exploring the read-only demo (no real account, nothing saved). */
+  isDemo: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
   /** Re-fetch the current session user (e.g. after a mutation). */
@@ -36,6 +39,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const isAdmin = !!data && 'isAdmin' in data && data.isAdmin === true;
   const user = data && 'logs' in data ? data : null;
   const isLeader = user?.role === 'leader';
+  // Demo is active only when the per-tab flag is set AND the session resolved to
+  // the demo fixture — both must agree, so a stale flag can't masquerade.
+  const isDemo = isDemoActive() && user?.alias === 'demo';
   const isAuthenticated = !!data && !isError;
 
   const refresh = useCallback(async () => {
@@ -43,8 +49,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const logout = useCallback(async () => {
+    const wasDemo = isDemoActive();
+    // Always drop demo state first; in demo there is no real session to clear.
+    exitDemo();
     try {
-      await apiPost('/auth/logout', {});
+      // In demo there is no server session — skip the network call entirely.
+      if (!wasDemo) await apiPost('/auth/logout', {});
     } catch {
       // Best-effort — clear locally regardless.
     }
@@ -54,8 +64,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [queryClient, router]);
 
   const value = useMemo<UserContextValue>(
-    () => ({ user, isAdmin, isLeader, isAuthenticated, isLoading, refresh, logout }),
-    [user, isAdmin, isLeader, isAuthenticated, isLoading, refresh, logout],
+    () => ({ user, isAdmin, isLeader, isDemo, isAuthenticated, isLoading, refresh, logout }),
+    [user, isAdmin, isLeader, isDemo, isAuthenticated, isLoading, refresh, logout],
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

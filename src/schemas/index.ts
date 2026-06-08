@@ -30,6 +30,12 @@ export const registerInputSchema = z
     message: 'invite_required',
   });
 
+/** A user choosing their own new password (e.g. a leader's forced first-login
+ * change). Alias is always derived from the session cookie, never the body. */
+export const changePasswordSchema = z.object({
+  newPassword: z.string().min(4).max(200),
+});
+
 // ── Self updates (alias always derived from the session cookie) ───────────────
 
 export const updateSelfSchema = z.object({

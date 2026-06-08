@@ -46,4 +46,27 @@ describe('LoginPage', () => {
     // Submit is disabled until an invite is validated.
     expect(screen.getByRole('button', { name: /Skapa konto/ })).toBeDisabled();
   });
+
+  it('enters demo mode and navigates home, without any auth call', async () => {
+    window.sessionStorage.clear();
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Prova appen som förälder/ }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/'));
+    expect(window.sessionStorage.getItem('hf_demo')).toBe('1');
+    expect(apiPost).not.toHaveBeenCalled();
+  });
+
+  it('exits demo before a real login (no demo flag survives)', async () => {
+    window.sessionStorage.setItem('hf_demo', '1');
+    renderPage();
+    fireEvent.change(screen.getByPlaceholderText('t.ex. Fotbollstjej99'), {
+      target: { value: 'maja' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Välj ett lösenord'), {
+      target: { value: 'secret' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Spela/ }));
+    await waitFor(() => expect(apiPost).toHaveBeenCalledWith('/auth/login', expect.anything()));
+    expect(window.sessionStorage.getItem('hf_demo')).toBeNull();
+  });
 });

@@ -9,6 +9,12 @@ function request(path: string, cookie?: string): NextRequest {
   return new NextRequest(new URL(`http://localhost${path}`), { headers });
 }
 
+function demoRequest(path: string): NextRequest {
+  const headers = new Headers();
+  headers.set('cookie', 'hf_demo=1');
+  return new NextRequest(new URL(`http://localhost${path}`), { headers });
+}
+
 function location(res: Response): string | null {
   const loc = res.headers.get('location');
   return loc ? new URL(loc).pathname : null;
@@ -50,5 +56,16 @@ describe('middleware auth guard (SEC C1)', () => {
     const cookie = await signSession({ alias: 'admin', admin: true, iat: 1 });
     const res = await middleware(request('/admin', cookie));
     expect(location(res)).toBeNull();
+  });
+
+  it('lets a demo visitor (hf_demo cookie, no session) onto a protected page', async () => {
+    const res = await middleware(demoRequest('/profile'));
+    expect(location(res)).toBeNull();
+  });
+
+  it('still blocks a demo visitor from /admin (demo is never admin)', async () => {
+    const res = await middleware(demoRequest('/admin'));
+    expect(res.status).toBe(307);
+    expect(location(res)).toBe('/login');
   });
 });

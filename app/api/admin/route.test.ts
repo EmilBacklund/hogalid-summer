@@ -101,6 +101,20 @@ describe('POST /api/admin create-leader', () => {
     expect(stored).toMatch(/^[0-9a-f]+:[0-9a-f]+$/);
   });
 
+  it('flags a new leader to change their admin-issued password on first login', async () => {
+    const res = await POST(
+      req(
+        { action: 'create-leader', alias: 'tranare-bo', password: 'temp123' },
+        await cookie('admin', true),
+      ),
+    );
+    expect(res.status).toBe(201);
+    const insert = db.calls.find((c) => /INSERT INTO users/.test(c.sql));
+    // must_change_password is set as a SQL literal so the forced-change gate is on.
+    expect(insert!.sql).toMatch(/must_change_password/);
+    expect(insert!.sql).toMatch(/'leader', 1/);
+  });
+
   it('refuses to create a leader when the alias is taken (409)', async () => {
     db = createFakeDb([
       {

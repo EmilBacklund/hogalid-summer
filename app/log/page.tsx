@@ -62,6 +62,7 @@ export default function LogPage() {
 
 function LogContent({ user }: { user: User }) {
   const router = useRouter();
+  const { isDemo } = useUser();
   const { saveLog, editLog, savePenalty, recordSecretProgress } = useLogMutations();
   const saving = saveLog.isPending || editLog.isPending;
 
@@ -357,13 +358,18 @@ function LogContent({ user }: { user: User }) {
           btnVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0',
         )}
       >
+        {isDemo && (
+          <div className="mb-3 rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-center text-[13px] font-semibold text-white/75">
+            🎮 I demoläget sparas inga pass — skapa ett konto för att logga på riktigt.
+          </div>
+        )}
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || isDemo}
           className={cn(
             'text-hogalid-dark font-display flex w-full items-center justify-center gap-1.5 rounded-2xl py-4 text-xl shadow-[0_4px_24px_#f0dc0055] transition-colors',
-            saving ? 'cursor-not-allowed bg-[rgba(240,220,0,0.5)]' : 'bg-hogalid-yellow',
+            saving || isDemo ? 'cursor-not-allowed bg-[rgba(240,220,0,0.5)]' : 'bg-hogalid-yellow',
           )}
         >
           {saving ? (

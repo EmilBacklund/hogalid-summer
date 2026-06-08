@@ -9,3 +9,5 @@ export { BuddyCelebration } from './BuddyCelebration';
 export { CardFront, CardBack } from './CollectorCard';
 export { PenaltyGame, hasPenaltyPlayedToday, resetPenaltyToday } from './PenaltyGame';
 export { InstallPrompt } from './InstallPrompt';
+export { DemoBanner } from './DemoBanner';
+export { ForcePasswordChange } from './ForcePasswordChange';
