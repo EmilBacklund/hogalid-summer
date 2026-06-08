@@ -44,6 +44,8 @@ function log(offset: number, partial: Partial<Log> & { exercises: Log['exercises
 
 // A six-day streak ending today, with a mix of touches, free training and
 // summer activities so every stat card on the home screen has something to show.
+// Total points (≈400) are tuned to start above one card-pack cost (350) so a
+// demo visitor can actually open a player card and see the shop work.
 const DEMO_LOGS: Log[] = [
   log(0, {
     title: 'Toe taps i parken',
@@ -51,7 +53,7 @@ const DEMO_LOGS: Log[] = [
       { id: 'toetaps', value: 120 },
       { id: 'fritraning', value: 20 },
     ],
-    points: 60,
+    points: 75,
     iceCream: 1,
     swim: 1,
   }),
@@ -61,7 +63,7 @@ const DEMO_LOGS: Log[] = [
       { id: 'jonglera', value: 45 },
       { id: 'passningar', value: 100 },
     ],
-    points: 55,
+    points: 70,
     pages: 30,
   }),
   log(2, {
@@ -70,7 +72,7 @@ const DEMO_LOGS: Log[] = [
       { id: 'skott', value: 20 },
       { id: 'fritraning', value: 30 },
     ],
-    points: 50,
+    points: 65,
     swim: 1,
   }),
   log(3, {
@@ -79,13 +81,13 @@ const DEMO_LOGS: Log[] = [
       { id: 'cruyff', value: 60 },
       { id: 'suldrag', value: 80 },
     ],
-    points: 45,
+    points: 60,
     iceCream: 1,
   }),
   log(4, {
     title: 'Fri träning med kompis',
     exercises: [{ id: 'fritraning', value: 45 }],
-    points: 40,
+    points: 55,
     bingoFootball: true,
     pages: 50,
   }),
@@ -95,7 +97,7 @@ const DEMO_LOGS: Log[] = [
       { id: 'tvafotare', value: 150 },
       { id: 'toetaps', value: 100 },
     ],
-    points: 65,
+    points: 75,
     swim: 1,
   }),
 ];

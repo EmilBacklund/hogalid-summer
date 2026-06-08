@@ -110,10 +110,12 @@ export function POST(req: Request) {
         if (existing.rows.length > 0) throw new ApiError('alias_taken', 409);
         const hashed = await hashPassword(password);
         const joinedAt = new Date().toISOString();
+        // must_change_password = 1: the admin sets a temporary password; the
+        // leader must pick their own on first login (forced by the UI).
         await db.execute({
           sql: `INSERT INTO users
-                (alias, display_alias, password, avatar_config, unlocked_items, highscores, secret_flags, joined_at, role)
-                VALUES (?, ?, ?, '{}', '[]', '{}', '{}', ?, 'leader')`,
+                (alias, display_alias, password, avatar_config, unlocked_items, highscores, secret_flags, joined_at, role, must_change_password)
+                VALUES (?, ?, ?, '{}', '[]', '{}', '{}', ?, 'leader', 1)`,
           args: [key, alias.trim() || key, hashed, joinedAt],
         });
         return json({ ok: true }, 201);
