@@ -9,3 +9,4 @@ export { BuddyCelebration } from './BuddyCelebration';
 export { CardFront, CardBack } from './CollectorCard';
 export { PenaltyGame, hasPenaltyPlayedToday, resetPenaltyToday } from './PenaltyGame';
 export { DemoBanner } from './DemoBanner';
+export { ForcePasswordChange } from './ForcePasswordChange';
