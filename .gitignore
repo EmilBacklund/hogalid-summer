@@ -29,3 +29,6 @@ SHIP_REVIEW.md
 
 # Local photo storage (dev/E2E fallback for Netlify Blobs)
 .photos-dev/
+
+# Local DB backups/dumps (may contain credentials/PII — keep out of git)
+.backups/
