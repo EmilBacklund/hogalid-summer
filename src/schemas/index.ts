@@ -192,6 +192,19 @@ export const adminFirstLogSchema = z.object({ alias: aliasSchema, date: dateSche
 
 export const adminDeleteLogSchema = z.object({ logId: z.number().int().positive() });
 
+// ── Client error reporting ──────────────────────────────────────────────────────
+
+// Forwarded from the browser's Sentry `beforeSend` to /api/client-error, which
+// relays it to Discord. Lengths are capped to keep a hostile caller from
+// flooding the channel with oversized payloads.
+export const clientErrorSchema = z.object({
+  type: z.string().trim().min(1).max(200),
+  message: z.string().trim().min(1).max(2000),
+  url: z.string().trim().max(500).optional(),
+  stack: z.string().max(4000).optional(),
+  eventId: z.string().trim().max(64).optional(),
+});
+
 // ── Inferred types ─────────────────────────────────────────────────────────────
 
 export type LoginInput = z.infer<typeof loginInputSchema>;
@@ -206,3 +219,4 @@ export type PhotoUploadInput = z.infer<typeof photoUploadSchema>;
 export type PhotoReviewInput = z.infer<typeof photoReviewSchema>;
 export type WeeklyResultInput = z.infer<typeof weeklyResultSchema>;
 export type TeamMessageInput = z.infer<typeof teamMessageSchema>;
+export type ClientErrorInput = z.infer<typeof clientErrorSchema>;
