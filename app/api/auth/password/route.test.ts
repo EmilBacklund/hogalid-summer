@@ -48,6 +48,11 @@ describe('POST /api/auth/password', () => {
   });
 
   it('stores a hashed password and clears the forced-change flag (SEC C2)', async () => {
+    db = createFakeDb([
+      { test: (sql) => /UPDATE users SET password/.test(sql), result: { rowsAffected: 1 } },
+    ]);
+    vi.mocked(getDb).mockReturnValue(db.client);
+
     const res = await POST(req({ newPassword: 'brandnew' }, await cookie('anna', false)));
     expect(res.status).toBe(200);
     const update = db.calls.find((c) => /UPDATE users SET password/.test(c.sql));
@@ -58,5 +63,11 @@ describe('POST /api/auth/password', () => {
     expect(stored).toMatch(/^[0-9a-f]+:[0-9a-f]+$/);
     // Alias comes from the session, never the body.
     expect((update!.args as unknown[])[1]).toBe('anna');
+  });
+
+  it('returns 404 when the session alias no longer exists (stale cookie)', async () => {
+    // Default fake DB reports rowsAffected = 0, i.e. no matching user row.
+    const res = await POST(req({ newPassword: 'brandnew' }, await cookie('ghost', false)));
+    expect(res.status).toBe(404);
   });
 });

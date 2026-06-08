@@ -21,10 +21,13 @@ export function POST(req: Request) {
     const db = getDb();
     await initDb(db);
     const hashed = await hashPassword(newPassword);
-    await db.execute({
+    const result = await db.execute({
       sql: 'UPDATE users SET password = ?, must_change_password = 0 WHERE alias = ?',
       args: [hashed, session.alias],
     });
+    // Stale cookie for a deleted user: no row updated → 404, matching the
+    // rowsAffected convention used by the other write handlers.
+    if (result.rowsAffected === 0) throw new ApiError('not_found', 404);
     return json({ ok: true });
   });
 }
