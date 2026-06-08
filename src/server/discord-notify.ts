@@ -8,6 +8,9 @@ const RED = 0xe03131;
 /** Cap field lengths well under Discord's 4096/embed limit. */
 const MAX_DESC = 1500;
 
+/** Bound the webhook round-trip so a slow/hanging Discord can't stall the error path. */
+const POST_TIMEOUT_MS = 2000;
+
 function truncate(value: string, max: number): string {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
@@ -62,11 +65,14 @@ export async function postErrorToDiscord(input: DiscordErrorInput): Promise<void
       ? truncate(`${input.message}\n\n\`\`\`\n${input.stack}\n\`\`\``, MAX_DESC)
       : truncate(input.message, MAX_DESC);
 
-    await fetch(WEBHOOK_URL, {
+    const res = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(POST_TIMEOUT_MS),
       body: JSON.stringify({
         username: 'Hogalid Errors',
+        // Error text is partly user-controlled; never let it ping @everyone/roles.
+        allowed_mentions: { parse: [] },
         embeds: [
           {
             title: truncate(`🔴 ${input.type}`, 256),
@@ -77,6 +83,10 @@ export async function postErrorToDiscord(input: DiscordErrorInput): Promise<void
         ],
       }),
     });
+    if (!res.ok) {
+      // Best-effort: log for visibility but never throw (e.g. rate-limited webhook).
+      console.error('[discord-notify] webhook returned', res.status);
+    }
   } catch {
     // Never let a notification failure surface — Sentry still records the event.
   }
