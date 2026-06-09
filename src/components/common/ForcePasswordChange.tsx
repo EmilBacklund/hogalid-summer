@@ -59,7 +59,7 @@ export function ForcePasswordChange() {
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="text-hogalid-dark mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
         />
 
         <label className="text-hogalid-dark/80 mt-3 block text-xs font-bold" htmlFor="fpc-confirm">
@@ -71,7 +71,7 @@ export function ForcePasswordChange() {
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="text-hogalid-dark mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
         />
 
         {error && <p className="mt-3 text-sm font-bold text-red-600">{error}</p>}
