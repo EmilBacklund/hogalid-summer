@@ -1,12 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPut } from '@/utils/api';
-import type { Invite } from '@/types';
+import type { Invite, LeaderAccount } from '@/types';
 
 /** All invites, newest first (admin only). */
 export function useInvites() {
   return useQuery({
     queryKey: ['invites'],
     queryFn: () => apiGet<Invite[]>('/invites'),
+    staleTime: 30_000,
+  });
+}
+
+/** All leader (coach) accounts (admin only). */
+export function useLeaders() {
+  return useQuery({
+    queryKey: ['leaders'],
+    queryFn: () => apiGet<LeaderAccount[]>('/admin'),
     staleTime: 30_000,
   });
 }
@@ -20,6 +29,7 @@ export function useInvites() {
 export function useAdminMutations() {
   const queryClient = useQueryClient();
   const invalidateUsers = () => queryClient.invalidateQueries({ queryKey: ['users'] });
+  const invalidateLeaders = () => queryClient.invalidateQueries({ queryKey: ['leaders'] });
   const invalidateConfig = () => queryClient.invalidateQueries({ queryKey: ['config'] });
   const invalidateInvites = () => queryClient.invalidateQueries({ queryKey: ['invites'] });
 
@@ -36,14 +46,12 @@ export function useAdminMutations() {
   const createLeader = useMutation({
     mutationFn: (input: { alias: string; password: string }) =>
       apiPost('/admin', { action: 'create-leader', ...input }),
-    // Leaders are excluded from /users, but invalidate anyway so any roster the
-    // admin views stays consistent.
-    onSuccess: invalidateUsers,
+    onSuccess: () => Promise.all([invalidateUsers(), invalidateLeaders()]),
   });
 
   const deleteUser = useMutation({
     mutationFn: (alias: string) => apiPost('/admin', { action: 'delete-user', alias }),
-    onSuccess: invalidateUsers,
+    onSuccess: () => Promise.all([invalidateUsers(), invalidateLeaders()]),
   });
 
   const deleteLog = useMutation({

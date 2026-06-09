@@ -5,7 +5,7 @@ vi.mock('@/server/db', () => ({
   initDb: vi.fn(async () => {}),
 }));
 
-import { POST } from './route';
+import { GET, POST } from './route';
 import { getDb } from '@/server/db';
 import { signSession, SESSION_COOKIE } from '@/server/session';
 import { createFakeDb, type FakeDb } from '@/test/fakeDb';
@@ -23,6 +23,12 @@ function req(body: unknown, cookieHeader?: string): Request {
     headers,
     body: JSON.stringify(body),
   });
+}
+
+function getReq(cookieHeader?: string): Request {
+  const headers: Record<string, string> = {};
+  if (cookieHeader) headers.cookie = cookieHeader;
+  return new Request('http://localhost/api/admin', { method: 'GET', headers });
 }
 
 let db: FakeDb;
@@ -68,6 +74,39 @@ describe('POST /api/admin (SEC C1 — admin-claim gating)', () => {
   it('rejects an unknown admin action', async () => {
     const res = await POST(req({ action: 'nuke-everything' }, await cookie('admin', true)));
     expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /api/admin (list leaders, admin-only)', () => {
+  it('rejects unauthenticated callers with 401', async () => {
+    const res = await GET(getReq());
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a non-admin session with 403', async () => {
+    const res = await GET(getReq(await cookie('maja', false)));
+    expect(res.status).toBe(403);
+  });
+
+  it('returns only leader accounts, without password material', async () => {
+    db = createFakeDb([
+      {
+        test: (sql) => /SELECT \* FROM users/.test(sql),
+        result: {
+          rows: [
+            { alias: 'tranare-anna', display_alias: 'Anna', role: 'leader', password: 'secret' },
+            { alias: 'maja', display_alias: 'Maja', role: 'player', password: 'secret' },
+          ] as never,
+        },
+      },
+    ]);
+    vi.mocked(getDb).mockReturnValue(db.client);
+    const res = await GET(getReq(await cookie('admin', true)));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Array<Record<string, unknown>>;
+    expect(body).toHaveLength(1);
+    expect(body[0]).toMatchObject({ alias: 'tranare-anna', displayAlias: 'Anna' });
+    expect(JSON.stringify(body)).not.toContain('secret');
   });
 });
 

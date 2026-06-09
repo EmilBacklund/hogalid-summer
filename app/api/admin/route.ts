@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { getDb, initDb } from '@/server/db';
 import { hashPassword } from '@/server/auth';
+import { loadAllUsers } from '@/server/repo';
 import { ApiError, handle, json, requireAdmin } from '@/server/responses';
 import { getPhotoStorage } from '@/server/photoStorage';
 import { stockholmToday } from '@/server/dates';
@@ -15,6 +16,29 @@ import {
 import type { Client } from '@libsql/client';
 
 export const runtime = 'nodejs';
+
+/**
+ * List the leader (coach) accounts so the admin can review and remove them.
+ * Admin-only (SEC C1). Leaders are excluded from `/users`, so this is the only
+ * place they surface; the response carries no password material (SEC C2).
+ */
+export function GET(req: Request) {
+  return handle(async () => {
+    await requireAdmin(req);
+    const db = getDb();
+    await initDb(db);
+    const users = await loadAllUsers(db);
+    const leaders = users
+      .filter((u) => u.role === 'leader')
+      .map((u) => ({
+        alias: u.alias,
+        displayAlias: u.displayAlias,
+        joinedAt: u.joinedAt,
+        mustChangePassword: u.mustChangePassword ?? false,
+      }));
+    return json(leaders);
+  });
+}
 
 const actionSchema = z.object({
   action: z.enum([

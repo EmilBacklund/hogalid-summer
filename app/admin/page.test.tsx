@@ -48,6 +48,7 @@ vi.mock('@/hooks/useConfig', () => ({
 const mutation = { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false };
 vi.mock('@/hooks/useAdmin', () => ({
   useInvites: () => ({ data: [invite] }),
+  useLeaders: () => ({ data: [] }),
   useAdminMutations: () => ({
     resetSeason: mutation,
     resetPassword: mutation,

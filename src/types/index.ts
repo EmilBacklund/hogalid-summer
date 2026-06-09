@@ -129,6 +129,15 @@ export interface BuddyChallenge {
 /** Current-session response from `/api/auth/me`: a user, or the admin marker. */
 export type Me = User | { alias: 'admin'; isAdmin: true };
 
+/** A leader (coach) account as listed in the admin panel. Excluded from
+ * `/users`; carries no password material. */
+export interface LeaderAccount {
+  alias: string;
+  displayAlias: string;
+  joinedAt: string | null;
+  mustChangePassword: boolean;
+}
+
 /** An invite as served to the admin UI (mirrors the server's InviteClient). */
 export interface Invite {
   id: number;
