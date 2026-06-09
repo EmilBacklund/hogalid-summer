@@ -1,8 +1,15 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useMe } from '@/hooks/useMe';
 import { apiPost } from '@/utils/api';
 import { exitDemo, isDemoActive } from '@/demo/demoMode';
@@ -35,6 +42,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const { data, isLoading, isError } = useMe();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const pathname = usePathname();
 
   const isAdmin = !!data && 'isAdmin' in data && data.isAdmin === true;
   const user = data && 'logs' in data ? data : null;
@@ -43,6 +51,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // the demo fixture — both must agree, so a stale flag can't masquerade.
   const isDemo = isDemoActive() && user?.alias === 'demo';
   const isAuthenticated = !!data && !isError;
+
+  // Self-heal a stale demo cookie. The `hf_demo` cookie is shared across tabs
+  // and outlives the per-tab sessionStorage flag, so the two can desync (new
+  // tab, restored tab, lingering cookie). When that happens the route-guard
+  // middleware still trusts the cookie and lets an app page render, but the
+  // client is NOT in demo (`isDemoActive()` is false), so `/api/auth/me` 401s
+  // and the page would hang forever on its loading state. Whenever the session
+  // resolves to "not authenticated and not a genuine demo", clear any leftover
+  // demo state and bounce to /login (where a real sign-in can happen).
+  useEffect(() => {
+    if (isLoading || isAuthenticated || isDemo) return;
+    if (pathname === '/login') return;
+    exitDemo();
+    router.replace('/login');
+  }, [isLoading, isAuthenticated, isDemo, pathname, router]);
 
   const refresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['me'] });
