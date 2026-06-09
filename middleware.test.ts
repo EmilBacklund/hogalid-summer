@@ -20,11 +20,26 @@ function location(res: Response): string | null {
   return loc ? new URL(loc).pathname : null;
 }
 
+function locationUrl(res: Response): URL | null {
+  const loc = res.headers.get('location');
+  return loc ? new URL(loc) : null;
+}
+
 describe('middleware auth guard (SEC C1)', () => {
   it('redirects an unauthenticated user to /login', async () => {
     const res = await middleware(request('/profile'));
     expect(res.status).toBe(307);
     expect(location(res)).toBe('/login');
+  });
+
+  it('preserves an invite query string when bouncing to /login', async () => {
+    const res = await middleware(request('/?invite=abc123'));
+    expect(res.status).toBe(307);
+    const url = locationUrl(res);
+    expect(url?.pathname).toBe('/login');
+    // The invite token must survive the redirect so the login page can pre-fill
+    // and validate the code automatically.
+    expect(url?.searchParams.get('invite')).toBe('abc123');
   });
 
   it('lets /login through when unauthenticated', async () => {

@@ -35,7 +35,12 @@ export async function middleware(req: NextRequest) {
 
   // Real session or a demo visitor may view the (client-rendered) app pages.
   if (!session && !isDemo) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    // Preserve the query string so an invite link (`/?invite=<token>`) still
+    // pre-fills + validates the code after the bounce to /login. Dropping it
+    // forced new players to hunt for the code manually.
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.search = req.nextUrl.search;
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
