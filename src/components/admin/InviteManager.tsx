@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { COLORS } from '@/constants';
 import { useInvites, useAdminMutations } from '@/hooks/useAdmin';
+import { useAllUsers } from '@/hooks/useAllUsers';
 import type { Invite } from '@/types';
 
 function statusLabel(invite: Invite): string {
@@ -94,9 +95,21 @@ const SMALL_BTN = 'rounded-lg bg-white/10 px-2.5 py-[7px] text-xs font-bold text
 /** Create + manage named invite links/codes. */
 export function InviteManager() {
   const { data: invites = [] } = useInvites();
+  const { data: allUsers = [] } = useAllUsers();
   const { createInvite, updateInvite } = useAdminMutations();
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState<{ id: number; mode: string } | null>(null);
+
+  // The display name (smeknamn) a redeemer currently uses, keyed by their
+  // lowercased login alias — so the admin sees both the login id the invite is
+  // tied to AND the nickname that player goes by now.
+  const nicknameByAlias = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const u of allUsers) {
+      if (u.displayName) map.set(u.alias.toLowerCase(), u.displayName);
+    }
+    return map;
+  }, [allUsers]);
 
   async function handleCreate() {
     if (!label.trim()) return;
@@ -162,6 +175,11 @@ export function InviteManager() {
               invite={invite}
               busy={busy}
               onAction={handleAction}
+              redeemerNickname={
+                invite.usedByAlias
+                  ? (nicknameByAlias.get(invite.usedByAlias.toLowerCase()) ?? null)
+                  : null
+              }
             />
           ))}
         </div>
@@ -174,10 +192,13 @@ function InviteCard({
   invite,
   busy,
   onAction,
+  redeemerNickname,
 }: {
   invite: Invite;
   busy: { id: number; mode: string } | null;
   onAction: (inviteId: number, mode: 'disable' | 'enable') => void;
+  /** The smeknamn the redeemer currently goes by, if they set one. */
+  redeemerNickname: string | null;
 }) {
   const inviteUrl = `${window.location.origin}/?invite=${invite.token}`;
   const [qr, setQr] = useState<string | null>(null);
@@ -249,8 +270,13 @@ function InviteCard({
           <div className="text-xs font-bold text-white">{formatDateTime(invite.clickedAt)}</div>
         </div>
         <div className="rounded-lg bg-white/5 px-2.5 py-2">
-          <div className="mb-[3px] text-[10px] text-white/35">Använd av</div>
+          <div className="mb-[3px] text-[10px] text-white/35">Använd av (inloggning)</div>
           <div className="text-xs font-bold text-white">{invite.usedByAlias || '—'}</div>
+          {redeemerNickname && (
+            <div className="mt-0.5 text-[10px] text-white/55">
+              Smeknamn: <span className="font-bold text-white/80">{redeemerNickname}</span>
+            </div>
+          )}
           <div className="mt-0.5 text-[10px] text-white/35">{formatDateTime(invite.usedAt)}</div>
         </div>
       </div>

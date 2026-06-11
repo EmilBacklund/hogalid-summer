@@ -91,7 +91,15 @@ export function PlayerCard({ player, stats, lastActivity, today, inviteLabel }: 
         <div className="flex items-center gap-2">
           <AvatarSVG avatarConfig={player.avatarConfig} size={32} />
           <div>
-            <div className="text-base font-bold text-white">{player.alias}</div>
+            <div className="text-base font-bold text-white">
+              {player.displayName || player.displayAlias || player.alias}
+            </div>
+            {/* The login username (alias) is immutable and what the player must
+                sign in with — always show it, distinct from the editable nickname. */}
+            <div className="text-[11px] text-white/40">
+              👤 Inloggning:{' '}
+              <span className="font-bold text-white/70">{player.displayAlias || player.alias}</span>
+            </div>
             <div className="text-xs text-white/40">
               {level.icon} {level.name}
             </div>

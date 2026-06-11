@@ -107,10 +107,16 @@ export function ProfileHeader({
           </button>
         </div>
       )}
+      {/* Always visible so it's clear the editable name above is only a
+          nickname — the login username never changes. */}
+      <div className="mt-1.5 text-[11px] text-white/40">
+        👤 Inloggningsnamn: <span className="font-bold text-white/65">{displayAlias}</span>
+      </div>
       {editingName && (
-        <div className="mt-1.5 text-[11px] text-white/40">
-          Du loggar fortfarande in med{' '}
-          <span className="font-bold text-white/65">{displayAlias}</span>
+        <div className="mt-1 text-[11px] text-white/40">
+          Det här ändrar bara ditt <span className="font-bold text-white/65">smeknamn</span> (vad
+          andra ser) — du loggar fortfarande in med{' '}
+          <span className="font-bold text-white/65">{displayAlias}</span>.
         </div>
       )}
 
