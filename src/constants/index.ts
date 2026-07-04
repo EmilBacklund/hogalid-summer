@@ -13,6 +13,11 @@ export {
   WEEKLY_CHALLENGES,
 } from './challenges';
 export {
+  PHOTO_CHALLENGES,
+  PHOTO_CHALLENGES_START,
+  PHOTO_CHALLENGE_POINTS,
+} from './photoChallenges';
+export {
   STARTER_OPTIONS,
   AVATAR_REWARDS,
   CATEGORIES,

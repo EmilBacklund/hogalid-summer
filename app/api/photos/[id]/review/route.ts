@@ -1,6 +1,6 @@
 import { getDb, initDb } from '@/server/db';
 import { ApiError, handle, json, parseBody, requireLeader } from '@/server/responses';
-import { deletePhotoById } from '@/server/photos';
+import { awardPhotoChallengeBonus, deletePhotoById } from '@/server/photos';
 import { photoReviewSchema } from '@/schemas';
 
 export const runtime = 'nodejs';
@@ -23,11 +23,22 @@ export function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
     await initDb(db);
 
     if (action === 'approve') {
-      const result = await db.execute({
+      const photo = await db.execute({
+        sql: 'SELECT alias, week_start, status FROM album_photos WHERE id = ?',
+        args: [photoId],
+      });
+      const row = photo.rows[0];
+      if (!row) throw new ApiError('not_found', 404);
+      const wasPending = String(row.status) === 'pending';
+      await db.execute({
         sql: "UPDATE album_photos SET status = 'approved' WHERE id = ?",
         args: [photoId],
       });
-      if (result.rowsAffected === 0) throw new ApiError('not_found', 404);
+      // The weekly photo-challenge bonus follows the pending→approved
+      // transition only, so re-approving an already-published photo is a no-op.
+      if (wasPending) {
+        await awardPhotoChallengeBonus(db, String(row.alias), String(row.week_start));
+      }
       return json({ ok: true, status: 'approved' });
     }
 

@@ -206,6 +206,14 @@ export interface WeeklyChallenge {
   points: number;
 }
 
+/** A weekly photo challenge — a summer-themed prompt for the team album. */
+export interface PhotoChallenge {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+}
+
 export interface Sticker {
   id: string;
   label: string;
