@@ -8,6 +8,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn(), push: 
 const player: User = {
   alias: 'maja',
   displayAlias: 'Maja',
+  displayName: 'Majapaja',
   role: 'player',
   avatarConfig: {},
   unlockedItems: [],
@@ -25,7 +26,7 @@ const player: User = {
 
 const invite: Invite = {
   id: 1,
-  label: 'Maja',
+  label: 'Lag-Maja',
   token: 'tok',
   code: 'F15-ABCD',
   status: 'used',
@@ -85,7 +86,9 @@ describe('AdminPage', () => {
     render(<AdminPage />);
     expect(screen.getByText('Admin — Högalid F15')).toBeInTheDocument();
     expect(screen.getByText(/Nollställ säsong/)).toBeInTheDocument();
-    expect(screen.getByText('maja')).toBeInTheDocument();
+    // The card leads with the nickname but always surfaces the immutable login id.
+    expect(screen.getByText('Majapaja')).toBeInTheDocument();
+    expect(screen.getByText('Maja')).toBeInTheDocument();
     // The invite manager lives behind the other tab.
     expect(screen.queryByText('🔐 Inbjudningslänkar & koder')).not.toBeInTheDocument();
   });
@@ -93,7 +96,7 @@ describe('AdminPage', () => {
   it('shows which invite a player signed up with', () => {
     render(<AdminPage />);
     expect(screen.getByText(/Inbjuden som/)).toBeInTheDocument();
-    expect(screen.getByText('Maja')).toBeInTheDocument();
+    expect(screen.getByText('Lag-Maja')).toBeInTheDocument();
   });
 
   it('switches to the invites tab', async () => {
