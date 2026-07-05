@@ -31,4 +31,14 @@ describe('levels', () => {
     expect(getLevelIndex(0)).toBe(0);
     expect(getLevelIndex(LAST.min)).toBe(LEVELS.length - 1);
   });
+
+  it('prestige levels continue past Sommarlegend (19 050)', () => {
+    // Calibrated mid-season 2026: the top player (~43 000 p at halftime)
+    // must land mid-prestige with the next level within reach.
+    expect(getLevel(19050).name).toBe('Sommarlegend');
+    expect(getNextLevel(19050)).not.toBeNull();
+    expect(getLevel(43298).name).toBe('Sommar-GOAT');
+    expect(getNextLevel(43298)?.min).toBe(44000);
+    expect(LAST.min).toBe(68000);
+  });
 });

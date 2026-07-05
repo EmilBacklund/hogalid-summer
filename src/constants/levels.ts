@@ -1,7 +1,11 @@
-// Individual levels — 20 levels across 12 weeks
+// Individual levels — 29 levels across 12 weeks
 // Poäng = touch + minuter*5. En flitig spelare (~1h/dag, 5 dagar/v) gör
 // ~700 touch + 60 min = ~1000 p/vecka = ~12 000 p på 12 veckor.
-// Nivå 20 kräver 11 500 p → nåbart men kräver hela sommaren.
+//
+// Nivå 1–20 är grundstegen (max 19 050). Prestige-nivåerna däröver lades
+// till vid halvtid sommaren 2026, kalibrerade mot verklig aktivitet: toppen
+// hade då ~43 000 p och var på väg mot ~65–70 000 till säsongsslut. Sista
+// nivån (68 000) ska bara vara nåbar för den som håller full fart hela vägen.
 import type { Level, TeamLevel } from '../types';
 
 export const LEVELS: Level[] = [
@@ -25,6 +29,16 @@ export const LEVELS: Level[] = [
   { name: 'Fotbollsgeni', min: 15350, icon: '🧠' },
   { name: 'Legendstatus', min: 17150, icon: '👑' },
   { name: 'Sommarlegend', min: 19050, icon: '🏆' },
+  // ── Prestige-nivåer ──────────────────────────────────────────────────────
+  { name: 'Världsstjärna', min: 21000, icon: '🌍' },
+  { name: 'Diamantbollen', min: 24500, icon: '💎' },
+  { name: 'Kometen', min: 28500, icon: '☄️' },
+  { name: 'Supernova', min: 33000, icon: '🎆' },
+  { name: 'Sommar-GOAT', min: 38000, icon: '🐐' },
+  { name: 'Utomjordisk', min: 44000, icon: '🛸' },
+  { name: 'Ostoppbar', min: 51000, icon: '🚀' },
+  { name: 'Odödlig', min: 59000, icon: '⚡' },
+  { name: 'Alla tiders sommarlegend', min: 68000, icon: '🌟' },
 ];
 
 // Team levels — based on combined (touch + min*5) from ALL players
