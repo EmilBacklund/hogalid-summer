@@ -13,6 +13,7 @@ export { computeStats } from './stats';
 export { computeCoins } from './cards';
 export {
   getDailyChallenge,
+  getPhotoChallenge,
   getWeeklyChallenge,
   getWeeklyLevelInfo,
   WEEKLY_LEVEL_NAMES,

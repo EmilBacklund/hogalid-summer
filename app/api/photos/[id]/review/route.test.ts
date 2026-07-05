@@ -44,20 +44,39 @@ beforeEach(() => {
 });
 afterEach(() => setPhotoStorageForTests(null));
 
-function dbWithPhoto(): FakeDb {
+function dbWithPhoto(opts: { status?: string; bonusAlreadyPaid?: boolean } = {}): FakeDb {
   return createFakeDb([
     // deletePhotoById looks up the blob_key before removing the row.
     {
       test: (sql) => /SELECT blob_key FROM album_photos/.test(sql),
       result: { rows: [{ blob_key: 'maja/2026-06-01/abc' } as never] },
     },
-    // approve flips status; rowsAffected drives the 404 check.
+    // approve reads the row first: uploader + week drive the challenge bonus.
+    {
+      test: (sql) => /SELECT alias, week_start, status FROM album_photos/.test(sql),
+      result: {
+        rows: [
+          {
+            alias: 'maja',
+            week_start: '2026-07-06',
+            status: opts.status ?? 'pending',
+          } as never,
+        ],
+      },
+    },
+    // the once-per-challenge dedupe check on the logs table.
+    {
+      test: (sql) => /SELECT COUNT\(\*\) AS count FROM logs/.test(sql),
+      result: { rows: [{ count: opts.bonusAlreadyPaid ? 1 : 0 } as never] },
+    },
     {
       test: (sql) => /UPDATE album_photos SET status = 'approved'/.test(sql),
       result: { rowsAffected: 1 },
     },
   ]);
 }
+
+const bonusInsert = (db: FakeDb) => db.calls.find((c) => /INSERT INTO logs/.test(c.sql));
 
 describe('POST /api/photos/[id]/review (SEC — leader-only moderation)', () => {
   it('rejects unauthenticated callers with 401', async () => {
@@ -83,6 +102,36 @@ describe('POST /api/photos/[id]/review (SEC — leader-only moderation)', () => 
     const update = db.calls.find((c) => /UPDATE album_photos SET status = 'approved'/.test(c.sql));
     expect(update).toBeDefined();
     expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it('awards the weekly photo-challenge bonus on approval (SEC H1 — server-fixed points)', async () => {
+    const db = dbWithPhoto();
+    vi.mocked(getDb).mockReturnValue(db.client);
+    const res = await POST(reviewReq('approve', await cookie('admin', { admin: true })), params);
+    expect(res.status).toBe(200);
+    const insert = bonusInsert(db);
+    expect(insert).toBeDefined();
+    // alias, date, points, title, created_at — points fixed at 50, challenge
+    // resolved from the photo's week (2026-07-06 → Sommarens glass).
+    expect(insert!.args[0]).toBe('maja');
+    expect(insert!.args[2]).toBe(50);
+    expect(insert!.args[3]).toBe('📸 Fotoutmaning: Sommarens glass');
+  });
+
+  it('never double-pays: a second approved photo the same week awards nothing', async () => {
+    const db = dbWithPhoto({ bonusAlreadyPaid: true });
+    vi.mocked(getDb).mockReturnValue(db.client);
+    const res = await POST(reviewReq('approve', await cookie('admin', { admin: true })), params);
+    expect(res.status).toBe(200);
+    expect(bonusInsert(db)).toBeUndefined();
+  });
+
+  it('re-approving an already-approved photo is a no-op for the bonus', async () => {
+    const db = dbWithPhoto({ status: 'approved' });
+    vi.mocked(getDb).mockReturnValue(db.client);
+    const res = await POST(reviewReq('approve', await cookie('admin', { admin: true })), params);
+    expect(res.status).toBe(200);
+    expect(bonusInsert(db)).toBeUndefined();
   });
 
   it('lets the admin reject a photo, deleting both bytes and row', async () => {

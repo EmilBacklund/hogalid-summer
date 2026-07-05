@@ -1,6 +1,11 @@
-import { DAILY_CHALLENGES, WEEKLY_CHALLENGES } from '../constants';
-import { localToday } from './date';
-import type { DailyChallenge, WeeklyChallenge, WeeklyLevelInfo } from '../types';
+import {
+  DAILY_CHALLENGES,
+  WEEKLY_CHALLENGES,
+  PHOTO_CHALLENGES,
+  PHOTO_CHALLENGES_START,
+} from '../constants';
+import { getWeekStart, localToday } from './date';
+import type { DailyChallenge, PhotoChallenge, WeeklyChallenge, WeeklyLevelInfo } from '../types';
 
 export const WEEKLY_LEVEL_NAMES = [
   'Brons',
@@ -79,6 +84,17 @@ export function getDailyChallenge(seasonStart?: string | null): DailyChallenge {
   const index =
     ((dayNum % DAILY_CHALLENGES.length) + DAILY_CHALLENGES.length) % DAILY_CHALLENGES.length;
   return DAILY_CHALLENGES[index]!;
+}
+
+// The photo challenge for the week containing `dateKey` (defaults to today).
+// Anchored at PHOTO_CHALLENGES_START; earlier weeks clamp to the first
+// challenge (so the feature works the day it deploys), later weeks cycle.
+export function getPhotoChallenge(dateKey?: string): PhotoChallenge {
+  const weekStart = getWeekStart(dateKey || localToday());
+  const anchor = getWeekStart(PHOTO_CHALLENGES_START);
+  const weekNum = Math.floor((dateKeyToDayNumber(weekStart) - dateKeyToDayNumber(anchor)) / 7);
+  const index = weekNum <= 0 ? 0 : weekNum % PHOTO_CHALLENGES.length;
+  return PHOTO_CHALLENGES[index]!;
 }
 
 // This week's team challenge. If seasonStart is provided, week 0 = first week.

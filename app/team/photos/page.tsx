@@ -3,8 +3,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Camera, ImagePlus } from 'lucide-react';
-import { COLORS } from '@/constants';
-import { getWeekStart, localToday } from '@/utils';
+import { COLORS, PHOTO_CHALLENGE_POINTS } from '@/constants';
+import { getPhotoChallenge, getWeekStart, localToday } from '@/utils';
 import { ButtonLoader, LoadingSpinner, TopBar } from '@/components/common';
 import { AlbumPage, AlbumLightbox, buildAlbumPages } from '@/components/photos';
 import { useUser } from '@/providers/UserProvider';
@@ -31,6 +31,26 @@ export default function PhotoAlbumPage() {
     );
   }
   return <PhotoAlbumContent user={user} />;
+}
+
+function PhotoChallengeBanner({ showPoints }: { showPoints: boolean }) {
+  const challenge = getPhotoChallenge();
+  return (
+    <div className="border-hogalid-yellow/25 mb-4 rounded-2xl border bg-white/[0.06] px-4 py-3">
+      <div className="text-hogalid-yellow text-[11px] font-extrabold tracking-[1.1px] uppercase">
+        📸 Veckans fotoutmaning
+      </div>
+      <div className="font-display mt-1 text-xl leading-tight text-white">
+        {challenge.icon} {challenge.label}
+      </div>
+      <div className="mt-1 text-[13px] leading-snug text-white/70">{challenge.description}</div>
+      {showPoints && (
+        <div className="text-hogalid-yellow mt-1.5 text-xs font-bold">
+          +{PHOTO_CHALLENGE_POINTS} p när din bild godkänns
+        </div>
+      )}
+    </div>
+  );
 }
 
 function PhotoAlbumContent({ user }: { user: User }) {
@@ -155,6 +175,10 @@ function PhotoAlbumContent({ user }: { user: User }) {
             </div>
           </div>
         </div>
+
+        {/* Veckans fotoutmaning — sommartema, byts varje måndag. Alla som får
+            en bild godkänd under veckan får samma bonus (ingen vinnare). */}
+        <PhotoChallengeBanner showPoints={canUpload && !isDemo} />
 
         {/* Upload row — players only. Leaders/admin curate but never upload, and
             it's hidden in demo (uploads need a real account + moderation). */}
